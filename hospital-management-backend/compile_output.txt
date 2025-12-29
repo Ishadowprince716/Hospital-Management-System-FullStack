@@ -1,0 +1,393 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.hospital:hospital-management >------------------
+[INFO] Building Hospital Management System 1.0.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-cli) @ hospital-management ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 22 source files with javac [debug release 17] to target\classes
+[INFO] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/config/JwtUtil.java: C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\config\JwtUtil.java uses or overrides a deprecated API.
+[INFO] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/config/JwtUtil.java: Recompile with -Xlint:deprecation for details.
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/controller/AuthController.java:[16,31] variable authService not initialized in the default constructor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[32,71] cannot find symbol
+  symbol:   method getUsername()
+  location: variable request of type com.hospital.dto.LoginRequest
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[40,45] cannot find symbol
+  symbol:   method getPassword()
+  location: variable request of type com.hospital.dto.LoginRequest
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[40,65] cannot find symbol
+  symbol:   method getPassword()
+  location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[44,18] cannot find symbol
+  symbol:   method getRole()
+  location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[44,53] cannot find symbol
+  symbol:   method getRole()
+  location: variable request of type com.hospital.dto.LoginRequest
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[48,18] cannot find symbol
+  symbol:   method getIsActive()
+  location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[52,50] cannot find symbol
+  symbol:   method getUsername()
+  location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[52,70] cannot find symbol
+  symbol:   method getRole()
+  location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[52,86] cannot find symbol
+  symbol:   method getId()
+  location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[59,21] cannot find symbol
+  symbol:   method getFullName()
+  location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[58,21] cannot find symbol
+  symbol:   method getId()
+  location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[57,21] cannot find symbol
+  symbol:   method getRole()
+  location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[56,21] cannot find symbol
+  symbol:   method getUsername()
+  location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[68,18] cannot find symbol
+  symbol:   method setUsername(java.lang.String)
+  location: variable admin of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[69,18] cannot find symbol
+  symbol:   method setPassword(java.lang.String)
+  location: variable admin of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[70,18] cannot find symbol
+  symbol:   method setEmail(java.lang.String)
+  location: variable admin of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[71,18] cannot find symbol
+  symbol:   method setPhoneNumber(java.lang.String)
+  location: variable admin of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[72,18] cannot find symbol
+  symbol:   method setRole(java.lang.String)
+  location: variable admin of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[73,18] cannot find symbol
+  symbol:   method setFullName(java.lang.String)
+  location: variable admin of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[74,18] cannot find symbol
+  symbol:   method setIsActive(boolean)
+  location: variable admin of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[81,19] cannot find symbol
+  symbol:   method setUsername(java.lang.String)
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[82,19] cannot find symbol
+  symbol:   method setPassword(java.lang.String)
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[83,19] cannot find symbol
+  symbol:   method setEmail(java.lang.String)
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[84,19] cannot find symbol
+  symbol:   method setPhoneNumber(java.lang.String)
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[85,19] cannot find symbol
+  symbol:   method setRole(java.lang.String)
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[86,19] cannot find symbol
+  symbol:   method setFullName(java.lang.String)
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[87,19] cannot find symbol
+  symbol:   method setSpecialization(java.lang.String)
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[88,19] cannot find symbol
+  symbol:   method setQualification(java.lang.String)
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[89,19] cannot find symbol
+  symbol:   method setExperienceYears(int)
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[90,19] cannot find symbol
+  symbol:   method setConsultationFee(double)
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[91,19] cannot find symbol
+  symbol:   method setDepartment(java.lang.String)
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[92,19] cannot find symbol
+  symbol:   method setLicenseNumber(java.lang.String)
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[93,19] cannot find symbol
+  symbol:   method setAvailableDays(java.lang.String)
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[94,19] cannot find symbol
+  symbol:   method setAvailableTimeStart(java.lang.String)
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[95,19] cannot find symbol
+  symbol:   method setAvailableTimeEnd(java.lang.String)
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[96,19] cannot find symbol
+  symbol:   method setIsActive(boolean)
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[103,20] cannot find symbol
+  symbol:   method setUsername(java.lang.String)
+  location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[104,20] cannot find symbol
+  symbol:   method setPassword(java.lang.String)
+  location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[105,20] cannot find symbol
+  symbol:   method setEmail(java.lang.String)
+  location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[106,20] cannot find symbol
+  symbol:   method setPhoneNumber(java.lang.String)
+  location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[107,20] cannot find symbol
+  symbol:   method setRole(java.lang.String)
+  location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[108,20] cannot find symbol
+  symbol:   method setFullName(java.lang.String)
+  location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[109,20] cannot find symbol
+  symbol:   method setDateOfBirth(java.time.LocalDate)
+  location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[110,20] cannot find symbol
+  symbol:   method setGender(java.lang.String)
+  location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[111,20] cannot find symbol
+  symbol:   method setBloodGroup(java.lang.String)
+  location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[112,20] cannot find symbol
+  symbol:   method setAddress(java.lang.String)
+  location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[113,20] cannot find symbol
+  symbol:   method setEmergencyContact(java.lang.String)
+  location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[114,20] cannot find symbol
+  symbol:   method setEmergencyContactName(java.lang.String)
+  location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[115,20] cannot find symbol
+  symbol:   method setIsActive(boolean)
+  location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/config/JwtUtil.java:[44,20] cannot find symbol
+  symbol:   method parserBuilder()
+  location: class io.jsonwebtoken.Jwts
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[42,20] cannot find symbol
+  symbol:   method setPatient(com.hospital.model.Patient)
+  location: variable appointment of type com.hospital.model.Appointment
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[43,20] cannot find symbol
+  symbol:   method setDoctor(com.hospital.model.Doctor)
+  location: variable appointment of type com.hospital.model.Appointment
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[44,20] cannot find symbol
+  symbol:   method setAppointmentDate(java.time.LocalDate)
+  location: variable appointment of type com.hospital.model.Appointment
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[45,20] cannot find symbol
+  symbol:   method setAppointmentTime(java.time.LocalTime)
+  location: variable appointment of type com.hospital.model.Appointment
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[46,20] cannot find symbol
+  symbol:   method setReason(java.lang.String)
+  location: variable appointment of type com.hospital.model.Appointment
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[47,20] cannot find symbol
+  symbol:   method setAppointmentType(type != nu[...]TION")
+  location: variable appointment of type com.hospital.model.Appointment
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[48,20] cannot find symbol
+  symbol:   method setStatus(java.lang.String)
+  location: variable appointment of type com.hospital.model.Appointment
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[49,20] cannot find symbol
+  symbol:   method setPaymentStatus(java.lang.String)
+  location: variable appointment of type com.hospital.model.Appointment
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[50,46] cannot find symbol
+  symbol:   method getConsultationFee()
+  location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[72,20] cannot find symbol
+  symbol:   method setStatus(java.lang.String)
+  location: variable appointment of type com.hospital.model.Appointment
+[INFO] 61 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  6.443 s
+[INFO] Finished at: 2025-12-27T13:02:45+05:30
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:compile (default-cli) on project hospital-management: Compilation failure: Compilation failure: 
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/controller/AuthController.java:[16,31] variable authService not initialized in the default constructor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[32,71] cannot find symbol
+[ERROR]   symbol:   method getUsername()
+[ERROR]   location: variable request of type com.hospital.dto.LoginRequest
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[40,45] cannot find symbol
+[ERROR]   symbol:   method getPassword()
+[ERROR]   location: variable request of type com.hospital.dto.LoginRequest
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[40,65] cannot find symbol
+[ERROR]   symbol:   method getPassword()
+[ERROR]   location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[44,18] cannot find symbol
+[ERROR]   symbol:   method getRole()
+[ERROR]   location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[44,53] cannot find symbol
+[ERROR]   symbol:   method getRole()
+[ERROR]   location: variable request of type com.hospital.dto.LoginRequest
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[48,18] cannot find symbol
+[ERROR]   symbol:   method getIsActive()
+[ERROR]   location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[52,50] cannot find symbol
+[ERROR]   symbol:   method getUsername()
+[ERROR]   location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[52,70] cannot find symbol
+[ERROR]   symbol:   method getRole()
+[ERROR]   location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[52,86] cannot find symbol
+[ERROR]   symbol:   method getId()
+[ERROR]   location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[59,21] cannot find symbol
+[ERROR]   symbol:   method getFullName()
+[ERROR]   location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[58,21] cannot find symbol
+[ERROR]   symbol:   method getId()
+[ERROR]   location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[57,21] cannot find symbol
+[ERROR]   symbol:   method getRole()
+[ERROR]   location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[56,21] cannot find symbol
+[ERROR]   symbol:   method getUsername()
+[ERROR]   location: variable user of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[68,18] cannot find symbol
+[ERROR]   symbol:   method setUsername(java.lang.String)
+[ERROR]   location: variable admin of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[69,18] cannot find symbol
+[ERROR]   symbol:   method setPassword(java.lang.String)
+[ERROR]   location: variable admin of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[70,18] cannot find symbol
+[ERROR]   symbol:   method setEmail(java.lang.String)
+[ERROR]   location: variable admin of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[71,18] cannot find symbol
+[ERROR]   symbol:   method setPhoneNumber(java.lang.String)
+[ERROR]   location: variable admin of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[72,18] cannot find symbol
+[ERROR]   symbol:   method setRole(java.lang.String)
+[ERROR]   location: variable admin of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[73,18] cannot find symbol
+[ERROR]   symbol:   method setFullName(java.lang.String)
+[ERROR]   location: variable admin of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[74,18] cannot find symbol
+[ERROR]   symbol:   method setIsActive(boolean)
+[ERROR]   location: variable admin of type com.hospital.model.User
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[81,19] cannot find symbol
+[ERROR]   symbol:   method setUsername(java.lang.String)
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[82,19] cannot find symbol
+[ERROR]   symbol:   method setPassword(java.lang.String)
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[83,19] cannot find symbol
+[ERROR]   symbol:   method setEmail(java.lang.String)
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[84,19] cannot find symbol
+[ERROR]   symbol:   method setPhoneNumber(java.lang.String)
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[85,19] cannot find symbol
+[ERROR]   symbol:   method setRole(java.lang.String)
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[86,19] cannot find symbol
+[ERROR]   symbol:   method setFullName(java.lang.String)
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[87,19] cannot find symbol
+[ERROR]   symbol:   method setSpecialization(java.lang.String)
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[88,19] cannot find symbol
+[ERROR]   symbol:   method setQualification(java.lang.String)
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[89,19] cannot find symbol
+[ERROR]   symbol:   method setExperienceYears(int)
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[90,19] cannot find symbol
+[ERROR]   symbol:   method setConsultationFee(double)
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[91,19] cannot find symbol
+[ERROR]   symbol:   method setDepartment(java.lang.String)
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[92,19] cannot find symbol
+[ERROR]   symbol:   method setLicenseNumber(java.lang.String)
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[93,19] cannot find symbol
+[ERROR]   symbol:   method setAvailableDays(java.lang.String)
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[94,19] cannot find symbol
+[ERROR]   symbol:   method setAvailableTimeStart(java.lang.String)
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[95,19] cannot find symbol
+[ERROR]   symbol:   method setAvailableTimeEnd(java.lang.String)
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[96,19] cannot find symbol
+[ERROR]   symbol:   method setIsActive(boolean)
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[103,20] cannot find symbol
+[ERROR]   symbol:   method setUsername(java.lang.String)
+[ERROR]   location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[104,20] cannot find symbol
+[ERROR]   symbol:   method setPassword(java.lang.String)
+[ERROR]   location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[105,20] cannot find symbol
+[ERROR]   symbol:   method setEmail(java.lang.String)
+[ERROR]   location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[106,20] cannot find symbol
+[ERROR]   symbol:   method setPhoneNumber(java.lang.String)
+[ERROR]   location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[107,20] cannot find symbol
+[ERROR]   symbol:   method setRole(java.lang.String)
+[ERROR]   location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[108,20] cannot find symbol
+[ERROR]   symbol:   method setFullName(java.lang.String)
+[ERROR]   location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[109,20] cannot find symbol
+[ERROR]   symbol:   method setDateOfBirth(java.time.LocalDate)
+[ERROR]   location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[110,20] cannot find symbol
+[ERROR]   symbol:   method setGender(java.lang.String)
+[ERROR]   location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[111,20] cannot find symbol
+[ERROR]   symbol:   method setBloodGroup(java.lang.String)
+[ERROR]   location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[112,20] cannot find symbol
+[ERROR]   symbol:   method setAddress(java.lang.String)
+[ERROR]   location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[113,20] cannot find symbol
+[ERROR]   symbol:   method setEmergencyContact(java.lang.String)
+[ERROR]   location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[114,20] cannot find symbol
+[ERROR]   symbol:   method setEmergencyContactName(java.lang.String)
+[ERROR]   location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AuthService.java:[115,20] cannot find symbol
+[ERROR]   symbol:   method setIsActive(boolean)
+[ERROR]   location: variable patient of type com.hospital.model.Patient
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/config/JwtUtil.java:[44,20] cannot find symbol
+[ERROR]   symbol:   method parserBuilder()
+[ERROR]   location: class io.jsonwebtoken.Jwts
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[42,20] cannot find symbol
+[ERROR]   symbol:   method setPatient(com.hospital.model.Patient)
+[ERROR]   location: variable appointment of type com.hospital.model.Appointment
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[43,20] cannot find symbol
+[ERROR]   symbol:   method setDoctor(com.hospital.model.Doctor)
+[ERROR]   location: variable appointment of type com.hospital.model.Appointment
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[44,20] cannot find symbol
+[ERROR]   symbol:   method setAppointmentDate(java.time.LocalDate)
+[ERROR]   location: variable appointment of type com.hospital.model.Appointment
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[45,20] cannot find symbol
+[ERROR]   symbol:   method setAppointmentTime(java.time.LocalTime)
+[ERROR]   location: variable appointment of type com.hospital.model.Appointment
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[46,20] cannot find symbol
+[ERROR]   symbol:   method setReason(java.lang.String)
+[ERROR]   location: variable appointment of type com.hospital.model.Appointment
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[47,20] cannot find symbol
+[ERROR]   symbol:   method setAppointmentType(type != nu[...]TION")
+[ERROR]   location: variable appointment of type com.hospital.model.Appointment
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[48,20] cannot find symbol
+[ERROR]   symbol:   method setStatus(java.lang.String)
+[ERROR]   location: variable appointment of type com.hospital.model.Appointment
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[49,20] cannot find symbol
+[ERROR]   symbol:   method setPaymentStatus(java.lang.String)
+[ERROR]   location: variable appointment of type com.hospital.model.Appointment
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[50,46] cannot find symbol
+[ERROR]   symbol:   method getConsultationFee()
+[ERROR]   location: variable doctor of type com.hospital.model.Doctor
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/service/AppointmentService.java:[72,20] cannot find symbol
+[ERROR]   symbol:   method setStatus(java.lang.String)
+[ERROR]   location: variable appointment of type com.hospital.model.Appointment
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
