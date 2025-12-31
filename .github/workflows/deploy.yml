@@ -1,0 +1,61 @@
+name: Deploy Hospital System
+
+on:
+  push:
+    branches: [main, staging]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 20
+
+      - name: Backend tests
+        run: |
+          cd hospital-management-backend
+          ./mvnw -B test
+          ./mvnw -B verify
+          ./mvnw -B dependency:analyze
+          ./mvnw -B dependency:tree
+          ./mvnw -B dependency:analyze-only
+          npm audit --production || true
+
+      - name: Frontend tests
+        run: |
+          cd hospital-management-frontend
+          npm ci
+          npm test
+          npm audit --production || true
+
+      - name: Build & push Docker images
+        env:
+          DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          docker build -t $DOCKER_REPO/hospital-backend ./hospital-management-backend
+          docker build -t $DOCKER_REPO/hospital-frontend ./hospital-management-frontend
+          docker push $DOCKER_REPO/hospital-backend
+          docker push $DOCKER_REPO/hospital-frontend
+
+      - name: Deploy to AWS ECS (Fargate)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws ecs update-service --cluster hospital-cluster --service hospital-service --force-new-deployment

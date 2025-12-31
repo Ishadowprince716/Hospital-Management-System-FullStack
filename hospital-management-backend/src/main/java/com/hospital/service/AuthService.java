@@ -55,7 +55,6 @@ public class AuthService {
     private final DoctorRepository doctorRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-    private final EmailService emailService;
     private final OtpService otpService;
 
     /**
@@ -63,13 +62,12 @@ public class AuthService {
      */
     public AuthService(UserRepository userRepository, PatientRepository patientRepository,
             DoctorRepository doctorRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil,
-            EmailService emailService, OtpService otpService) {
+            OtpService otpService) {
         this.userRepository = userRepository;
         this.patientRepository = patientRepository;
         this.doctorRepository = doctorRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
-        this.emailService = emailService;
         this.otpService = otpService;
     }
 
@@ -212,11 +210,13 @@ public class AuthService {
     /**
      * Initialize default test users (called on application startup)
      */
+    /**
+     * Initialize default test users (called on application startup)
+     */
     @Transactional
     public void initializeDefaultUsers() {
         logger.info("Initializing default users");
 
-        // Create Admin
         // Create Admin (Requested custom admin)
         if (!userRepository.existsByUsername("whoami")) {
             User admin = new User();
@@ -231,48 +231,8 @@ public class AuthService {
             logger.info("Custom admin user 'whoami' created");
         }
 
-        // Create Doctor
-        if (!userRepository.existsByUsername("doctor1")) {
-            Doctor doctor = new Doctor();
-            doctor.setUsername("doctor1");
-            doctor.setPassword(passwordEncoder.encode("doctor123"));
-            doctor.setEmail("doctor@hospital.com");
-            doctor.setPhoneNumber("9876543210");
-            doctor.setRole("DOCTOR");
-            doctor.setFullName("Dr. Rahul Singh Kushwaha");
-            doctor.setSpecialization("General Physician");
-            doctor.setQualification("MBBS, MD");
-            doctor.setExperienceYears(5);
-            doctor.setConsultationFee(500.0);
-            doctor.setDepartment("General Medicine");
-            doctor.setLicenseNumber("DOC123456");
-            doctor.setAvailableDays("[\"Monday\",\"Tuesday\",\"Wednesday\",\"Thursday\",\"Friday\"]");
-            doctor.setAvailableTimeStart("09:00");
-            doctor.setAvailableTimeEnd("17:00");
-            doctor.setIsActive(true);
-            doctorRepository.save(doctor);
-            logger.info("Default doctor user created");
-        }
-
-        // Create Patient
-        if (!userRepository.existsByUsername("patient1")) {
-            Patient patient = new Patient();
-            patient.setUsername("patient1");
-            patient.setPassword(passwordEncoder.encode("patient123"));
-            patient.setEmail("patient@hospital.com");
-            patient.setPhoneNumber("5555555555");
-            patient.setRole("PATIENT");
-            patient.setFullName("John Doe");
-            patient.setDateOfBirth(LocalDate.of(1990, 1, 1));
-            patient.setGender("Male");
-            patient.setBloodGroup("O+");
-            patient.setAddress("123 Main Street, City");
-            patient.setEmergencyContact("9999999999");
-            patient.setEmergencyContactName("Jane Doe");
-            patient.setIsActive(true);
-            patientRepository.save(patient);
-            logger.info("Default patient user created");
-        }
+        // NOTE: Default Doctor and Patient creation removed to enforce real-time data
+        // only.
     }
 
     /**

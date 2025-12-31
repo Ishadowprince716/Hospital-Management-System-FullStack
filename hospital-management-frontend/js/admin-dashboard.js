@@ -17,6 +17,71 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     initializeNotifications();
     startNotificationPolling();
+
+    // ===== USER FORM SUBMISSION HANDLER =====
+    const userForm = document.getElementById('userForm');
+    if (userForm) {
+        userForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            console.log('User form submitted');
+
+            const userId = userForm.dataset.userId;
+            const isEdit = !!userId;
+
+            // Get form data
+            const userData = {
+                fullName: document.getElementById('userFullName').value,
+                username: document.getElementById('userUsername').value,
+                email: document.getElementById('userEmail').value,
+                phoneNumber: document.getElementById('userPhone').value,
+                role: document.getElementById('userRole').value
+            };
+
+            // Add password only if provided (for new users or password change)
+            const password = document.getElementById('userPassword').value;
+            if (password) {
+                userData.password = password;
+            }
+
+            try {
+                const token = localStorage.getItem('auth_token');
+                const url = isEdit
+                    ? `${API_BASE_URL}/admin/users/${userId}`
+                    : `${API_BASE_URL}/admin/users`;
+
+                const method = isEdit ? 'PUT' : 'POST';
+
+                showToast(isEdit ? 'Updating user...' : 'Creating user...', 'info');
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(error || 'Failed to save user');
+                }
+
+                showToast(`User ${isEdit ? 'updated' : 'created'} successfully!`, 'success');
+                closeModal('userModal');
+                userForm.reset();
+                delete userForm.dataset.userId;
+
+                // Refresh user list
+                await loadAllUsers();
+                await loadStats();
+
+            } catch (error) {
+                console.error('Error saving user:', error);
+                showToast('Error: ' + error.message, 'error');
+            }
+        });
+    }
 });
 
 // Check Authentication
@@ -145,10 +210,11 @@ async function loadStats() {
 
         if (usersResponse.ok) {
             const users = await usersResponse.json();
-            document.getElementById('totalUsers').textContent = users.length;
+            const activeUsers = users.filter(u => u.isActive);
+            document.getElementById('totalUsers').textContent = activeUsers.length;
 
             const doctors = users.filter(u => u.role === 'DOCTOR' && u.isActive);
-            const patients = users.filter(u => u.role === 'PATIENT');
+            const patients = users.filter(u => u.role === 'PATIENT' && u.isActive);
 
             document.getElementById('activeDoctors').textContent = doctors.length;
             document.getElementById('totalPatients').textContent = patients.length;
@@ -184,7 +250,11 @@ async function loadAllUsers() {
         if (!response.ok) throw new Error('Failed to load users');
 
         allUsers = await response.json();
-        displayUsers(allUsers);
+
+        const showInactive = document.getElementById('showInactiveUsers')?.checked || false;
+        const filteredUsers = showInactive ? allUsers : allUsers.filter(u => u.isActive);
+
+        displayUsers(filteredUsers);
     } catch (error) {
         console.error('Error loading users:', error);
         document.getElementById('usersTableBody').innerHTML =
@@ -201,17 +271,23 @@ function displayUsers(users) {
         return;
     }
 
-    tbody.innerHTML = users.map(user => `
+    tbody.innerHTML = users.map((user, index) => `
         <tr>
-            <td>${user.id}</td>
+            <td>${index + 1}</td>
             <td>${user.fullName || user.username}</td>
             <td>${user.username}</td>
             <td>${user.email}</td>
             <td><span class="badge ${user.role.toLowerCase()}">${user.role}</span></td>
             <td><span class="status-badge ${user.isActive ? 'active' : 'inactive'}">${user.isActive ? 'Active' : 'Inactive'}</span></td>
             <td class="actions">
+                <button class="btn-icon" onclick="viewUserInfo(${user.id})" title="View Details">
+                    <i class="fas fa-eye"></i>
+                </button>
                 <button class="btn-icon" onclick="editUser(${user.id})" title="Edit">
                     <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-icon" onclick="resetUserPassword(${user.id})" title="Reset Password">
+                    <i class="fas fa-key"></i>
                 </button>
                 <button class="btn-icon" onclick="toggleUserStatus(${user.id}, ${!user.isActive})" title="${user.isActive ? 'Deactivate' : 'Activate'}">
                     <i class="fas fa-${user.isActive ? 'ban' : 'check'}"></i>
@@ -233,7 +309,9 @@ async function loadDoctors() {
         if (!response.ok) throw new Error('Failed to load doctors');
 
         allDoctors = await response.json();
-        displayDoctors(allDoctors);
+        // Filter out inactive doctors by default for the doctor list
+        const activeDoctors = allDoctors.filter(d => d.isActive);
+        displayDoctors(activeDoctors);
 
         // Populate specialization filter
         const specializations = [...new Set(allDoctors.map(d => d.specialization))];
@@ -258,9 +336,9 @@ function displayDoctors(doctors) {
         return;
     }
 
-    tbody.innerHTML = doctors.map(doctor => `
+    tbody.innerHTML = doctors.map((doctor, index) => `
         <tr>
-            <td>${doctor.id}</td>
+            <td>${index + 1}</td>
             <td>
                 <div class="user-cell">
                     <div class="avatar-sm">${doctor.fullName.charAt(0)}</div>
@@ -297,7 +375,7 @@ async function loadPatients() {
         if (!response.ok) throw new Error('Failed to load patients');
 
         const allUsers = await response.json();
-        allPatients = allUsers.filter(u => u.role === 'PATIENT');
+        allPatients = allUsers.filter(u => u.role === 'PATIENT' && u.isActive);
         displayPatients(allPatients);
     } catch (error) {
         console.error('Error loading patients:', error);
@@ -315,9 +393,9 @@ function displayPatients(patients) {
         return;
     }
 
-    tbody.innerHTML = patients.map(patient => `
+    tbody.innerHTML = patients.map((patient, index) => `
         <tr>
-            <td>${patient.id}</td>
+            <td>${index + 1}</td>
             <td>${patient.fullName || patient.username}</td>
             <td>${patient.dateOfBirth ? calculateAge(patient.dateOfBirth) : 'N/A'}</td>
             <td>${patient.gender || 'N/A'}</td>
@@ -338,27 +416,48 @@ function displayPatients(patients) {
 // Load All Appointments
 async function loadAllAppointments() {
     try {
+        console.log('🔄 Fetching all appointments for admin');
+
         const token = localStorage.getItem('auth_token');
-        // Try different endpoints
         let appointments = [];
 
         try {
-            const response = await fetch(`${API_BASE_URL}/appointments`, {
+            const appointmentsUrl = `${API_BASE_URL}/appointments`;
+            console.log('📡 API URL:', appointmentsUrl);
+
+            const response = await fetch(appointmentsUrl, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+
+            console.log('📊 Response status:', response.status);
+
             if (response.ok) {
                 appointments = await response.json();
+                console.log('✅ Appointments loaded:', appointments.length, 'appointments');
+                console.log('📋 Appointment details:', appointments);
+            } else {
+                const errorText = await response.text();
+                console.error('❌ API Error Response:', response.status, errorText);
             }
         } catch (e) {
-            console.log('Could not load from /appointments');
+            console.error('❌ Error fetching appointments:', e);
+            throw e;
         }
 
         allAppointments = appointments;
         displayAppointments(appointments);
     } catch (error) {
         console.error('Error loading appointments:', error);
-        document.getElementById('appointmentsTableBody').innerHTML =
-            '<tr><td colspan="8" class="empty-state">Error loading appointments</td></tr>';
+        const tbody = document.getElementById('appointmentsTableBody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="empty-state">
+                        ⚠️ Error: ${error.message}
+                    </td>
+                </tr>
+            `;
+        }
     }
 }
 
@@ -556,6 +655,30 @@ function setupEventListeners() {
         });
     }
 
+    const showInactiveUsersCheckbox = document.getElementById('showInactiveUsers');
+    if (showInactiveUsersCheckbox) {
+        showInactiveUsersCheckbox.addEventListener('change', (e) => {
+            const showInactive = e.target.checked;
+
+            // Re-apply filters including search and role
+            const searchTerm = document.getElementById('userSearch')?.value.toLowerCase() || '';
+            const roleFilter = document.getElementById('roleFilter')?.value || '';
+
+            let filtered = allUsers.filter(u => {
+                const matchesSearch = !searchTerm ||
+                    u.fullName?.toLowerCase().includes(searchTerm) ||
+                    u.username?.toLowerCase().includes(searchTerm) ||
+                    u.email?.toLowerCase().includes(searchTerm);
+                const matchesRole = !roleFilter || u.role === roleFilter;
+                const matchesStatus = showInactive || u.isActive;
+
+                return matchesSearch && matchesRole && matchesStatus;
+            });
+
+            displayUsers(filtered);
+        });
+    }
+
     // Modal close on outside click
     window.onclick = function (event) {
         if (event.target.classList.contains('modal')) {
@@ -564,20 +687,120 @@ function setupEventListeners() {
     };
 }
 
-// Action Functions (Placeholders - to be implemented with actual API calls)
-function editUser(userId) {
-    showToast('Edit user functionality coming soon', 'info');
+// ===== USER MANAGEMENT FUNCTIONS =====
+
+// Edit User - FULLY FUNCTIONAL
+async function editUser(userId) {
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) {
+        showToast('User not found', 'error');
+        return;
+    }
+
+    // Populate form with user data
+    document.getElementById('modalTitle').textContent = 'Edit User';
+    document.getElementById('userFullName').value = user.fullName || '';
+    document.getElementById('userUsername').value = user.username || '';
+    document.getElementById('userEmail').value = user.email || '';
+    document.getElementById('userPhone').value = user.phoneNumber || '';
+    document.getElementById('userRole').value = user.role || 'PATIENT';
+
+    // Make password optional for editing
+    const passwordField = document.getElementById('userPassword');
+    passwordField.value = '';
+    passwordField.required = false;
+    passwordField.placeholder = 'Leave blank to keep current password';
+
+    // Store user ID for update
+    document.getElementById('userForm').dataset.userId = userId;
+
+    // Open modal
+    document.getElementById('userModal').classList.add('show');
 }
 
-function deleteUser(userId) {
-    if (confirm('Are you sure you want to delete this user?')) {
-        showToast('Delete user functionality coming soon', 'info');
+// Delete User - FULLY FUNCTIONAL
+async function deleteUser(userId) {
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) {
+        showToast('User not found', 'error');
+        return;
+    }
+
+    const confirmMessage = `Are you sure you want to delete user "${user.fullName || user.username}"?\n\nThis action cannot be undone.`;
+
+    if (!confirm(confirmMessage)) return;
+
+    try {
+        const token = localStorage.getItem('auth_token');
+        showToast('Deleting user...', 'info');
+
+        const response = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete user');
+        }
+
+        showToast('User deleted successfully!', 'success');
+
+        // Refresh the user list
+        await loadAllUsers();
+        await loadStats();
+
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        showToast('Error deleting user: ' + error.message, 'error');
     }
 }
 
 
-function toggleUserStatus(userId, activate) {
-    showToast(`${activate ? 'Activate' : 'Deactivate'} user functionality coming soon`, 'info');
+// Toggle User Status - FULLY FUNCTIONAL  
+async function toggleUserStatus(userId, activate) {
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) {
+        showToast('User not found', 'error');
+        return;
+    }
+
+    const action = activate ? 'activate' : 'deactivate';
+    const confirmMessage = activate
+        ? `Are you sure you want to activate "${user.fullName || user.username}"?\n\nThey will be able to login to the system.`
+        : `Are you sure you want to deactivate "${user.fullName || user.username}"?\n\nThey will not be able to login until reactivated.`;
+
+    if (!confirm(confirmMessage)) return;
+
+    try {
+        const token = localStorage.getItem('auth_token');
+        showToast(`${activate ? 'Activating' : 'Deactivating'} user...`, 'info');
+
+        const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/${action}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ isActive: activate })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to ${action} user`);
+        }
+
+        showToast(`User ${activate ? 'activated' : 'deactivated'} successfully!`, 'success');
+
+        // Refresh the user list
+        await loadAllUsers();
+        await loadStats();
+
+    } catch (error) {
+        console.error(`Error ${action}ing user:`, error);
+        showToast(`Error ${action}ing user: ` + error.message, 'error');
+    }
 }
 
 // Toggle Doctor Status - FULLY FUNCTIONAL
@@ -1289,4 +1512,688 @@ window.markAsRead = markAsRead;
 window.markAllAsRead = markAllAsRead;
 window.clearAllNotifications = clearAllNotifications;
 window.logout = logout;
+window.viewInvoiceDetails = viewInvoiceDetails;
+window.openRecordPaymentModal = openRecordPaymentModal;
+
+// ===== INVOICE MANAGEMENT FUNCTIONS =====
+
+async function renderInvoices() {
+    try {
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${API_BASE_URL}/bills`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const invoices = await response.json();
+            const tbody = document.getElementById('invoicesTableBody');
+
+            // Should match the table headers in HTML: ID, Patient, Amount, Date, Status, Actions
+            if (tbody) {
+                if (invoices.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No invoices found</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = invoices.map(invoice => `
+                    <tr>
+                        <td>#${invoice.id}</td>
+                        <td>${invoice.patient?.fullName || 'N/A'}</td>
+                        <td>
+                            <div>Total: ₹${invoice.amount}</div>
+                            <small class="text-muted">Pending: ₹${invoice.balanceAmount || 0}</small>
+                        </td>
+                        <td>${new Date(invoice.generatedAt).toLocaleDateString()}</td>
+                        <td>
+                            <span class="status-badge ${invoice.status?.toLowerCase() || 'pending'}">
+                                ${invoice.status || 'PENDING'}
+                            </span>
+                        </td>
+                        <td class="actions">
+                             <button class="btn-icon" onclick="viewInvoiceDetails(${invoice.id})" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                             ${invoice.status !== 'PAID' ? `
+                            <button class="btn-icon success" onclick="openRecordPaymentModal(${invoice.id})" title="Record Payment">
+                                <i class="fas fa-hand-holding-usd"></i>
+                            </button>` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // Update stats if elements exist
+            const totalRevenue = invoices
+                .filter(i => i.status === 'PAID' || i.status === 'PARTIAL')
+                .reduce((sum, i) => sum + (i.paidAmount || 0), 0);
+
+            const pendingBills = invoices.filter(i => i.status !== 'PAID').length;
+            const paidBills = invoices.filter(i => i.status === 'PAID').length;
+
+            if (document.getElementById('totalRevenue'))
+                document.getElementById('totalRevenue').textContent = '₹' + totalRevenue.toFixed(2);
+            if (document.getElementById('pendingBills'))
+                document.getElementById('pendingBills').textContent = pendingBills;
+            if (document.getElementById('paidBills'))
+                document.getElementById('paidBills').textContent = paidBills;
+
+        }
+    } catch (error) {
+        console.error('Error loading invoices:', error);
+    }
+}
+
+let invoiceItemCounter = 1;
+
+// Open Invoice Modal
+async function openInvoiceModal() {
+    // Reset form
+    document.getElementById('invoiceForm').reset();
+    invoiceItemCounter = 1;
+
+    // Set default dates
+    const today = new Date().toISOString().split('T')[0];
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 7); // 7 days from now
+    document.getElementById('invoiceDate').value = today;
+    document.getElementById('invoiceDueDate').value = dueDate.toISOString().split('T')[0];
+
+    // Load patients for selection
+    try {
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${API_BASE_URL}/admin/users`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const users = await response.json();
+            const patients = users.filter(u => u.role === 'PATIENT');
+
+            const patientSelect = document.getElementById('invoicePatient');
+            patientSelect.innerHTML = '<option value="">Select Patient</option>' +
+                patients.map(p => `<option value="${p.id}">${p.fullName || p.username} (ID: ${p.id})</option>`).join('');
+        }
+    } catch (error) {
+        console.error('Error loading patients:', error);
+    }
+
+    // Reset invoice items to just one
+    const itemsHTML = `
+        <h4 style="margin: 1.5rem 0 1rem 0;">Invoice Items</h4>
+        <div class="invoice-item" data-item="1">
+            <div class="form-row">
+                <div class="form-group" style="flex: 2;">
+                    <label>Description *</label>
+                    <input type="text" class="item-description" placeholder="e.g., Consultation Fee" required>
+                </div>
+                <div class="form-group">
+                    <label>Quantity *</label>
+                    <input type="number" class="item-quantity" value="1" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Amount (₹) *</label>
+                    <input type="number" class="item-amount" step="0.01" min="0" required>
+                </div>
+                <div class="form-group" style="flex: 0.5; display: flex; align-items: flex-end;">
+                    <button type="button" class="btn-icon danger" onclick="removeInvoiceItem(1)" title="Remove" disabled>
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-row" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--gray-200);">
+             <div class="form-group">
+                <label>Total Amount (₹)</label>
+                <input type="number" id="invoiceTotalAmount" step="0.01" readonly style="font-weight: bold;">
+            </div>
+        </div>
+    `;
+    document.getElementById('invoiceItems').innerHTML = itemsHTML;
+
+    // Setup item input listeners
+    setupInvoiceItemListeners();
+
+    // Open modal
+    document.getElementById('invoiceModal').classList.add('show');
+}
+
+// Add Invoice Item
+function addInvoiceItem() {
+    invoiceItemCounter++;
+    const itemsContainer = document.getElementById('invoiceItems');
+
+    const newItem = document.createElement('div');
+    newItem.className = 'invoice-item';
+    newItem.dataset.item = invoiceItemCounter;
+    newItem.innerHTML = `
+        <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+                <label>Description *</label>
+                <input type="text" class="item-description" placeholder="e.g., Lab Test" required>
+            </div>
+            <div class="form-group">
+                <label>Quantity *</label>
+                <input type="number" class="item-quantity" value="1" min="1" required>
+            </div>
+            <div class="form-group">
+                <label>Amount (₹) *</label>
+                <input type="number" class="item-amount" step="0.01" min="0" required>
+            </div>
+            <div class="form-group" style="flex: 0.5; display: flex; align-items: flex-end;">
+                <button type="button" class="btn-icon danger" onclick="removeInvoiceItem(${invoiceItemCounter})" title="Remove">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+
+    itemsContainer.appendChild(newItem);
+    setupInvoiceItemListeners();
+}
+
+// Remove Invoice Item
+function removeInvoiceItem(itemId) {
+    const items = document.querySelectorAll('.invoice-item');
+    if (items.length <= 1) {
+        showToast('Cannot remove the last item', 'warning');
+        return;
+    }
+
+    const item = document.querySelector(`.invoice-item[data-item="${itemId}"]`);
+    if (item) {
+        item.remove();
+        calculateInvoiceTotal();
+    }
+}
+
+// Setup Invoice Item Input Listeners
+function setupInvoiceItemListeners() {
+    const quantityInputs = document.querySelectorAll('.item-quantity');
+    const amountInputs = document.querySelectorAll('.item-amount');
+
+    [...quantityInputs, ...amountInputs].forEach(input => {
+        input.removeEventListener('input', calculateInvoiceTotal);
+        input.addEventListener('input', calculateInvoiceTotal);
+    });
+
+    calculateInvoiceTotal();
+}
+
+// Calculate Invoice Total
+function calculateInvoiceTotal() {
+    let total = 0;
+    const items = document.querySelectorAll('.invoice-item');
+
+    items.forEach(item => {
+        const quantity = parseFloat(item.querySelector('.item-quantity').value) || 0;
+        const amount = parseFloat(item.querySelector('.item-amount').value) || 0;
+        total += quantity * amount;
+    });
+
+    document.getElementById('invoiceTotalAmount').value = total.toFixed(2);
+
+    document.getElementById('invoiceTotalAmount').value = total.toFixed(2);
+}
+
+// Submit Invoice Form
+document.addEventListener('DOMContentLoaded', () => {
+    const invoiceForm = document.getElementById('invoiceForm');
+    if (invoiceForm) {
+        invoiceForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const patientId = document.getElementById('invoicePatient').value;
+            const totalAmount = parseFloat(document.getElementById('invoiceTotalAmount').value);
+            // Default to 0 paid and PENDING status
+            const paidAmount = 0;
+            const paymentStatus = 'PENDING';
+            const paymentMethod = null;
+            const billDate = document.getElementById('invoiceDate').value;
+            const dueDate = document.getElementById('invoiceDueDate').value;
+            const notes = document.getElementById('invoiceNotes').value;
+            const pendingAmount = totalAmount;
+
+            // Collect items
+            const items = [];
+            document.querySelectorAll('.invoice-item').forEach(item => {
+                const description = item.querySelector('.item-description').value;
+                const quantity = parseInt(item.querySelector('.item-quantity').value);
+                const amount = parseFloat(item.querySelector('.item-amount').value);
+
+                if (description && quantity && amount) {
+                    items.push({ description, quantity, amount });
+                }
+            });
+
+            if (!patientId) {
+                showToast('Please select a patient', 'warning');
+                return;
+            }
+
+            if (items.length === 0) {
+                showToast('Please add at least one item', 'warning');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('auth_token');
+                showToast('Creating invoice...', 'info');
+
+                const invoiceData = {
+                    patientId: parseInt(patientId),
+                    totalAmount,
+                    paidAmount,
+                    paymentStatus,
+                    paymentMethod: paymentMethod || null,
+                    billDate,
+                    dueDate,
+                    items,
+                    notes
+                };
+
+                const response = await fetch(`${API_BASE_URL}/bills`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(invoiceData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create invoice');
+                }
+
+                const result = await response.json();
+                showToast('Invoice created successfully!', 'success');
+                closeModal('invoiceModal');
+
+                // Refresh data if on revenue section
+                const activeSection = document.querySelector('.content-section.active');
+                if (activeSection && activeSection.id === 'revenue') {
+                    loadRevenueData();
+                }
+
+            } catch (error) {
+                console.error('Error creating invoice:', error);
+                showToast('Error creating invoice: ' + error.message, 'error');
+            }
+        });
+    }
+
+    // Payment Form Handler
+    const paymentForm = document.getElementById('paymentForm');
+    if (paymentForm) {
+        paymentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const invoiceId = document.getElementById('paymentInvoiceId').value;
+            const amount = parseFloat(document.getElementById('paymentAmount').value);
+            const method = document.getElementById('paymentMethod').value;
+            const notes = document.getElementById('paymentNotes').value;
+
+            if (!invoiceId || !amount) {
+                showToast('Invalid payment details', 'error');
+                return;
+            }
+
+            try {
+                // Fetch current invoice to calculate new totals
+                const token = localStorage.getItem('auth_token');
+
+                const response = await fetch(`${API_BASE_URL}/bills/${invoiceId}/pay`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        amount: amount,
+                        paymentMethod: method,
+                        notes: notes
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to record payment');
+                }
+
+                showToast('Payment recorded successfully', 'success');
+                closeModal('paymentModal');
+
+                // Refresh list and details if open
+                renderInvoices();
+                if (document.getElementById('invoiceDetailsModal').classList.contains('show')) {
+                    viewInvoiceDetails(invoiceId);
+                }
+
+                // Refresh stats
+                loadStats();
+
+            } catch (error) {
+                console.error('Payment error:', error);
+                showToast('Error recording payment: ' + error.message, 'error');
+            }
+        });
+    }
+
+});
+
+// View Invoice Details
+async function viewInvoiceDetails(invoiceId) {
+    try {
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${API_BASE_URL}/bills`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const invoices = await response.json();
+            const invoice = invoices.find(i => i.id === invoiceId);
+
+            if (!invoice) {
+                showToast('Invoice not found', 'error');
+                return;
+            }
+
+            // Populate Modal
+            const itemsHtml = invoice.items && invoice.items.length > 0
+                ? invoice.items.map((item, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${item.description}</td>
+                        <td class="text-right">${item.quantity}</td>
+                        <td class="text-right">₹${item.amount}</td>
+                        <td class="text-right">₹${(item.quantity * item.amount).toFixed(2)}</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="5" class="text-center">No items found</td></tr>';
+
+            const detailsHtml = `
+                <div class="invoice-header-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                    <div>
+                        <h4 style="color: var(--text-light);">Bill To:</h4>
+                        <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem;">${invoice.patient?.fullName || 'N/A'}</div>
+                        <div style="color: var(--text-light); font-size: 0.9rem;">
+                            ID: ${invoice.patient?.id || 'N/A'}<br>
+                            Email: ${invoice.patient?.email || 'N/A'}<br>
+                            Phone: ${invoice.patient?.phoneNumber || 'N/A'}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <h4 style="color: var(--text-light);">Invoice Info:</h4>
+                        <div style="margin-bottom: 0.25rem;"><strong>Invoice #:</strong> ${invoice.id}</div>
+                        <div style="margin-bottom: 0.25rem;"><strong>Date:</strong> ${new Date(invoice.generatedAt).toLocaleDateString()}</div>
+                        <div style="margin-bottom: 0.25rem;"><strong>Due Date:</strong> ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}</div>
+                        <div><span class="status-badge ${invoice.status?.toLowerCase()}">${invoice.status}</span></div>
+                    </div>
+                </div>
+
+                <div class="table-container" style="margin-bottom: 2rem;">
+                    <table class="data-table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Description</th>
+                                <th class="text-right">Qty</th>
+                                <th class="text-right">Price</th>
+                                <th class="text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>${itemsHtml}</tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="4" class="text-right" style="font-weight: bold; padding: 1rem;">Total Amount:</td>
+                                <td class="text-right" style="font-weight: bold; padding: 1rem; font-size: 1.1rem;">₹${invoice.amount.toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="4" class="text-right" style="padding: 0.5rem 1rem;">Paid Amount:</td>
+                                <td class="text-right" style="padding: 0.5rem 1rem;">₹${(invoice.paidAmount || 0).toFixed(2)}</td>
+                            </tr>
+                            <tr style="background-color: var(--gray-50);">
+                                <td colspan="4" class="text-right" style="color: var(--danger); font-weight: bold; padding: 0.5rem 1rem;">Balance Due:</td>
+                                <td class="text-right" style="color: var(--danger); font-weight: bold; padding: 0.5rem 1rem;">₹${(invoice.balanceAmount || 0).toFixed(2)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                ${invoice.notes ? `
+                <div style="margin-top: 1rem; padding: 1rem; background: var(--gray-50); border-radius: 0.5rem;">
+                    <strong>Notes:</strong>
+                    <p style="margin-top: 0.5rem; color: var(--text-light);">${invoice.notes}</p>
+                </div>` : ''}
+            `;
+
+            document.getElementById('invoiceDetailsContent').innerHTML = detailsHtml;
+
+            // Setup Pay Button Actions
+            const payBtn = document.getElementById('invoiceDetailsPayBtn');
+            if (invoice.status === 'PAID') {
+                payBtn.style.display = 'none';
+            } else {
+                payBtn.style.display = 'inline-flex';
+                payBtn.onclick = function () {
+                    openRecordPaymentModal(invoiceId);
+                };
+            }
+
+            document.getElementById('invoiceDetailsModal').classList.add('show');
+        }
+    } catch (error) {
+        console.error('Error loading invoice details:', error);
+        showToast('Error loading invoice details', 'error');
+    }
+}
+
+// Open Record Payment Modal
+async function openRecordPaymentModal(invoiceId) {
+    try {
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${API_BASE_URL}/bills`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const invoices = await response.json();
+            const invoice = invoices.find(i => i.id === invoiceId);
+
+            if (!invoice) return;
+
+            // Setup modal data
+            document.getElementById('paymentInvoiceId').value = invoice.id;
+            document.getElementById('paymentTotalAmount').textContent = '₹' + invoice.amount.toFixed(2);
+            document.getElementById('paymentPaidAlready').textContent = '₹' + (invoice.paidAmount || 0).toFixed(2);
+            document.getElementById('paymentPendingBalance').textContent = '₹' + (invoice.balanceAmount || 0).toFixed(2);
+
+            // Default amount to pending balance
+            document.getElementById('paymentAmount').value = invoice.balanceAmount || 0;
+            document.getElementById('paymentAmount').max = invoice.balanceAmount || invoice.amount;
+
+            document.getElementById('paymentModal').classList.add('show');
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('Error loading payment info', 'error');
+    }
+}
+
+// Export invoice functions to global scope
+window.openInvoiceModal = openInvoiceModal;
+window.addInvoiceItem = addInvoiceItem;
+window.removeInvoiceItem = removeInvoiceItem;
+window.calculatePendingAmount = calculatePendingAmount;
+window.viewInvoiceDetails = viewInvoiceDetails;
+window.openRecordPaymentModal = openRecordPaymentModal;
+
+// ===== ADDITIONAL USER MANAGEMENT FEATURES =====
+
+// View User Info - Detailed Modal
+async function viewUserInfo(userId) {
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) {
+        showToast('User not found', 'error');
+        return;
+    }
+
+    const content = `
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 1rem; padding-bottom: 1rem; border-bottom: 2px solid var(--gray-200);">
+                <div class="avatar-sm" style="width: 60px; height: 60px; font-size: 1.5rem;">${(user.fullName || user.username).charAt(0).toUpperCase()}</div>
+                <div>
+                    <h2 style="margin: 0; font-size: 1.5rem; color: var(--gray-900);">${user.fullName || user.username}</h2>
+                    <p style="margin: 0.25rem 0 0 0; color: var(--gray-600);">User ID: ${user.id}</p>
+                </div>
+                <div style="margin-left: auto;">
+                    <span class="status-badge ${user.isActive ? 'active' : 'inactive'}">${user.isActive ? 'Active' : 'Inactive'}</span>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                <div class="detail-item">
+                    <strong style="color: var(--gray-600); font-size: 0.875rem;">Username</strong>
+                    <p style="margin: 0.25rem 0 0 0; font-size: 1rem;">${user.username}</p>
+                </div>
+                <div class="detail-item">
+                    <strong style="color: var(--gray-600); font-size: 0.875rem;">Role</strong>
+                    <p style="margin: 0.25rem 0 0 0;">
+                        <span class="badge ${user.role.toLowerCase()}">${user.role}</span>
+                    </p>
+                </div>
+                <div class="detail-item">
+                    <strong style="color: var(--gray-600); font-size: 0.875rem;">Email</strong>
+                    <p style="margin: 0.25rem 0 0 0; font-size: 1rem;">${user.email}</p>
+                </div>
+                <div class="detail-item">
+                    <strong style="color: var(--gray-600); font-size: 0.875rem;">Phone</strong>
+                    <p style="margin: 0.25rem 0 0 0; font-size: 1rem;">${user.phoneNumber || 'Not provided'}</p>
+                </div>
+                <div class="detail-item">
+                    <strong style="color: var(--gray-600); font-size: 0.875rem;">Date of Birth</strong>
+                    <p style="margin: 0.25rem 0 0 0; font-size: 1rem;">${user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString() : 'Not provided'}</p>
+                </div>
+                <div class="detail-item">
+                    <strong style="color: var(--gray-600); font-size: 0.875rem;">Gender</strong>
+                    <p style="margin: 0.25rem 0 0 0; font-size: 1rem;">${user.gender || 'Not specified'}</p>
+                </div>
+            </div>
+            
+            ${user.bloodGroup ? `
+            <div style="padding-top: 1rem; border-top: 1px solid var(--gray-200);">
+                <div class="detail-item">
+                    <strong style="color: var(--gray-600); font-size: 0.875rem;">Blood Group</strong>
+                    <p style="margin: 0.25rem 0 0 0;">
+                        <span class="badge" style="background: var(--accent-error); color: white; font-size: 1rem; padding: 0.5rem 1rem;">${user.bloodGroup}</span>
+                    </p>
+                </div>
+            </div>
+            ` : ''}
+            
+            <div style="padding-top: 1rem; border-top: 1px solid var(--gray-200);">
+                <strong style="color: var(--gray-600); font-size: 0.875rem; display: block; margin-bottom: 0.5rem;">Account Information</strong>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                    <div>
+                        <p style="margin: 0; font-size: 0.875rem; color: var(--gray-600);">Created At</p>
+                        <p style="margin: 0.25rem 0 0 0;">${user.createdAt ? new Date(user.createdAt).toLocaleString() : 'N/A'}</p>
+                    </div>
+                    <div>
+                        <p style="margin: 0; font-size: 0.875rem; color: var(--gray-600);">Last Updated</p>
+                        <p style="margin: 0.25rem 0 0 0;">${user.updatedAt ? new Date(user.updatedAt).toLocaleString() : 'N/A'}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--gray-200);">
+                <button class="btn-primary" onclick="editUser(${user.id}); closeModal('userInfoModal');" style="flex: 1;">
+                    <i class="fas fa-edit"></i> Edit User
+                </button>
+                <button class="btn-secondary" onclick="resetUserPassword(${user.id})" style="flex: 1;">
+                    <i class="fas fa-key"></i> Reset Password
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('userInfoContent').innerHTML = content;
+    document.getElementById('userInfoModal').classList.add('show');
+}
+
+// Reset User Password
+async function resetUserPassword(userId) {
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) {
+        showToast('User not found', 'error');
+        return;
+    }
+
+    const confirmMessage = `Reset password for "${user.fullName || user.username}"?\n\nA temporary password will be generated.`;
+
+    if (!confirm(confirmMessage)) return;
+
+    try {
+        const token = localStorage.getItem('auth_token');
+        showToast('Resetting password...', 'info');
+
+        const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/reset-password`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to reset password');
+        }
+
+        const result = await response.json();
+
+        // Show success with the temporary password
+        alert(`Password Reset Successful!\n\nUser: ${user.fullName || user.username}\nTemporary Password: Hospital@123\n\nPlease inform the user to change this password after logging in.`);
+        showToast('Password reset successfully!', 'success');
+
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        showToast('Error resetting password: ' + error.message, 'error');
+    }
+}
+
+// Export Users to CSV
+function exportUsersToCSV() {
+    if (allUsers.length === 0) {
+        showToast('No users to export', 'warning');
+        return;
+    }
+
+    const headers = ['ID', 'Full Name', 'Username', 'Email', 'Phone', 'Role', 'Status', 'Blood Group', 'Gender'];
+    const csvContent = [
+        headers.join(','),
+        ...allUsers.map(u => [
+            u.id,
+            `"${u.fullName || ''}"`,
+            u.username,
+            u.email,
+            u.phoneNumber || '',
+            u.role,
+            u.isActive ? 'Active' : 'Inactive',
+            u.bloodGroup || '',
+            u.gender || ''
+        ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    showToast('Users exported successfully!', 'success');
+}
+
+// Export functions to global scope
+window.viewUserInfo = viewUserInfo;
+window.resetUserPassword = resetUserPassword;
+window.exportUsersToCSV = exportUsersToCSV;
 

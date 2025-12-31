@@ -299,23 +299,37 @@ async function loadAppointments() {
     if (!currentUser.id) return;
 
     try {
+        console.log('🔄 Fetching appointments for patient ID:', currentUser.id);
+        
         if (MOCK_MODE) {
             // Mock data not implemented here for brevity, rely on backend
             return;
         }
 
-        const response = await fetchWithAuth(`${API_BASE_URL}/appointments/patient/${currentUser.id}`);
-        if (!response.ok) throw new Error('Failed to fetch appointments');
+        const appointmentsUrl = `${API_BASE_URL}/appointments/patient/${currentUser.id}`;
+        console.log('📡 API URL:', appointmentsUrl);
+        
+        const response = await fetchWithAuth(appointmentsUrl);
+        console.log('📊 Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ API Error:', response.status, errorText);
+            throw new Error(`Failed to fetch appointments: ${response.status}`);
+        }
 
         const appointments = await response.json();
+        console.log('✅ Appointments loaded:', appointments.length, 'appointments');
+        console.log('📋 Appointment details:', appointments);
+        
         allAppointments = appointments;
         displayAppointments(appointments);
         updateStats(appointments);
 
     } catch (error) {
-        console.error('Error loading appointments:', error);
+        console.error('❌ Error loading appointments:', error);
         const list = document.getElementById('appointmentsList');
-        if (list) list.innerHTML = '<p class="empty-state">Could not load appointments</p>';
+        if (list) list.innerHTML = `<p class="empty-state">⚠️ Error: ${error.message}</p>`;
     }
 }
 

@@ -7,9 +7,15 @@
 
 // ============== Configuration ==============
 const AI_CONFIG = {
+    // Backend endpoint for secure AI communication
+    BACKEND_API_URL: 'http://localhost:8080/api/ai',
+    
+    // Fallback to direct Gemini API (not recommended for production)
     GEMINI_API_KEY: 'AIzaSyCucnZd57Lht_iZzJp5EeN-JUYSqGo8mOo',
     API_ENDPOINT: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
     MODEL: 'gemini-1.5-flash',
+    USE_BACKEND: true,  // Use secure backend endpoint
+    FALLBACK_MODE: true,  // Enable fallback responses if API fails
     PATIENT_PROMPT: `You are MediMate AI, a helpful medical assistant for a hospital management system. 
 Your role is to:
 - Help patients with appointment booking and inquiries
@@ -101,10 +107,90 @@ function addWelcomeMessage() {
     renderMessage(welcomeMsg);
 }
 
-// ... (renderMessage, formatMessageContent, renderChatHistory, sendMessage functions remain same)
+/**
+ * Send user message and get AI response
+ */
+function sendMessage() {
+    if (!chatInput || isProcessing) return;
+    
+    const userMessage = chatInput.value.trim();
+    if (!userMessage) return;
+
+    // Add user message to chat
+    const userMsg = {
+        role: 'user',
+        content: userMessage,
+        timestamp: new Date().toISOString()
+    };
+
+    chatHistory.push(userMsg);
+    saveChatHistory();
+    renderMessage(userMsg);
+
+    chatInput.value = '';
+    chatInput.style.height = 'auto';
+
+    // Hide suggested questions after first message
+    if (suggestedQuestions && chatHistory.length > 1) {
+        suggestedQuestions.style.display = 'none';
+    }
+
+    // Get AI response
+    getAIResponse(userMessage);
+}
 
 /**
- * Get AI response from OpenAI API
+ * Render a single message in the chat
+ */
+function renderMessage(message) {
+    if (!chatMessages) return;
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${message.role === 'assistant' ? 'assistant' : 'user'}`;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    contentDiv.innerHTML = formatMessageContent(message.content);
+    
+    messageDiv.appendChild(contentDiv);
+
+    if (message.role === 'assistant') {
+        const timestampDiv = document.createElement('div');
+        timestampDiv.className = 'message-timestamp';
+        const time = new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        timestampDiv.textContent = time;
+        messageDiv.appendChild(timestampDiv);
+    }
+
+    chatMessages.appendChild(messageDiv);
+    scrollToBottom();
+}
+
+/**
+ * Format message content (support for markdown-like formatting)
+ */
+function formatMessageContent(content) {
+    return content
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br>')
+        .replace(/• /g, '• ');
+}
+
+/**
+ * Render entire chat history
+ */
+function renderChatHistory() {
+    if (!chatMessages) return;
+    
+    chatMessages.innerHTML = '';
+    chatHistory.forEach(msg => {
+        renderMessage(msg);
+    });
+}
+
+/**
+ * Get AI response from Gemini API
  */
 async function getAIResponse(userMessage) {
     isProcessing = true;
@@ -113,6 +199,84 @@ async function getAIResponse(userMessage) {
 
     try {
         const role = window.hospitalAuth ? window.hospitalAuth.getRole() : 'PATIENT';
+        
+        if (AI_CONFIG.USE_BACKEND) {
+            // Use secure backend endpoint (RECOMMENDED)
+            await getAIResponseViaBackend(role, userMessage);
+        } else {
+            // Direct Gemini API call (fallback)
+            await getAIResponseDirect(role, userMessage);
+        }
+
+    } catch (error) {
+        console.error('AI Response Error:', error);
+        hideTypingIndicator();
+        handleAIError(error);
+    } finally {
+        isProcessing = false;
+        sendBtn.disabled = false;
+    }
+}
+
+/**
+ * Get AI response via secure backend endpoint
+ */
+async function getAIResponseViaBackend(role, userMessage) {
+    try {
+        // Get conversation history (last 10 messages)
+        const conversationHistory = chatHistory.slice(-10)
+            .filter(msg => msg.role !== 'system')
+            .map(msg => ({
+                role: msg.role,
+                content: msg.content
+            }));
+
+        // Call backend AI endpoint
+        const response = await fetch(`${AI_CONFIG.BACKEND_API_URL}/chat`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAuthToken()}`
+            },
+            body: JSON.stringify({
+                message: userMessage,
+                role: role,
+                conversationHistory: conversationHistory
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`API Error: ${response.status} - ${errorData.error || 'Unknown error'}`);
+        }
+
+        const data = await response.json();
+        const aiMessage = data.message;
+
+        // Add AI response to chat
+        const assistantMsg = {
+            role: 'assistant',
+            content: aiMessage,
+            timestamp: new Date().toISOString()
+        };
+
+        chatHistory.push(assistantMsg);
+        saveChatHistory();
+
+        hideTypingIndicator();
+        renderMessage(assistantMsg);
+
+    } catch (error) {
+        console.error('Backend AI Error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get AI response directly from Gemini API (fallback)
+ */
+async function getAIResponseDirect(role, userMessage) {
+    try {
         const systemPrompt = role === 'DOCTOR' ? AI_CONFIG.DOCTOR_PROMPT : AI_CONFIG.PATIENT_PROMPT;
 
         // Build conversation history for Gemini
@@ -167,10 +331,37 @@ async function getAIResponse(userMessage) {
         renderMessage(assistantMsg);
 
     } catch (error) {
-        console.error('AI Response Error:', error);
-        hideTypingIndicator();
+        console.error('Direct Gemini API Error:', error);
+        throw error;
+    }
+}
 
-        // Show fallback error message
+/**
+ * Handle AI errors with appropriate messages
+ */
+function handleAIError(error) {
+    // Check if API key is the issue
+    if (error.message.includes('403') || error.message.includes('Invalid')) {
+        const errorMsg = {
+            role: 'assistant',
+            content: "⚠️ **API Configuration Issue**\n\nThe AI service is not properly configured. Please:\n\n1. Check if the Gemini API key is valid\n2. Visit https://ai.google.dev/ to get a valid API key\n3. Contact system administrator to update the API key\n\nFor now, you can still ask questions and our team will respond shortly.",
+            timestamp: new Date().toISOString()
+        };
+        chatHistory.push(errorMsg);
+        saveChatHistory();
+        renderMessage(errorMsg);
+    } else if (AI_CONFIG.FALLBACK_MODE) {
+        // Provide fallback response
+        const fallbackMsg = {
+            role: 'assistant',
+            content: "I'm currently experiencing connectivity issues, but your message has been noted. Our medical team will review it shortly. For urgent matters, please contact our support team directly.",
+            timestamp: new Date().toISOString()
+        };
+        chatHistory.push(fallbackMsg);
+        saveChatHistory();
+        renderMessage(fallbackMsg);
+    } else {
+        // Show generic error message
         const errorMsg = {
             role: 'assistant',
             content: "I apologize, but I'm having trouble connecting right now. Please try again in a moment, or contact our support team for immediate assistance.",
@@ -180,10 +371,17 @@ async function getAIResponse(userMessage) {
         chatHistory.push(errorMsg);
         saveChatHistory();
         renderMessage(errorMsg);
-    } finally {
-        isProcessing = false;
-        sendBtn.disabled = false;
     }
+}
+
+/**
+ * Get authentication token if available
+ */
+function getAuthToken() {
+    if (window.hospitalAuth) {
+        return window.hospitalAuth.getToken ? window.hospitalAuth.getToken() : '';
+    }
+    return '';
 }
 
 /**

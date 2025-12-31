@@ -54,7 +54,19 @@ public class MedicalRecordService {
         appointmentRepository.save(appointment);
 
         // Auto-generate Bill
-        billService.createBill(appointment);
+        com.hospital.model.Bill bill = new com.hospital.model.Bill();
+        bill.setAppointment(appointment);
+        bill.setAmount(
+                appointment.getDoctor().getConsultationFee() != null ? appointment.getDoctor().getConsultationFee()
+                        : 500.0);
+
+        com.hospital.model.BillItem item = new com.hospital.model.BillItem();
+        item.setDescription("Consultation Fee - " + appointment.getDoctor().getFullName());
+        item.setQuantity(1);
+        item.setAmount(bill.getAmount());
+        bill.addItem(item);
+
+        billService.createInvoice(bill, appointment.getPatient().getId());
 
         return medicalRecordRepository.save(record);
     }

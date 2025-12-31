@@ -12,6 +12,7 @@ com\hospital\model\Allergy.class
 com\hospital\repository\mysql\VitalSignsRepository.class
 com\hospital\config\OAuth2UserInfo.class
 com\hospital\controller\EMRController.class
+com\hospital\controller\AIController$ChatRequest.class
 com\hospital\config\OAuth2AuthenticationFailureHandler.class
 com\hospital\model\Bill.class
 com\hospital\controller\MedicalRecordController.class
@@ -53,11 +54,14 @@ com\hospital\controller\PatientController.class
 com\hospital\service\AppointmentService.class
 com\hospital\controller\BillController.class
 com\hospital\repository\mongodb\MongoMedicalRecordRepository.class
+com\hospital\controller\AIController.class
 com\hospital\controller\AppointmentController.class
+com\hospital\controller\HealthController.class
 com\hospital\dto\AuthResponse.class
 com\hospital\service\AuthService.class
 com\hospital\config\WebConfig.class
 com\hospital\config\GoogleOAuth2UserInfo.class
+com\hospital\model\BillItem.class
 com\hospital\model\LabOrder.class
 com\hospital\dto\RegisterRequest.class
 com\hospital\repository\mysql\BillRepository.class

@@ -69,29 +69,52 @@ async function initDashboard() {
 
 async function fetchAppointments() {
     try {
+        console.log('🔄 Fetching appointments for doctor ID:', currentUser.id);
+        
         const token = localStorage.getItem('token');
-        // We need the doctor ID. 
-        // IMPORTANT: The user ID (from Auth) might not be the same as Doctor ID (from Doctor table).
-        // Since we don't have a direct "Get Doctor by User ID" endpoint explicitly verified yet, 
-        // we will assume for this implementation that the Login Response included the Doctor ID 
-        // or that we can use the User ID if they share the same ID generation strategy (Joined inheritance) or one-to-one mapped.
-        // If it fails, we might need a /doctors/me endpoint. 
+        const appointmentsUrl = `${API_BASE_URL}/appointments/doctor/${currentUser.id}`;
+        console.log('📡 API URL:', appointmentsUrl);
+        console.log('🔑 Token present:', !!token);
 
-        // Let's try using currentUser.id. If User and Doctor share ID (likely with Joined strategy or if Doctor table maps id to user_id).
-
-        const response = await fetch(`${API_BASE_URL}/appointments/doctor/${currentUser.id}`, {
+        const response = await fetch(appointmentsUrl, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        if (!response.ok) throw new Error('Failed to fetch appointments');
+        console.log('📊 Response status:', response.status);
+        console.log('📊 Response headers:', response.headers);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ API Error Response:', errorText);
+            throw new Error(`API Error: ${response.status} - ${errorText || 'Unknown error'}`);
+        }
 
         appointments = await response.json();
+        console.log('✅ Appointments loaded:', appointments.length, 'appointments');
+        console.log('📋 Appointment details:', appointments);
+        
         updateStats();
         renderAppointments();
 
     } catch (error) {
-        console.error('Error:', error);
-        showToast('Could not load appointments', 'error');
+        console.error('❌ Error fetching appointments:', error);
+        console.error('Stack trace:', error.stack);
+        
+        const container = document.getElementById('appointmentsList');
+        if (container) {
+            container.innerHTML = `
+                <div style="padding: 20px; background: #fee; border-radius: 5px; color: #c00;">
+                    <h4>⚠️ Error Loading Appointments</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p><strong>Doctor ID:</strong> ${currentUser.id}</p>
+                    <p><strong>API URL:</strong> ${API_BASE_URL}/appointments/doctor/${currentUser.id}</p>
+                    <button onclick="location.reload()" style="padding: 10px 20px; background: #0099cc; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                        🔄 Reload Page
+                    </button>
+                </div>
+            `;
+        }
+        showToast('Could not load appointments: ' + error.message, 'error');
     }
 }
 

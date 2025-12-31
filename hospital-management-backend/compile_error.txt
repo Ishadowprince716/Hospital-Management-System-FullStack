@@ -10,7 +10,7 @@
 [INFO] Copying 0 resource from src\main\resources to target\classes
 [INFO] 
 [INFO] --- compiler:3.11.0:compile (default-compile) @ hospital-management ---
-[INFO] Changes detected - recompiling the module! :input tree
+[INFO] Changes detected - recompiling the module! :source
 [INFO] Compiling 58 source files with javac [debug release 21] to target\classes
 [INFO] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/config/JwtUtil.java: C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\config\JwtUtil.java uses or overrides a deprecated API.
 [INFO] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/config/JwtUtil.java: Recompile with -Xlint:deprecation for details.
@@ -19,33 +19,22 @@
 [INFO] -------------------------------------------------------------
 [ERROR] COMPILATION ERROR : 
 [INFO] -------------------------------------------------------------
-[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/controller/AdminController.java:[68,17] cannot find symbol
-  symbol:   method setActive(boolean)
-  location: variable user of type com.hospital.model.User
-[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/controller/AdminController.java:[90,17] cannot find symbol
-  symbol:   method setActive(boolean)
-  location: variable user of type com.hospital.model.User
-[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/controller/AdminController.java:[112,17] cannot find symbol
-  symbol:   method setActive(boolean)
-  location: variable user of type com.hospital.model.User
-[INFO] 3 errors 
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/controller/AdminController.java:[84,33] cannot find symbol
+  symbol:   variable Role
+  location: class com.hospital.model.User
+[INFO] 1 error
 [INFO] -------------------------------------------------------------
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD FAILURE
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  4.862 s
-[INFO] Finished at: 2025-12-30T12:33:21+05:30
+[INFO] Total time:  7.067 s
+[INFO] Finished at: 2025-12-30T15:15:00+05:30
 [INFO] ------------------------------------------------------------------------
-[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:compile (default-compile) on project hospital-management: Compilation failure: Compilation failure: 
-[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/controller/AdminController.java:[68,17] cannot find symbol
-[ERROR]   symbol:   method setActive(boolean)
-[ERROR]   location: variable user of type com.hospital.model.User
-[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/controller/AdminController.java:[90,17] cannot find symbol
-[ERROR]   symbol:   method setActive(boolean)
-[ERROR]   location: variable user of type com.hospital.model.User
-[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/controller/AdminController.java:[112,17] cannot find symbol
-[ERROR]   symbol:   method setActive(boolean)
-[ERROR]   location: variable user of type com.hospital.model.User
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:compile (default-compile) on project hospital-management: Compilation failure
+[ERROR] /C:/Users/RAHUL KUSHWAH/OneDrive/Desktop/New folder/hospital-management-backend/src/main/java/com/hospital/controller/AdminController.java:[84,33] cannot find symbol
+[ERROR]   symbol:   variable Role
+[ERROR]   location: class com.hospital.model.User
+[ERROR] 
 [ERROR] -> [Help 1]
 [ERROR] 
 [ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.

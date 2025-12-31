@@ -133,7 +133,6 @@
                         <div class="stat-details">
                             <h3 id="totalUsers">0</h3>
                             <p>Total Users</p>
-                            <small class="trend up"><i class="fas fa-arrow-up"></i> 12% this month</small>
                         </div>
                     </div>
                     <div class="stat-card lavender">
@@ -143,7 +142,6 @@
                         <div class="stat-details">
                             <h3 id="activeDoctors">0</h3>
                             <p>Active Doctors</p>
-                            <small class="trend up"><i class="fas fa-arrow-up"></i> 8% this month</small>
                         </div>
                     </div>
                     <div class="stat-card peach">
@@ -153,7 +151,6 @@
                         <div class="stat-details">
                             <h3 id="totalPatients">0</h3>
                             <p>Total Patients</p>
-                            <small class="trend up"><i class="fas fa-arrow-up"></i> 15% this month</small>
                         </div>
                     </div>
                     <div class="stat-card success">
@@ -163,7 +160,6 @@
                         <div class="stat-details">
                             <h3 id="totalAppointments">0</h3>
                             <p>Appointments</p>
-                            <small class="trend up"><i class="fas fa-arrow-up"></i> 20% this month</small>
                         </div>
                     </div>
                 </div>
@@ -236,9 +232,14 @@
             <section id="users" class="content-section">
                 <div class="section-header">
                     <h2>All Users</h2>
-                    <button class="btn-primary" onclick="showAddUserModal()">
-                        <i class="fas fa-plus"></i> Add User
-                    </button>
+                    <div class="header-actions" style="display: flex; gap: 0.5rem;">
+                        <button class="btn-secondary" onclick="exportUsersToCSV()">
+                            <i class="fas fa-download"></i> Export CSV
+                        </button>
+                        <button class="btn-primary" onclick="showAddUserModal()">
+                            <i class="fas fa-plus"></i> Add User
+                        </button>
+                    </div>
                 </div>
 
                 <div class="card">
@@ -253,6 +254,11 @@
                             <option value="DOCTOR">Doctor</option>
                             <option value="PATIENT">Patient</option>
                         </select>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: 1rem;">
+                            <input type="checkbox" id="showInactiveUsers">
+                            <label for="showInactiveUsers" style="cursor: pointer; user-select: none;">Show
+                                Inactive</label>
+                        </div>
                     </div>
 
                     <div class="table-container">
@@ -765,6 +771,187 @@
             </div>
             <div class="modal-body">
                 <div id="appointmentDetailsContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Info Details Modal -->
+    <div id="userInfoModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>User Details</h3>
+                <button class="modal-close" onclick="closeModal('userInfoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="userInfoContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Creation Modal -->
+    <div id="invoiceModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3>Create New Invoice</h3>
+                <button class="modal-close" onclick="closeModal('invoiceModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="invoiceForm">
+                    <div class="form-group">
+                        <label>Patient *</label>
+                        <select id="invoicePatient" required>
+                            <option value="">Select Patient</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Invoice Date *</label>
+                            <input type="date" id="invoiceDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Due Date *</label>
+                            <input type="date" id="invoiceDueDate" required>
+                        </div>
+                    </div>
+
+                    <div id="invoiceItems">
+                        <h4 style="margin: 1.5rem 0 1rem 0;">Invoice Items</h4>
+                        <div class="invoice-item" data-item="1">
+                            <div class="form-row">
+                                <div class="form-group" style="flex: 2;">
+                                    <label>Description *</label>
+                                    <input type="text" class="item-description" placeholder="e.g., Consultation Fee"
+                                        required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Quantity *</label>
+                                    <input type="number" class="item-quantity" value="1" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Amount (₹) *</label>
+                                    <input type="number" class="item-amount" step="0.01" min="0" required>
+                                </div>
+                                <div class="form-group" style="flex: 0.5; display: flex; align-items: flex-end;">
+                                    <button type="button" class="btn-icon danger" onclick="removeInvoiceItem(1)"
+                                        title="Remove">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-secondary" onclick="addInvoiceItem()" style="margin: 1rem 0;">
+                        <i class="fas fa-plus"></i> Add Item
+                    </button>
+
+                    <div class="form-row"
+                        style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid var(--gray-200);">
+                        <div class="form-group">
+                            <label>Total Amount (₹)</label>
+                            <input type="number" id="invoiceTotalAmount" step="0.01" readonly
+                                style="font-weight: 600; font-size: 1.1rem;">
+                        </div>
+                    </div>
+
+
+
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="invoiceNotes" rows="3" placeholder="Additional notes or comments..."></textarea>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeModal('invoiceModal')">Cancel</button>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-check"></i> Create Invoice
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Details Modal -->
+    <div id="invoiceDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3>Invoice Details</h3>
+                <button class="modal-close" onclick="closeModal('invoiceDetailsModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="invoiceDetailsContent"></div>
+                <div class="modal-actions" style="margin-top: 2rem;">
+                    <button type="button" class="btn-secondary"
+                        onclick="closeModal('invoiceDetailsModal')">Close</button>
+                    <button type="button" class="btn-primary" id="invoiceDetailsPayBtn" onclick="">
+                        <i class="fas fa-credit-card"></i> Record Payment
+                    </button>
+                    <button type="button" class="btn-secondary" id="invoiceDetailsPrintBtn" onclick="window.print()">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Record Payment Modal -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Record Payment</h3>
+                <button class="modal-close" onclick="closeModal('paymentModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="paymentForm">
+                    <input type="hidden" id="paymentInvoiceId">
+
+                    <div class="info-box"
+                        style="margin-bottom: 1.5rem; background: var(--gray-100); padding: 1rem; border-radius: 0.5rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span>Total Amount:</span>
+                            <span id="paymentTotalAmount" style="font-weight: 600;">₹0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span>Already Paid:</span>
+                            <span id="paymentPaidAlready" style="font-weight: 600;">₹0.00</span>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; color: var(--danger); border-top: 1px solid var(--gray-300); padding-top: 0.5rem;">
+                            <span>Pending Balance:</span>
+                            <span id="paymentPendingBalance" style="font-weight: 700;">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Amount to Pay (₹) *</label>
+                        <input type="number" id="paymentAmount" step="0.01" min="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Payment Method *</label>
+                        <select id="paymentMethod" required>
+                            <option value="CASH">Cash</option>
+                            <option value="CARD">Card</option>
+                            <option value="UPI">UPI</option>
+                            <option value="NET_BANKING">Net Banking</option>
+                            <option value="INSURANCE">Insurance</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="paymentNotes" rows="2" placeholder="Payment reference or notes..."></textarea>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeModal('paymentModal')">Cancel</button>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Save Payment
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

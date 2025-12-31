@@ -32,6 +32,14 @@ public class DoctorController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<?> getDoctorByUserId(@PathVariable Long userId) {
+        // Since Doctor extends User with Joined inheritance, Doctor ID = User ID
+        return doctorRepository.findById(userId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/specialization/{specialization}")
     public ResponseEntity<List<Doctor>> getDoctorsBySpecialization(@PathVariable String specialization) {
         return ResponseEntity.ok(doctorRepository.findBySpecialization(specialization));

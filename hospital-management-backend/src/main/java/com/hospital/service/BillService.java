@@ -1,6 +1,5 @@
 package com.hospital.service;
 
-import com.hospital.model.Appointment;
 import com.hospital.model.Bill;
 import com.hospital.model.Patient;
 import com.hospital.repository.mysql.BillRepository;
@@ -24,40 +23,75 @@ public class BillService {
     }
 
     @Transactional
-    public Bill createBill(Appointment appointment) {
-        Bill bill = new Bill();
-        bill.setAppointment(appointment);
-        bill.setPatient(appointment.getPatient());
+    public Bill createInvoice(Bill invoiceData, Long patientId) {
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new RuntimeException("Patient not found"));
 
-        // Use doctor's fee or default
-        Double fee = appointment.getDoctor().getConsultationFee();
-        if (fee == null)
-            fee = 500.0; // Default Fee
+        invoiceData.setPatient(patient);
+        invoiceData.setGeneratedAt(LocalDateTime.now());
 
-        bill.setAmount(fee);
-        bill.setStatus("PENDING");
-        bill.setGeneratedAt(LocalDateTime.now());
+        // Calculate status based on amounts
+        if (invoiceData.getPaidAmount() >= invoiceData.getAmount()) {
+            invoiceData.setStatus("PAID");
+            invoiceData.setBalanceAmount(0.0);
+            invoiceData.setPaidAt(LocalDateTime.now());
+        } else if (invoiceData.getPaidAmount() > 0) {
+            invoiceData.setStatus("PARTIAL");
+            invoiceData.setBalanceAmount(invoiceData.getAmount() - invoiceData.getPaidAmount());
+        } else {
+            invoiceData.setStatus("PENDING");
+            invoiceData.setBalanceAmount(invoiceData.getAmount());
+        }
 
-        return billRepository.save(bill);
+        // Link items
+        if (invoiceData.getItems() != null) {
+            for (com.hospital.model.BillItem item : invoiceData.getItems()) {
+                item.setBill(invoiceData);
+            }
+        }
+
+        return billRepository.save(invoiceData);
     }
 
     @Transactional
-    public Bill payBill(Long billId, String paymentMethod) {
+    public Bill recordPayment(Long billId, Double amount, String paymentMethod, String notes) {
         Bill bill = billRepository.findById(billId)
                 .orElseThrow(() -> new RuntimeException("Bill not found"));
 
         if ("PAID".equals(bill.getStatus())) {
-            throw new RuntimeException("Bill is already paid");
+            throw new RuntimeException("Bill is already fully paid");
         }
 
-        bill.setStatus("PAID");
-        bill.setPaymentMethod(paymentMethod);
-        bill.setPaidAt(LocalDateTime.now());
-        bill.setTransactionId(UUID.randomUUID().toString()); // Mock Transaction ID
+        double currentPaid = bill.getPaidAmount() != null ? bill.getPaidAmount() : 0.0;
+        double newPaid = currentPaid + amount;
 
-        // Update appointment payment status too
-        if (bill.getAppointment() != null) {
-            bill.getAppointment().setPaymentStatus("PAID");
+        // Simple validation to prevent overpayment logic errors
+        if (newPaid > bill.getAmount() + 0.1) { // 0.1 tolerance
+            throw new RuntimeException(
+                    "Payment amount " + amount + " exceeds remaining balance " + bill.getBalanceAmount());
+        }
+
+        bill.setPaidAmount(newPaid);
+        bill.setBalanceAmount(bill.getAmount() - newPaid);
+        bill.setPaymentMethod(paymentMethod);
+
+        // Update notes if provided
+        if (notes != null && !notes.isEmpty()) {
+            String currentNotes = bill.getNotes() != null ? bill.getNotes() : "";
+            bill.setNotes(
+                    currentNotes + (currentNotes.isEmpty() ? "" : " | ") + "Payment: " + amount + " (" + notes + ")");
+        }
+
+        if (bill.getBalanceAmount() <= 0.01) {
+            bill.setStatus("PAID");
+            bill.setPaidAt(LocalDateTime.now());
+            bill.setBalanceAmount(0.0);
+
+            if (bill.getAppointment() != null) {
+                bill.getAppointment().setPaymentStatus("PAID");
+            }
+        } else {
+            bill.setStatus("PARTIAL");
         }
 
         return billRepository.save(bill);
@@ -67,5 +101,9 @@ public class BillService {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
         return billRepository.findByPatientOrderByGeneratedAtDesc(patient);
+    }
+
+    public List<Bill> getAllBills() {
+        return billRepository.findAll();
     }
 }

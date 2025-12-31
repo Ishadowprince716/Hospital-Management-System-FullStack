@@ -57,7 +57,9 @@ public class AppointmentService {
         appointment.setPaymentStatus("PENDING");
         appointment.setConsultationFee(doctor.getConsultationFee());
 
-        return appointmentRepository.save(appointment);
+        Appointment saved = appointmentRepository.save(appointment);
+        System.out.println("✓ Appointment booked successfully: ID=" + saved.getId() + ", Doctor ID=" + doctor.getId() + ", Patient ID=" + patient.getId());
+        return saved;
     }
 
     public List<Appointment> getPatientAppointments(Long patientId) {
@@ -69,7 +71,9 @@ public class AppointmentService {
     public List<Appointment> getDoctorAppointments(Long doctorId) {
         Doctor doctor = doctorRepository.findById(doctorId)
                 .orElseThrow(() -> new RuntimeException("Doctor not found"));
-        return appointmentRepository.findByDoctor(doctor);
+        List<Appointment> appointments = appointmentRepository.findByDoctor(doctor);
+        System.out.println("✓ Retrieved " + appointments.size() + " appointments for Doctor ID=" + doctorId);
+        return appointments;
     }
 
     @Transactional

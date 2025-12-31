@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test - Hospital Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .test-section {
+            margin-bottom: 25px;
+            padding-bottom: 25px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .test-section:last-child {
+            border-bottom: none;
+        }
+        
+        h2 {
+            color: #667eea;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .result {
+            background: #f5f5f5;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            word-wrap: break-word;
+        }
+        
+        .result.success {
+            border-left-color: #27ae60;
+            background: #f0fdf4;
+        }
+        
+        .result.error {
+            border-left-color: #e74c3c;
+            background: #fef2f2;
+            color: #c92a2a;
+        }
+        
+        .result.warning {
+            border-left-color: #f39c12;
+            background: #fffbf0;
+            color: #c05621;
+        }
+        
+        .loading {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 Hospital API Test Panel</h1>
+        
+        <div class="test-section">
+            <h2>1️⃣ Server Health Check</h2>
+            <button onclick="testHealth()">Test Backend Availability</button>
+            <div id="health-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>2️⃣ User Login/Auth</h2>
+            <label>Username (or try 'doctor1'):</label>
+            <input type="text" id="loginUsername" placeholder="doctor1" value="doctor1">
+            <label>Password (or try 'password123'):</label>
+            <input type="password" id="loginPassword" placeholder="password123" value="password123">
+            <button onclick="testLogin()">Test Login</button>
+            <div id="login-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>3️⃣ Get Doctor Info</h2>
+            <label>Doctor ID (from login result):</label>
+            <input type="text" id="doctorId" placeholder="1">
+            <button onclick="getDoctorInfo()">Get Doctor Info</button>
+            <div id="doctor-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>4️⃣ Get Doctor Appointments</h2>
+            <label>Doctor ID:</label>
+            <input type="text" id="docIdAppointments" placeholder="1">
+            <button onclick="getDoctorAppointments()">Get Appointments</button>
+            <div id="appointments-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>5️⃣ Get All Appointments (Admin View)</h2>
+            <button onclick="getAllAppointments()">Get All Appointments</button>
+            <div id="all-appointments-result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>6️⃣ AI Health Check</h2>
+            <button onclick="testAIHealth()">Test AI Endpoint</button>
+            <div id="ai-result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080/api';
+        let authToken = null;
+        
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.className = `result ${type}`;
+            element.innerHTML = message;
+        }
+        
+        async function testHealth() {
+            const resultId = 'health-result';
+            showResult(resultId, '⏳ Testing...', 'warning');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/`, {
+                    method: 'OPTIONS'
+                });
+                
+                // Try a simple endpoint
+                const healthResponse = await fetch('http://localhost:8080/');
+                if (healthResponse.status === 404) {
+                    showResult(resultId, '✅ Backend is running on localhost:8080\n(404 on root is expected)', 'success');
+                } else {
+                    showResult(resultId, `✅ Backend responding with status ${healthResponse.status}`, 'success');
+                }
+            } catch (error) {
+                showResult(resultId, `❌ Cannot connect to backend\nError: ${error.message}\n\nMake sure:\n1. Backend is running on http://localhost:8080\n2. Start with: mvn spring-boot:run`, 'error');
+            }
+        }
+        
+        async function testLogin() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            const resultId = 'login-result';
+            
+            if (!username || !password) {
+                showResult(resultId, '⚠️ Please enter username and password', 'warning');
+                return;
+            }
+            
+            showResult(resultId, '⏳ Logging in...', 'warning');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.text();
+                    showResult(resultId, `❌ Login failed (${response.status})\nResponse: ${error}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                authToken = data.token;
+                
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                
+                // Populate doctor ID field
+                document.getElementById('doctorId').value = data.user.id;
+                document.getElementById('docIdAppointments').value = data.user.id;
+                
+                showResult(resultId, `✅ Login successful!\n\nUser: ${data.user.fullName}\nRole: ${data.user.role}\nID: ${data.user.id}\n\nToken saved to localStorage`, 'success');
+            } catch (error) {
+                showResult(resultId, `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function getDoctorInfo() {
+            const doctorId = document.getElementById('doctorId').value;
+            const resultId = 'doctor-result';
+            
+            if (!doctorId) {
+                showResult(resultId, '⚠️ Please enter Doctor ID', 'warning');
+                return;
+            }
+            
+            showResult(resultId, '⏳ Fetching...', 'warning');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/doctors/${doctorId}`);
+                
+                if (!response.ok) {
+                    const error = await response.text();
+                    showResult(resultId, `❌ Failed (${response.status})\nResponse: ${error}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                showResult(resultId, `✅ Doctor found:\n${JSON.stringify(data, null, 2)}`, 'success');
+            } catch (error) {
+                showResult(resultId, `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function getDoctorAppointments() {
+            const doctorId = document.getElementById('docIdAppointments').value;
+            const resultId = 'appointments-result';
+            
+            if (!doctorId) {
+                showResult(resultId, '⚠️ Please enter Doctor ID', 'warning');
+                return;
+            }
+            
+            showResult(resultId, '⏳ Fetching appointments...', 'warning');
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/appointments/doctor/${doctorId}`, {
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                });
+                
+                if (!response.ok) {
+                    const error = await response.text();
+                    showResult(resultId, `❌ Failed (${response.status})\nError: ${error}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.length === 0) {
+                    showResult(resultId, `⚠️ No appointments found for doctor ${doctorId}`, 'warning');
+                } else {
+                    showResult(resultId, `✅ Found ${data.length} appointments:\n${JSON.stringify(data, null, 2)}`, 'success');
+                }
+            } catch (error) {
+                showResult(resultId, `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function getAllAppointments() {
+            const resultId = 'all-appointments-result';
+            
+            showResult(resultId, '⏳ Fetching all appointments...', 'warning');
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/appointments`, {
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                });
+                
+                if (!response.ok) {
+                    const error = await response.text();
+                    showResult(resultId, `❌ Failed (${response.status})\nError: ${error}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.length === 0) {
+                    showResult(resultId, `⚠️ No appointments found in system`, 'warning');
+                } else {
+                    showResult(resultId, `✅ Found ${data.length} appointments:\n${JSON.stringify(data, null, 2)}`, 'success');
+                }
+            } catch (error) {
+                showResult(resultId, `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testAIHealth() {
+            const resultId = 'ai-result';
+            
+            showResult(resultId, '⏳ Testing AI endpoint...', 'warning');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/ai/health`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult(resultId, `✅ AI endpoint healthy:\n${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    const error = await response.text();
+                    showResult(resultId, `⚠️ AI endpoint returned ${response.status}:\n${error}`, 'warning');
+                }
+            } catch (error) {
+                showResult(resultId, `❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test on load
+        window.addEventListener('load', () => {
+            testHealth();
+        });
+    </script>
+</body>
+</html>

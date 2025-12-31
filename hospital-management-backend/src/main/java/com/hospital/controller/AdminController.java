@@ -46,9 +46,190 @@ public class AdminController {
         return ResponseEntity.ok(userRepository.findAll());
     }
 
+    @PostMapping("/users")
+    public ResponseEntity<?> createUser(@RequestBody Map<String, Object> userRequest) {
+        try {
+            // Validate required fields
+            String username = (String) userRequest.get("username");
+            String email = (String) userRequest.get("email");
+            String password = (String) userRequest.get("password");
+            String fullName = (String) userRequest.get("fullName");
+            String role = (String) userRequest.get("role");
+
+            if (username == null || email == null || password == null || role == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "error",
+                        "message", "Missing required fields: username, email, password, and role are required"));
+            }
+
+            // Check if username or email already exists
+            if (userRepository.findByUsername(username).isPresent()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "error",
+                        "message", "Username already exists"));
+            }
+
+            if (userRepository.findByEmail(email).isPresent()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "error",
+                        "message", "Email already exists"));
+            }
+
+            // Create new user
+            User newUser = new User();
+            newUser.setUsername(username);
+            newUser.setEmail(email);
+            newUser.setPassword(password); // In production, this should be hashed
+            newUser.setFullName(fullName);
+            newUser.setRole(role);
+            newUser.setIsActive(true);
+
+            if (userRequest.containsKey("phoneNumber")) {
+                newUser.setPhoneNumber((String) userRequest.get("phoneNumber"));
+            }
+
+            User savedUser = userRepository.save(newUser);
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "User created successfully",
+                    "user", savedUser));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "status", "error",
+                    "message", "Failed to create user: " + e.getMessage()));
+        }
+    }
+
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getDashboardStats() {
         return ResponseEntity.ok(adminService.getDashboardStats());
+    }
+
+    // User Management Endpoints
+
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<Map<String, String>> deleteUser(@PathVariable Long id) {
+        try {
+            Optional<User> userOpt = userRepository.findById(id);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            User user = userOpt.get();
+
+            // Soft delete - just deactivate the user instead of hard delete
+            // This preserves data integrity for appointments, bills, etc.
+            user.setIsActive(false);
+            userRepository.save(user);
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "User deactivated successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "status", "error",
+                    "message", "Failed to delete user: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/users/{id}/activate")
+    public ResponseEntity<Map<String, String>> activateUser(@PathVariable Long id) {
+        try {
+            Optional<User> userOpt = userRepository.findById(id);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            User user = userOpt.get();
+            user.setIsActive(true);
+            userRepository.save(user);
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "User activated successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "status", "error",
+                    "message", "Failed to activate user: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/users/{id}/deactivate")
+    public ResponseEntity<Map<String, String>> deactivateUser(@PathVariable Long id) {
+        try {
+            Optional<User> userOpt = userRepository.findById(id);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            User user = userOpt.get();
+            user.setIsActive(false);
+            userRepository.save(user);
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "User deactivated successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "status", "error",
+                    "message", "Failed to deactivate user: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/users/{id}")
+    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
+        try {
+            Optional<User> userOpt = userRepository.findById(id);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            User user = userOpt.get();
+
+            // Update fields if present
+            if (updates.containsKey("fullName")) {
+                user.setFullName((String) updates.get("fullName"));
+            }
+            if (updates.containsKey("email")) {
+                user.setEmail((String) updates.get("email"));
+            }
+            if (updates.containsKey("phoneNumber")) {
+                user.setPhoneNumber((String) updates.get("phoneNumber"));
+            }
+
+            userRepository.save(user);
+
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "status", "error",
+                    "message", "Failed to update user: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/users/{id}/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(@PathVariable Long id) {
+        try {
+            Optional<User> userOpt = userRepository.findById(id);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            User user = userOpt.get();
+            // Set a temporary password - in production, you'd send an email
+            String tempPassword = "Hospital@123";
+            user.setPassword(tempPassword); // In real implementation, hash this
+            userRepository.save(user);
+
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Password reset successfully. Temporary password: " + tempPassword));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "status", "error",
+                    "message", "Failed to reset password: " + e.getMessage()));
+        }
     }
 
     @PostMapping("/init-sample-data")

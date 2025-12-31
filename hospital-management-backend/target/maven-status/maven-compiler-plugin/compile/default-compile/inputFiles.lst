@@ -11,6 +11,7 @@ C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\s
 C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\repository\mysql\PrescriptionRepository.java
 C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\model\Prescription.java
 C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\config\OAuth2AuthenticationSuccessHandler.java
+C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\model\BillItem.java
 C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\repository\mysql\DoctorRepository.java
 C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\config\GoogleOAuth2UserInfo.java
 C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\service\AppointmentService.java
@@ -39,6 +40,8 @@ C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\s
 C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\repository\mysql\UserRepository.java
 C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\controller\BillController.java
 C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\service\EmailService.java
+C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\controller\AIController.java
+C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\controller\HealthController.java
 C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\controller\AuthController.java
 C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\model\Patient.java
 C:\Users\RAHUL KUSHWAH\OneDrive\Desktop\New folder\hospital-management-backend\src\main\java\com\hospital\model\User.java
