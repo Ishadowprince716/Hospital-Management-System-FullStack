@@ -1,0 +1,345 @@
+/* Theme CSS – Light & Dark Mode */
+:root {
+    --primary-color: #2563eb;
+    --primary-dark: #1e40af;
+    --bg-color: #ffffff;
+    --text-color: #212529;
+    --card-bg: #f8f9fa;
+    --border-color: #dee2e6;
+}
+
+.dark-mode {
+    --primary-color: #90caf9;
+    --primary-dark: #64b5f6;
+    --bg-color: #121212;
+    --text-color: #e0e0e0;
+    --card-bg: #1e1e1e;
+    --border-color: #333333;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.card,
+.card-header,
+.card-body {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.sidebar,
+.sidebar-nav .nav-item {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+}
+
+.header,
+.header-left,
+.header-right {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+}
+
+button,
+.btn-primary,
+.btn-outline-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+}
+
+button:hover,
+.btn-primary:hover,
+.btn-outline-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+/* Ensure icons adapt */
+.fas {
+    color: var(--text-color);
+}
+
+/* Toasts */
+.toast {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+/* ===== NOTIFICATION SYSTEM ===== */
+.notification-bell-container {
+    position: relative;
+    margin-right: 1rem;
+}
+
+.notification-bell {
+    position: relative;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.notification-bell:hover {
+    background: rgba(var(--primary-color), 0.1);
+    transform: scale(1.1);
+}
+
+.notification-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: #ef4444;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 0.15rem 0.4rem;
+    border-radius: 10px;
+    min-width: 18px;
+    height: 18px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.notification-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 380px;
+    max-height: 500px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    display: none;
+    flex-direction: column;
+    z-index: 1000;
+    margin-top: 0.5rem;
+    overflow: hidden;
+}
+
+.notification-dropdown.show {
+    display: flex;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.notification-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-color);
+}
+
+.mark-all-read {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.mark-all-read:hover {
+    background: rgba(var(--primary-color), 0.1);
+}
+
+.notification-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notification-item {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    gap: 0.75rem;
+    position: relative;
+}
+
+.notification-item:hover {
+    background: rgba(var(--primary-color), 0.05);
+}
+
+.notification-item.unread {
+    background: rgba(var(--primary-color), 0.03);
+}
+
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.notification-icon.icon-primary {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+}
+
+.notification-icon.icon-success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.notification-icon.icon-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.notification-icon.icon-error {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.notification-icon.icon-info {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-content h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.95rem;
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+.notification-content p {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.85rem;
+    color: var(--text-color);
+    opacity: 0.8;
+}
+
+.notification-content small {
+    font-size: 0.75rem;
+    color: var(--text-color);
+    opacity: 0.6;
+}
+
+.notification-dot {
+    position: absolute;
+    top: 1.25rem;
+    right: 1rem;
+    width: 8px;
+    height: 8px;
+    background: #3b82f6;
+    border-radius: 50%;
+}
+
+.notification-empty {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: var(--text-color);
+    opacity: 0.5;
+}
+
+.notification-empty i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.notification-empty p {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+/* Scrollbar for notification list */
+.notification-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+    background: var(--card-bg);
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.notification-list::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color);
+}
+
+/* Drag and Drop Upload Zone */
+.upload-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s;
+    background: var(--card-bg);
+    cursor: pointer;
+    margin-bottom: 1rem;
+}
+
+.upload-zone:hover,
+.upload-zone.dragover {
+    border-color: var(--primary-color);
+    background: rgba(var(--primary-color), 0.05);
+}
+
+.upload-zone i {
+    font-size: 2.5rem;
+    color: var(--text-light);
+    margin-bottom: 1rem;
+}
+
+.upload-zone p {
+    margin: 0;
+    color: var(--text-color);
+}

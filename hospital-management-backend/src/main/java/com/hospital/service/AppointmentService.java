@@ -6,6 +6,8 @@ import com.hospital.model.Patient;
 import com.hospital.repository.mysql.AppointmentRepository;
 import com.hospital.repository.mysql.DoctorRepository;
 import com.hospital.repository.mysql.PatientRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,18 +64,26 @@ public class AppointmentService {
         return saved;
     }
 
-    public List<Appointment> getPatientAppointments(Long patientId) {
+    public Page<Appointment> getPatientAppointments(Long patientId, Pageable pageable) {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
-        return appointmentRepository.findByPatient(patient);
+        return appointmentRepository.findByPatient(patient, pageable);
     }
 
-    public List<Appointment> getDoctorAppointments(Long doctorId) {
+    public Page<Appointment> getDoctorAppointments(Long doctorId, Pageable pageable) {
         Doctor doctor = doctorRepository.findById(doctorId)
                 .orElseThrow(() -> new RuntimeException("Doctor not found"));
-        List<Appointment> appointments = appointmentRepository.findByDoctor(doctor);
-        System.out.println("✓ Retrieved " + appointments.size() + " appointments for Doctor ID=" + doctorId);
-        return appointments;
+        return appointmentRepository.findByDoctor(doctor, pageable);
+    }
+
+    public Page<Appointment> getAllAppointments(Pageable pageable) {
+        return appointmentRepository.findAll(pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Appointment getAppointmentById(Long appointmentId) {
+        return appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new RuntimeException("Appointment not found"));
     }
 
     @Transactional
@@ -87,6 +97,13 @@ public class AppointmentService {
 
     public List<Appointment> getAllAppointments() {
         return appointmentRepository.findAll();
+    }
+
+    @Transactional
+    public void deleteAppointment(Long appointmentId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+        appointmentRepository.delete(appointment);
     }
 
     @Transactional

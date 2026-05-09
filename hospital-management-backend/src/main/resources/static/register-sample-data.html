@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Auto-Register Sample Users</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #2dd4bf 0%, #a78bfa 50%, #fb923c 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2dd4bf;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 30px;
+        }
+
+        button {
+            background: #2dd4bf;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 10px 5px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        button:hover {
+            background: #14b8a6;
+        }
+
+        button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .log {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            max-height: 600px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+        }
+
+        .log-item {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 4px solid #2dd4bf;
+            background: white;
+        }
+
+        .log-item.success {
+            border-left-color: #10b981;
+            background: #d1fae5;
+        }
+
+        .log-item.error {
+            border-left-color: #ef4444;
+            background: #fee2e2;
+        }
+
+        .summary {
+            margin-top: 20px;
+            padding: 20px;
+            background: #2dd4bf;
+            color: white;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .summary h3 {
+            margin: 0 0 10px 0;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🏥 Sample Data Generator</h1>
+        <p class="subtitle">Automatically register sample doctors and patients for testing</p>
+
+        <button id="registerBtn" onclick="registerAll()">
+            🚀 Register All Sample Users
+        </button>
+
+        <div id="summary" class="summary" style="display: none;">
+            <h3>✅ Registration Complete!</h3>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="doctorCount">0</div>
+                    <div>Doctors</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="patientCount">0</div>
+                    <div>Patients</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalCount">0</div>
+                    <div>Total Users</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080/api';
+        let doctorsCreated = 0;
+        let patientsCreated = 0;
+
+        const doctors = [
+            { username: 'dr.priya', password: 'doctor123', email: 'priya.sharma@hospital.com', phoneNumber: '9876543211', fullName: 'Dr. Priya Sharma', role: 'DOCTOR', specialization: 'Cardiology', qualification: 'MBBS, MD (Cardiology), DM', experienceYears: 12, consultationFee: 1200, department: 'Heart & Vascular', licenseNumber: 'DOC789012' },
+            { username: 'dr.amit', password: 'doctor123', email: 'amit.kumar@hospital.com', phoneNumber: '9876543212', fullName: 'Dr. Amit Kumar', role: 'DOCTOR', specialization: 'Dermatology', qualification: 'MBBS, MD (Dermatology)', experienceYears: 8, consultationFee: 800, department: 'Skin & Cosmetic', licenseNumber: 'DOC345678' },
+            { username: 'dr.sneha', password: 'doctor123', email: 'sneha.reddy@hospital.com', phoneNumber: '9876543213', fullName: 'Dr. Sneha Reddy', role: 'DOCTOR', specialization: 'Pediatrics', qualification: 'MBBS, MD (Pediatrics)', experienceYears: 10, consultationFee: 900, department: 'Child Health', licenseNumber: 'DOC901234' },
+            { username: 'dr.rajesh', password: 'doctor123', email: 'rajesh.verma@hospital.com', phoneNumber: '9876543214', fullName: 'Dr. Rajesh Verma', role: 'DOCTOR', specialization: 'Orthopedics', qualification: 'MBBS, MS (Orthopedics)', experienceYears: 15, consultationFee: 1500, department: 'Bone & Joint', licenseNumber: 'DOC567890' },
+            { username: 'dr.ananya', password: 'doctor123', email: 'ananya.gupta@hospital.com', phoneNumber: '9876543215', fullName: 'Dr. Ananya Gupta', role: 'DOCTOR', specialization: 'Gynecology', qualification: 'MBBS, MD (OB-GYN)', experienceYears: 9, consultationFee: 1000, department: 'Women\'s Health', licenseNumber: 'DOC234567' },
+            { username: 'dr.vikram', password: 'doctor123', email: 'vikram.singh@hospital.com', phoneNumber: '9876543216', fullName: 'Dr. Vikram Singh', role: 'DOCTOR', specialization: 'Neurology', qualification: 'MBBS, MD, DM (Neurology)', experienceYears: 14, consultationFee: 1800, department: 'Brain & Nervous System', licenseNumber: 'DOC678901' },
+            { username: 'dr.meera', password: 'doctor123', email: 'meera.patel@hospital.com', phoneNumber: '9876543217', fullName: 'Dr. Meera Patel', role: 'DOCTOR', specialization: 'ENT (Otolaryngology)', qualification: 'MBBS, MS (ENT)', experienceYears: 7, consultationFee: 700, department: 'Ear, Nose & Throat', licenseNumber: 'DOC890123' }
+        ];
+
+        const patients = [
+            { username: 'patient2', password: 'patient123', email: 'arjun.mehta@email.com', phoneNumber: '9123456781', fullName: 'Arjun Mehta', role: 'PATIENT', dateOfBirth: '1990-05-15', gender: 'Male', address: '123 MG Road, Bangalore', emergencyContact: 'Priya Mehta', emergencyContactPhone: '9123456801', bloodGroup: 'O+' },
+            { username: 'patient3', password: 'patient123', email: 'kavya.nair@email.com', phoneNumber: '9123456782', fullName: 'Kavya Nair', role: 'PATIENT', dateOfBirth: '1985-08-22', gender: 'Female', address: '456 Marine Drive, Mumbai', emergencyContact: 'Suresh Nair', emergencyContactPhone: '9123456802', bloodGroup: 'A+' },
+            { username: 'patient4', password: 'patient123', email: 'rohan.desai@email.com', phoneNumber: '9123456783', fullName: 'Rohan Desai', role: 'PATIENT', dateOfBirth: '1995-03-10', gender: 'Male', address: '789 Park Street, Kolkata', emergencyContact: 'Neha Desai', emergencyContactPhone: '9123456803', bloodGroup: 'B+' },
+            { username: 'patient5', password: 'patient123', email: 'ishita.joshi@email.com', phoneNumber: '9123456784', fullName: 'Ishita Joshi', role: 'PATIENT', dateOfBirth: '1988-11-30', gender: 'Female', address: '321 Anna Salai, Chennai', emergencyContact: 'Rahul Joshi', emergencyContactPhone: '9123456804', bloodGroup: 'AB+' },
+            { username: 'patient6', password: 'patient123', email: 'aditya.rao@email.com', phoneNumber: '9123456785', fullName: 'Aditya Rao', role: 'PATIENT', dateOfBirth: '1992-07-18', gender: 'Male', address: '654 Banjara Hills, Hyderabad', emergencyContact: 'Lakshmi Rao', emergencyContactPhone: '9123456805', bloodGroup: 'O-' },
+            { username: 'patient7', password: 'patient123', email: 'pooja.iyer@email.com', phoneNumber: '9123456786', fullName: 'Pooja Iyer', role: 'PATIENT', dateOfBirth: '1987-12-05', gender: 'Female', address: '987 Whitefield, Bangalore', emergencyContact: 'Karthik Iyer', emergencyContactPhone: '9123456806', bloodGroup: 'A-' },
+            { username: 'patient8', password: 'patient123', email: 'nikhil.shah@email.com', phoneNumber: '9123456787', fullName: 'Nikhil Shah', role: 'PATIENT', dateOfBirth: '1993-09-25', gender: 'Male', address: '147 Kalyani Nagar, Pune', emergencyContact: 'Anjali Shah', emergencyContactPhone: '9123456807', bloodGroup: 'B-' },
+            { username: 'patient9', password: 'patient123', email: 'riya.chopra@email.com', phoneNumber: '9123456788', fullName: 'Riya Chopra', role: 'PATIENT', dateOfBirth: '1991-04-12', gender: 'Female', address: '258 Golf Course Road, Gurgaon', emergencyContact: 'Vikram Chopra', emergencyContactPhone: '9123456808', bloodGroup: 'AB-' },
+            { username: 'patient10', password: 'patient123', email: 'varun.malhotra@email.com', phoneNumber: '9123456789', fullName: 'Varun Malhotra', role: 'PATIENT', dateOfBirth: '1989-06-08', gender: 'Male', address: '369 Vasant Vihar, Delhi', emergencyContact: 'Sanjana Malhotra', emergencyContactPhone: '9123456809', bloodGroup: 'O+' }
+        ];
+
+        function addLog(message, isSuccess = true) {
+            const logDiv = document.getElementById('log');
+            const logItem = document.createElement('div');
+            logItem.className = `log-item ${isSuccess ? 'success' : 'error'}`;
+            logItem.textContent = message;
+            logDiv.appendChild(logItem);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        async function registerUser(userData) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (userData.role === 'DOCTOR') doctorsCreated++;
+                    else patientsCreated++;
+                    return { success: true, data };
+                } else {
+                    return { success: false, error: data.error || 'Registration failed' };
+                }
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function registerAll() {
+            const btn = document.getElementById('registerBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Registering users...';
+
+            document.getElementById('log').innerHTML = '';
+            doctorsCreated = 0;
+            patientsCreated = 0;
+
+            addLog('🏁 Starting registration process...');
+
+            // Register doctors
+            addLog('\n👨‍⚕️ Registering Doctors...');
+            for (const doctor of doctors) {
+                const result = await registerUser(doctor);
+                if (result.success) {
+                    addLog(`✅ Registered: ${doctor.fullName} (${doctor.specialization})`, true);
+                } else {
+                    addLog(`❌ Failed: ${doctor.fullName} - ${result.error}`, false);
+                }
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+
+            // Register patients
+            addLog('\n👥 Registering Patients...');
+            for (const patient of patients) {
+                const result = await registerUser(patient);
+                if (result.success) {
+                    addLog(`✅ Registered: ${patient.fullName}`, true);
+                } else {
+                    addLog(`❌ Failed: ${patient.fullName} - ${result.error}`, false);
+                }
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+
+            addLog('\n🎉 Registration process completed!');
+
+            // Show summary
+            document.getElementById('summary').style.display = 'block';
+            document.getElementById('doctorCount').textContent = doctorsCreated;
+            document.getElementById('patientCount').textContent = patientsCreated;
+            document.getElementById('totalCount').textContent = (doctorsCreated + patientsCreated);
+
+            btn.textContent = '✅ Registration Complete';
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.textContent = '🔄 Register All Sample Users Again';
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>

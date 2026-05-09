@@ -48,13 +48,16 @@ async function showPendingDoctorsFixed() {
         console.log('Response status:', response.status);
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const apiResponse = await response.json().catch(() => ({}));
+            const err = apiResponse.data || apiResponse;
+            throw new Error(err.message || err.error || `HTTP error! status: ${response.status}`);
         }
 
-        const allUsers = await response.json();
-        console.log('All users:', allUsers.length);
+        const apiResponse = await response.json();
+        const allUsers = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse);
+        console.log('All users:', Array.isArray(allUsers) ? allUsers.length : 'not an array');
 
-        const pendingDoctors = allUsers.filter(u => u.role === 'DOCTOR' && !u.isActive);
+        const pendingDoctors = Array.isArray(allUsers) ? allUsers.filter(u => u.role === 'DOCTOR' && !u.isActive) : [];
         console.log('Pending doctors:', pendingDoctors.length);
 
         // Update badge

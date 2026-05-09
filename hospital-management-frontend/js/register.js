@@ -29,6 +29,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // OTP State Removed
 
+    // Real-time username availability check (HEAD)
+    const usernameInput = document.getElementById('username');
+    if (usernameInput) {
+        usernameInput.addEventListener('blur', async () => {
+            const username = usernameInput.value.trim();
+            if (username.length < 3) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/check?username=${encodeURIComponent(username)}`, {
+                    method: 'HEAD'
+                });
+
+                if (response.status === 409) {
+                    showToast('Username already taken', 'warning');
+                    usernameInput.style.borderColor = 'var(--accent-error)';
+                } else {
+                    usernameInput.style.borderColor = 'var(--accent-success)';
+                }
+            } catch (error) {
+                console.error('Availability check failed:', error);
+            }
+        });
+    }
+
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -68,17 +92,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         email,
                         phoneNumber,
                         password,
-                        role
+                        role: role.toUpperCase()
                     })
                 });
 
-                const data = await response.json();
-
                 if (!response.ok) {
-                    throw new Error(data.error || 'Registration failed');
+                    const apiResponse = await response.json();
+                    const err = apiResponse.data || apiResponse;
+                    throw new Error(err.message || err.error || 'Registration failed');
                 }
 
-                showToast(data.message || 'Registration successful! Please login.', 'success');
+                const apiResponse = await response.json();
+                const data = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse);
+
+                showToast(apiResponse.message || 'Registration successful! Please login.', 'success');
                 setTimeout(() => window.location.href = 'index.html', 1500);
             }
         } catch (error) {

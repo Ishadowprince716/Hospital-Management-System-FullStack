@@ -1,11 +1,14 @@
 package com.hospital.controller;
 
+import com.hospital.common.ApiResponse;
+import com.hospital.dto.TriageRequestDTO;
+import com.hospital.dto.TriageResponseDTO;
+import com.hospital.dto.PatientInsightDTO;
+import com.hospital.dto.AdminInsightDTO;
+import com.hospital.service.AIService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.client.RestClientException;
 import java.util.*;
 
 /**
@@ -17,57 +20,82 @@ import java.util.*;
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class AIController {
 
-    @Value("${ai.gemini.api-key}")
-    private String geminiApiKey;
-
-    @Value("${ai.gemini.api-endpoint}")
-    private String geminiApiEndpoint;
-
-    @Autowired(required = false)
-    private RestTemplate restTemplate;
+    @Autowired
+    private AIService aiService;
 
     /**
-     * Send a message to Gemini AI
+     * AI Clinical Navigator - Symptom Triage
+     * Analyzes symptoms and recommends a medical specialization
+     */
+    @PostMapping("/triage")
+    public ResponseEntity<ApiResponse<TriageResponseDTO>> triage(@RequestBody TriageRequestDTO request) {
+        try {
+            if (request.getSymptoms() == null || request.getSymptoms().trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Symptoms cannot be empty"));
+            }
+
+            TriageResponseDTO response = aiService.analyzeSymptoms(request.getSymptoms());
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("Error analyzing symptoms: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Send a message to Gemini AI Agent
      */
     @PostMapping("/chat")
-    public ResponseEntity<?> sendMessage(@RequestBody ChatRequest request) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> sendMessage(@RequestBody ChatRequest request) {
         try {
             if (request.getMessage() == null || request.getMessage().trim().isEmpty()) {
                 return ResponseEntity.badRequest()
-                    .body(Collections.singletonMap("error", "Message cannot be empty"));
+                    .body(ApiResponse.error("Message cannot be empty"));
             }
 
-            // Call Gemini API
-            String url = geminiApiEndpoint + "?key=" + geminiApiKey;
-            
-            // Build request body
-            Map<String, Object> requestBody = buildRequest(request);
+            String aiMessage = aiService.getChatResponse(
+                request.getMessage(), 
+                request.getRole(), 
+                request.getConversationHistory()
+            );
 
-            if (restTemplate == null) {
-                throw new RuntimeException("RestTemplate not configured");
-            }
-
-            try {
-                Map<String, Object> response = restTemplate.postForObject(url, requestBody, Map.class);
-                
-                if (response != null && response.containsKey("candidates")) {
-                    String aiMessage = extractResponse(response);
-                    return ResponseEntity.ok(Collections.singletonMap("message", aiMessage));
-                } else {
-                    return ResponseEntity.status(500)
-                        .body(Collections.singletonMap("error", "Invalid response from AI service"));
-                }
-            } catch (RestClientException e) {
-                System.err.println("RestClient Error: " + e.getMessage());
-                return ResponseEntity.status(503)
-                    .body(Collections.singletonMap("error", "AI service unavailable"));
-            }
+            Map<String, String> response = new HashMap<>();
+            response.put("message", aiMessage);
+            return ResponseEntity.ok(ApiResponse.success(response));
 
         } catch (Exception e) {
-            System.err.println("AI Controller Error: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(500)
-                .body(Collections.singletonMap("error", "Error processing request: " + e.getMessage()));
+                .body(ApiResponse.error("Error processing request: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get automated health summary for a patient
+     */
+    @GetMapping("/health-summary/{patientId}")
+    public ResponseEntity<ApiResponse<PatientInsightDTO>> getHealthSummary(@PathVariable Long patientId) {
+        try {
+            PatientInsightDTO insight = aiService.getHealthSummary(patientId);
+            return ResponseEntity.ok(ApiResponse.success(insight));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("Failed to generate summary: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * AI Ops Guard - Administrative Insights
+     * Generates high-level strategic insights for hospital admins
+     */
+    @GetMapping("/admin-insights")
+    public ResponseEntity<ApiResponse<AdminInsightDTO>> getAdminInsights() {
+        try {
+            AdminInsightDTO insights = aiService.generateAdminInsights();
+            return ResponseEntity.ok(ApiResponse.success(insights));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("Error generating admin insights: " + e.getMessage()));
         }
     }
 
@@ -75,64 +103,12 @@ public class AIController {
      * Health check endpoint
      */
     @GetMapping("/health")
-    public ResponseEntity<?> health() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> health() {
         Map<String, Object> response = new HashMap<>();
         response.put("status", "healthy");
         response.put("ai_service", "operational");
         response.put("timestamp", System.currentTimeMillis());
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Build request for Gemini API
-     */
-    private Map<String, Object> buildRequest(ChatRequest request) {
-        Map<String, Object> req = new HashMap<>();
-        
-        // Build contents array
-        List<Map<String, Object>> contents = new ArrayList<>();
-        Map<String, Object> content = new HashMap<>();
-        content.put("role", "user");
-        
-        List<Map<String, String>> parts = new ArrayList<>();
-        Map<String, String> part = new HashMap<>();
-        part.put("text", request.getMessage());
-        parts.add(part);
-        content.put("parts", parts);
-        
-        contents.add(content);
-        req.put("contents", contents);
-
-        // Generation config
-        Map<String, Object> config = new HashMap<>();
-        config.put("temperature", 0.7);
-        config.put("maxOutputTokens", 500);
-        req.put("generationConfig", config);
-
-        return req;
-    }
-
-    /**
-     * Extract AI response from Gemini response
-     */
-    @SuppressWarnings("unchecked")
-    private String extractResponse(Map<String, Object> response) {
-        try {
-            List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.get("candidates");
-            if (candidates != null && !candidates.isEmpty()) {
-                Map<String, Object> candidate = candidates.get(0);
-                Map<String, Object> content = (Map<String, Object>) candidate.get("content");
-                if (content != null) {
-                    List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
-                    if (parts != null && !parts.isEmpty()) {
-                        return (String) parts.get(0).get("text");
-                    }
-                }
-            }
-            return "Unable to generate response";
-        } catch (Exception e) {
-            return "Error: " + e.getMessage();
-        }
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
@@ -143,28 +119,11 @@ public class AIController {
         private String role;
         private List<Map<String, String>> conversationHistory;
 
-        public String getMessage() {
-            return message;
-        }
-
-        public void setMessage(String message) {
-            this.message = message;
-        }
-
-        public String getRole() {
-            return role;
-        }
-
-        public void setRole(String role) {
-            this.role = role;
-        }
-
-        public List<Map<String, String>> getConversationHistory() {
-            return conversationHistory;
-        }
-
-        public void setConversationHistory(List<Map<String, String>> conversationHistory) {
-            this.conversationHistory = conversationHistory;
-        }
+        public String getMessage() { return message; }
+        public void setMessage(String message) { this.message = message; }
+        public String getRole() { return role != null ? role : "PATIENT"; }
+        public void setRole(String role) { this.role = role; }
+        public List<Map<String, String>> getConversationHistory() { return conversationHistory; }
+        public void setConversationHistory(List<Map<String, String>> conversationHistory) { this.conversationHistory = conversationHistory; }
     }
 }

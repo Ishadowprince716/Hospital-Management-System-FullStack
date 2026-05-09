@@ -1,0 +1,42 @@
+# Java
+*.class
+target/
+*.jar
+*.war
+*.ear
+
+# Logs
+*.log
+backend_debug*.log
+server_log.txt
+server_output.log
+build_log.txt
+compile_*.txt
+final_compile.txt
+full_compile.txt
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Environment
+.env
+.env.example
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Frontend dependencies
+node_modules/
+dist/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log

@@ -1,0 +1,159 @@
+/* Mobile Responsive Styles - Phase 10 */
+
+/* Global Mobile Fixes */
+@media screen and (max-width: 768px) {
+    :root {
+        --sidebar-width: 0px;
+        /* Sidebar collapsed by default on mobile */
+        --header-height: 60px;
+    }
+
+    /* Layout Adjustments */
+    .dashboard-container {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 280px;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 2000;
+        position: fixed;
+        height: 100vh;
+    }
+
+    .sidebar.active {
+        transform: translateX(0);
+        width: 280px;
+    }
+
+    /* Overlay for sidebar */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1500;
+        backdrop-filter: blur(2px);
+    }
+
+    .sidebar-overlay.active {
+        display: block;
+    }
+
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+        padding-top: var(--header-height);
+    }
+
+    /* Header Mobile */
+    .header,
+    .dashboard-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        padding: 0 1rem;
+        height: var(--header-height);
+    }
+
+    .header-left h1 {
+        font-size: 1.25rem;
+    }
+
+    .header-left p {
+        display: none;
+        /* Hide date on small screens to save space */
+    }
+
+    /* Mobile Menu Toggle */
+    .mobile-menu-toggle {
+        display: block !important;
+        margin-right: 1rem;
+        font-size: 1.5rem;
+        background: none;
+        border: none;
+        color: var(--gray-700);
+        cursor: pointer;
+    }
+
+    /* Stats Grid Stack */
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .stat-card {
+        padding: 1rem;
+    }
+
+    /* Table Responsiveness */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 0.5rem;
+        border: 1px solid var(--gray-200);
+    }
+
+    .data-table,
+    .table {
+        min-width: 600px;
+        /* Force scroll */
+    }
+
+    /* Modal Mobile */
+    .modal-content {
+        width: 95%;
+        margin: 1rem auto;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header h2 {
+        font-size: 1.2rem;
+    }
+
+    /* Doctor Dashboard specific */
+    .patients-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .action-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .messages-container {
+        grid-template-columns: 1fr;
+        height: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .messages-sidebar {
+        height: 300px;
+    }
+
+    .messages-main {
+        height: 500px;
+    }
+
+    /* Patient Dashboard specific */
+    .quick-actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Touch Targets */
+    button,
+    .nav-item,
+    .action-btn,
+    input,
+    select {
+        min-height: 44px;
+        /* Accessible touch target size */
+    }
+}

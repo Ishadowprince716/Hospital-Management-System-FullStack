@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>API Test - Hospital Management</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #2dd4bf 0%, #a78bfa 50%, #fb923c 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #2dd4bf;
+            margin-bottom: 30px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border-left: 4px solid #2dd4bf;
+        }
+
+        button {
+            background: #2dd4bf;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #14b8a6;
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .success {
+            color: #059669;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #dc2626;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🏥 Hospital Management API Test</h1>
+
+        <div class="test-section">
+            <h3>✅ Test 1: Fetch Doctors List</h3>
+            <button onclick="testDoctorsList()">Test GET /api/doctors/list</button>
+            <div id="doctorsResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔐 Test 2: Login as Patient</h3>
+            <button onclick="testLogin()">Test Login (patient1/patient123)</button>
+            <div id="loginResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📅 Test 3: Book Appointment</h3>
+            <p style="color: #64748b; font-size: 14px;">First login, then click this button</p>
+            <button onclick="testBookAppointment()">Test Book Appointment</button>
+            <div id="bookingResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Test 4: View My Appointments</h3>
+            <button onclick="testMyAppointments()">Test GET My Appointments</button>
+            <div id="appointmentsResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = '';
+        let patientId = '';
+
+        async function testDoctorsList() {
+            const resultDiv = document.getElementById('doctorsResult');
+            resultDiv.innerHTML = '⏳ Fetching doctors list...';
+
+            try {
+                const response = await fetch('http://localhost:8080/api/doctors/list');
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `<span class="success">✅ SUCCESS</span>\n\nFound ${data.length} doctor(s):\n\n` +
+                        JSON.stringify(data, null, 2);
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ ERROR</span>\n\n` + JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ ERROR</span>\n\n${error.message}`;
+            }
+        }
+
+        async function testLogin() {
+            const resultDiv = document.getElementById('loginResult');
+            resultDiv.innerHTML = '⏳ Logging in as patient1...';
+
+            try {
+                const response = await fetch('http://localhost:8080/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'patient1',
+                        password: 'patient123'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    authToken = data.token;
+                    patientId = data.userId || data.id;
+                    localStorage.setItem('token', authToken);
+                    localStorage.setItem('userId', patientId);
+
+                    resultDiv.innerHTML = `<span class="success">✅ LOGIN SUCCESS</span>\n\n` +
+                        `Token: ${authToken.substring(0, 30)}...\n` +
+                        `User ID: ${patientId}\n` +
+                        `Role: ${data.role}\n\n` +
+                        `Full Response:\n` + JSON.stringify(data, null, 2);
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ LOGIN FAILED</span>\n\n` + JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ ERROR</span>\n\n${error.message}`;
+            }
+        }
+
+        async function testBookAppointment() {
+            const resultDiv = document.getElementById('bookingResult');
+
+            if (!authToken) {
+                resultDiv.innerHTML = '<span class="error">❌ Please login first!</span>';
+                return;
+            }
+
+            resultDiv.innerHTML = '⏳ Booking appointment...';
+
+            try {
+                const appointmentData = {
+                    patientId: parseInt(patientId) || 3,
+                    doctorId: 2, // Dr. Rahul Singh Kushwaha
+                    date: '2025-12-30',
+                    time: '10:00',
+                    reason: 'Routine checkup - Testing appointment booking',
+                    type: 'CONSULTATION'
+                };
+
+                const response = await fetch('http://localhost:8080/api/appointments/book', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(appointmentData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `<span class="success">✅ APPOINTMENT BOOKED SUCCESSFULLY!</span>\n\n` +
+                        `Appointment ID: ${data.id}\n` +
+                        `Doctor: ${data.doctor?.fullName || 'Dr. Rahul Singh Kushwaha'}\n` +
+                        `Date: ${data.appointmentDate}\n` +
+                        `Time: ${data.appointmentTime}\n` +
+                        `Status: ${data.status}\n\n` +
+                        `Full Response:\n` + JSON.stringify(data, null, 2);
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ BOOKING FAILED</span>\n\n` +
+                        `Status: ${response.status}\n` +
+                        JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ ERROR</span>\n\n${error.message}`;
+            }
+        }
+
+        async function testMyAppointments() {
+            const resultDiv = document.getElementById('appointmentsResult');
+
+            if (!authToken || !patientId) {
+                resultDiv.innerHTML = '<span class="error">❌ Please login first!</span>';
+                return;
+            }
+
+            resultDiv.innerHTML = '⏳ Fetching appointments...';
+
+            try {
+                const response = await fetch(`http://localhost:8080/api/appointments/patient/${patientId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `<span class="success">✅ SUCCESS</span>\n\nFound ${data.length} appointment(s):\n\n` +
+                        JSON.stringify(data, null, 2);
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ ERROR</span>\n\n` + JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ ERROR</span>\n\n${error.message}`;
+            }
+        }
+
+        // Auto-test on page load
+        window.addEventListener('load', function () {
+            console.log('🏥 Hospital Management API Test Page Loaded');
+            console.log('Backend: http://localhost:8080/api');
+        });
+    </script>
+</body>
+
+</html>

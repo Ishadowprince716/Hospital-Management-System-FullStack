@@ -14,8 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Check Authentication
 function checkAuth() {
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
+    const token = localStorage.getItem('auth_token');
+    const role = localStorage.getItem('auth_role');
 
     if (!token || role !== 'PATIENT') {
         window.location.href = 'index.html';
@@ -24,8 +24,8 @@ function checkAuth() {
 
 // Load Patient Data
 function loadPatientData() {
-    const fullName = localStorage.getItem('fullName');
-    const username = localStorage.getItem('username');
+    const fullName = localStorage.getItem('auth_fullName');
+    const username = localStorage.getItem('auth_username');
 
     const patientNameEl = document.getElementById('patientName');
     if (patientNameEl) {
@@ -46,18 +46,25 @@ function updateDateTime() {
 // Load Bills
 async function loadBills() {
     try {
-        const token = localStorage.getItem('token');
-        const patientId = localStorage.getItem('userId');
+        const token = localStorage.getItem('auth_token');
+        const patientId = localStorage.getItem('auth_userId');
 
         const response = await fetch(`${API_BASE_URL}/bills/patient/${patientId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        if (!response.ok) {
-            // If API not available, use mock data
-            allBills = generateMockBills();
+        if (response.ok) {
+            const apiResponse = await response.json();
+            // Handle ApiResponse wrapper and pagination
+            allBills = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse);
+            
+            // If the unwrapped data is not an array, default to empty array
+            if (!Array.isArray(allBills)) {
+                 allBills = Array.isArray(apiResponse.data) ? apiResponse.data : (apiResponse.data ? [apiResponse.data] : []);
+            }
         } else {
-            allBills = await response.json();
+            console.error('HTTP Error:', response.status);
+            allBills = generateMockBills();
         }
 
         displayBills(allBills);
@@ -65,7 +72,6 @@ async function loadBills() {
 
     } catch (error) {
         console.error('Error loading bills:', error);
-        // Use mock data
         allBills = generateMockBills();
         displayBills(allBills);
         updateSummary();
@@ -118,27 +124,36 @@ function displayBills(bills) {
         return;
     }
 
-    tbody.innerHTML = bills.map(bill => `
+    tbody.innerHTML = bills.map(bill => {
+        // Handle real model fields vs mock fields
+        const date = bill.billDate || bill.generatedAt;
+        const description = bill.description || (bill.items && bill.items.length > 0 ? bill.items[0].description : 'Medical Services');
+        const doctorName = bill.doctorName || (bill.appointment && bill.appointment.doctor ? bill.appointment.doctor.fullName : 'N/A');
+        const amount = bill.amount;
+        const status = bill.status || 'PENDING';
+
+        return `
         <tr>
-            <td>#${bill.id}</td>
-            <td>${new Date(bill.billDate).toLocaleDateString()}</td>
-            <td>${bill.description}</td>
-            <td>${bill.doctorName || 'N/A'}</td>
-            <td style="font-weight: 600; color: var(--gray-900);">₹${bill.amount}</td>
+            <td>#${bill.billNumber || bill.id}</td>
+            <td>${date ? new Date(date).toLocaleDateString() : 'N/A'}</td>
+            <td>${description}</td>
+            <td>${doctorName}</td>
+            <td style="font-weight: 600; color: var(--gray-900);">₹${amount}</td>
             <td>
-                <span class="status-badge ${bill.status.toLowerCase()}">${bill.status}</span>
+                <span class="status-badge ${status.toLowerCase()}">${status}</span>
             </td>
             <td class="actions">
                 <button class="btn-icon" onclick="viewBillDetails(${bill.id})" title="View Details">
                     <i class="fas fa-eye"></i>
                 </button>
-                ${bill.status === 'PENDING' ? `
+                ${status === 'PENDING' || status === 'PARTIAL' ? `
                 <button class="btn-icon" style="background: var(--primary-color); color: white; border-color: var(--primary-color);" onclick="showPaymentModal(${bill.id})" title="Pay Now">
                     <i class="fas fa-credit-card"></i>
                 </button>` : ''}
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Update Summary
@@ -157,23 +172,27 @@ function showPaymentModal(billId) {
     currentBill = allBills.find(b => b.id === billId);
     if (!currentBill) return;
 
+    const description = currentBill.description || (currentBill.items && currentBill.items.length > 0 ? currentBill.items[0].description : 'Medical Services');
+    const doctorName = currentBill.doctorName || (currentBill.appointment && currentBill.appointment.doctor ? currentBill.appointment.doctor.fullName : 'N/A');
+    const amount = currentBill.balanceAmount || currentBill.amount;
+
     const billDetailsHtml = `
         <div style="background: var(--gray-50); padding: 1.25rem; border-radius: 0.75rem; margin-bottom: 1.5rem;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
                 <span style="color: var(--gray-600);">Bill ID:</span>
-                <strong>#${currentBill.id}</strong>
+                <strong>#${currentBill.billNumber || currentBill.id}</strong>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
                 <span style="color: var(--gray-600);">Description:</span>
-                <strong>${currentBill.description}</strong>
+                <strong>${description}</strong>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
                 <span style="color: var(--gray-600);">Doctor:</span>
-                <strong>${currentBill.doctorName}</strong>
+                <strong>${doctorName}</strong>
             </div>
             <div style="display: flex; justify-content: space-between; padding-top: 0.75rem; border-top: 2px solid var(--gray-200);">
-                <span style="font-size: 1.125rem; font-weight: 600;">Total Amount:</span>
-                <strong style="font-size: 1.5rem; color: var(--primary-color);">₹${currentBill.amount}</strong>
+                <span style="font-size: 1.125rem; font-weight: 600;">Amount to Pay:</span>
+                <strong style="font-size: 1.5rem; color: var(--primary-color);">₹${amount}</strong>
             </div>
         </div>
     `;
@@ -187,54 +206,66 @@ function viewBillDetails(billId) {
     const bill = allBills.find(b => b.id === billId);
     if (!bill) return;
 
+    const description = bill.description || (bill.items && bill.items.length > 0 ? bill.items[0].description : 'Medical Services');
+    const doctorName = bill.doctorName || (bill.appointment && bill.appointment.doctor ? bill.appointment.doctor.fullName : 'N/A');
+    const date = bill.billDate || bill.generatedAt;
+    const amount = bill.amount;
+    const paidAmount = bill.paidAmount || 0;
+    const balanceAmount = bill.balanceAmount || 0;
+    const status = bill.status || 'PENDING';
+
     const content = `
         <div style="display: flex; flex-direction: column; gap: 1.5rem;">
             <div style="text-align: center; padding: 1.5rem; background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color: white; border-radius: 0.75rem;">
-                <h2 style="margin: 0 0 0.5rem 0; font-size: 2rem;">₹${bill.amount}</h2>
-                <p style="margin: 0; opacity: 0.9;">Bill Amount</p>
+                <h2 style="margin: 0 0 0.5rem 0; font-size: 2rem;">₹${amount}</h2>
+                <p style="margin: 0; opacity: 0.9;">Total Bill Amount</p>
+                ${balanceAmount > 0 ? `<p style="margin: 0.5rem 0 0 0; font-weight: 600;">Balance Due: ₹${balanceAmount}</p>` : ''}
             </div>
             
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
                 <div>
                     <strong style="color: var(--gray-600); font-size: 0.875rem;">Bill ID</strong>
-                    <p style="margin: 0.25rem 0 0 0;">#${bill.id}</p>
+                    <p style="margin: 0.25rem 0 0 0;">#${bill.billNumber || bill.id}</p>
                 </div>
                 <div>
                     <strong style="color: var(--gray-600); font-size: 0.875rem;">Date</strong>
-                    <p style="margin: 0.25rem 0 0 0;">${new Date(bill.billDate).toLocaleDateString()}</p>
+                    <p style="margin: 0.25rem 0 0 0;">${date ? new Date(date).toLocaleDateString() : 'N/A'}</p>
                 </div>
                 <div>
                     <strong style="color: var(--gray-600); font-size: 0.875rem;">Doctor</strong>
-                    <p style="margin: 0.25rem 0 0 0;">${bill.doctorName}</p>
+                    <p style="margin: 0.25rem 0 0 0;">${doctorName}</p>
                 </div>
                 <div>
                     <strong style="color: var(--gray-600); font-size: 0.875rem;">Status</strong>
                     <p style="margin: 0.25rem 0 0 0;">
-                        <span class="status-badge ${bill.status.toLowerCase()}">${bill.status}</span>
+                        <span class="status-badge ${status.toLowerCase()}">${status}</span>
                     </p>
                 </div>
             </div>
             
             <div style="padding-top: 1rem; border-top: 1px solid var(--gray-200);">
                 <strong style="color: var(--gray-600); font-size: 0.875rem; display: block; margin-bottom: 0.5rem;">Description</strong>
-                <p style="margin: 0; padding: 1rem; background: var(--gray-50); border-radius: 0.5rem;">${bill.description}</p>
+                <p style="margin: 0; padding: 1rem; background: var(--gray-50); border-radius: 0.5rem;">${description}</p>
             </div>
             
-            ${bill.status === 'PAID' ? `
+            ${status === 'PAID' || status === 'PARTIAL' ? `
             <div style="padding-top: 1rem; border-top: 1px solid var(--gray-200);">
                 <strong style="color: var(--gray-600); font-size: 0.875rem; display: block; margin-bottom: 0.5rem;">Payment Information</strong>
                 <div style="background: var(--bg-success); padding: 1rem; border-radius: 0.5rem;">
-                    <p style="margin: 0 0 0.5rem 0;"><strong>Payment Date:</strong> ${new Date(bill.paymentDate).toLocaleDateString()}</p>
-                    <p style="margin: 0;"><strong>Payment Method:</strong> ${bill.paymentMethod}</p>
+                    <p style="margin: 0 0 0.5rem 0;"><strong>Paid Amount:</strong> ₹${paidAmount}</p>
+                    ${bill.paymentMethod ? `<p style="margin: 0 0 0.5rem 0;"><strong>Payment Method:</strong> ${bill.paymentMethod}</p>` : ''}
+                    ${bill.paidAt ? `<p style="margin: 0;"><strong>Last Payment Date:</strong> ${new Date(bill.paidAt).toLocaleDateString()}</p>` : ''}
                 </div>
             </div>
-            ` : `
+            ` : ''}
+
+            ${status !== 'PAID' ? `
             <div style="text-align: center; padding: 1rem;">
                 <button class="btn-primary" onclick="closeModal('billDetailsModal'); showPaymentModal(${bill.id});">
                     <i class="fas fa-credit-card"></i> Pay Now
                 </button>
             </div>
-            `}
+            ` : ''}
         </div>
     `;
 
@@ -247,55 +278,40 @@ async function processPayment() {
     if (!currentBill) return;
 
     const paymentMethod = document.getElementById('paymentMethod').value;
+    const amount = currentBill.balanceAmount || currentBill.amount;
+    const notes = `Payment via Patient Portal (${paymentMethod})`;
 
-    // Validate payment details based on method
-    if (paymentMethod === 'card') {
-        const cardNumber = document.getElementById('cardNumber').value;
-        const cardExpiry = document.getElementById('cardExpiry').value;
-        const cardCvv = document.getElementById('cardCvv').value;
+    try {
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${API_BASE_URL}/bills/${currentBill.id}/pay`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                paymentMethod,
+                amount,
+                notes
+            })
+        });
 
-        if (!cardNumber || !cardExpiry || !cardCvv) {
-            showToast('Please fill all card details', 'error');
-            return;
+        if (!response.ok) {
+            const apiResponse = await response.json();
+            const err = apiResponse.data || apiResponse;
+            throw new Error(err.message || err.error || 'Payment failed');
         }
-    } else if (paymentMethod === 'upi') {
-        const upiId = document.getElementById('upiId').value;
-        if (!upiId) {
-            showToast('Please enter UPI ID', 'error');
-            return;
-        }
+
+        const apiResponse = await response.json();
+        const updatedBill = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse);
+        processPaymentSuccess(updatedBill);
+
+    } catch (error) {
+        console.error('Payment error:', error);
+        showToast(error.message, 'error');
+        // For demo purposes, if API fails, show success anyway (optional)
+        // processPaymentSuccess();
     }
-
-    // Show processing
-    showToast('Processing payment...', 'info');
-
-    // Simulate payment processing
-    setTimeout(async () => {
-        try {
-            // Try to call API
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE_URL}/bills/${currentBill.id}/pay`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    paymentMethod: paymentMethod,
-                    amount: currentBill.amount
-                })
-            });
-
-            if (!response.ok) throw new Error('Payment API not available');
-
-            const result = await response.json();
-            processPaymentSuccess();
-
-        } catch (error) {
-            // Simulate successful payment (for demo)
-            processPaymentSuccess();
-        }
-    }, 2000);
 }
 
 // Process Payment Success

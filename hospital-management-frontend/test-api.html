@@ -144,10 +144,10 @@
         
         <div class="test-section">
             <h2>2️⃣ User Login/Auth</h2>
-            <label>Username (or try 'doctor1'):</label>
-            <input type="text" id="loginUsername" placeholder="doctor1" value="doctor1">
-            <label>Password (or try 'password123'):</label>
-            <input type="password" id="loginPassword" placeholder="password123" value="password123">
+            <label>Username (try 'whoami' or 'doctor1'):</label>
+            <input type="text" id="loginUsername" placeholder="whoami" value="whoami">
+            <label>Password (try 'iamgroot' or 'password123'):</label>
+            <input type="password" id="loginPassword" placeholder="iamgroot" value="iamgroot">
             <button onclick="testLogin()">Test Login</button>
             <div id="login-result"></div>
         </div>
@@ -225,10 +225,10 @@
             showResult(resultId, '⏳ Logging in...', 'warning');
             
             try {
-                const response = await fetch(`${API_BASE_URL}/users/login`, {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ username, password, role: 'DOCTOR' })
                 });
                 
                 if (!response.ok) {
@@ -237,17 +237,20 @@
                     return;
                 }
                 
-                const data = await response.json();
-                authToken = data.token;
+                const apiResponse = await response.json();
+                const data = apiResponse.data || apiResponse;
                 
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
+                authToken = data.token;
+                const user = data.user || data;
+                
+                localStorage.setItem('token', authToken);
+                localStorage.setItem('user', JSON.stringify(user));
                 
                 // Populate doctor ID field
-                document.getElementById('doctorId').value = data.user.id;
-                document.getElementById('docIdAppointments').value = data.user.id;
+                document.getElementById('doctorId').value = user.id;
+                document.getElementById('docIdAppointments').value = user.id;
                 
-                showResult(resultId, `✅ Login successful!\n\nUser: ${data.user.fullName}\nRole: ${data.user.role}\nID: ${data.user.id}\n\nToken saved to localStorage`, 'success');
+                showResult(resultId, `✅ Login successful!\n\nUser: ${user.fullName || user.username}\nRole: ${user.role}\nID: ${user.id}\n\nToken saved to localStorage`, 'success');
             } catch (error) {
                 showResult(resultId, `❌ Error: ${error.message}`, 'error');
             }
@@ -273,7 +276,8 @@
                     return;
                 }
                 
-                const data = await response.json();
+                const apiResponse = await response.json();
+                const data = apiResponse.data || apiResponse;
                 showResult(resultId, `✅ Doctor found:\n${JSON.stringify(data, null, 2)}`, 'success');
             } catch (error) {
                 showResult(resultId, `❌ Error: ${error.message}`, 'error');
@@ -303,11 +307,13 @@
                     return;
                 }
                 
-                const data = await response.json();
-                if (data.length === 0) {
+                const apiResponse = await response.json();
+                const data = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse);
+                
+                if (!data || (Array.isArray(data) && data.length === 0)) {
                     showResult(resultId, `⚠️ No appointments found for doctor ${doctorId}`, 'warning');
                 } else {
-                    showResult(resultId, `✅ Found ${data.length} appointments:\n${JSON.stringify(data, null, 2)}`, 'success');
+                    showResult(resultId, `✅ Found ${Array.isArray(data) ? data.length : 'some'} appointments:\n${JSON.stringify(apiResponse, null, 2)}`, 'success');
                 }
             } catch (error) {
                 showResult(resultId, `❌ Error: ${error.message}`, 'error');
@@ -321,7 +327,7 @@
             
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(`${API_BASE_URL}/appointments`, {
+                const response = await fetch(`${API_BASE_URL}/appointments/all`, {
                     headers: token ? { 'Authorization': `Bearer ${token}` } : {}
                 });
                 
@@ -331,11 +337,13 @@
                     return;
                 }
                 
-                const data = await response.json();
-                if (data.length === 0) {
+                const apiResponse = await response.json();
+                const data = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse);
+
+                if (!data || (Array.isArray(data) && data.length === 0)) {
                     showResult(resultId, `⚠️ No appointments found in system`, 'warning');
                 } else {
-                    showResult(resultId, `✅ Found ${data.length} appointments:\n${JSON.stringify(data, null, 2)}`, 'success');
+                    showResult(resultId, `✅ Found ${Array.isArray(data) ? data.length : 'some'} appointments:\n${JSON.stringify(apiResponse, null, 2)}`, 'success');
                 }
             } catch (error) {
                 showResult(resultId, `❌ Error: ${error.message}`, 'error');

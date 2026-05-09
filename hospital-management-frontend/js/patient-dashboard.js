@@ -4,6 +4,9 @@ const MOCK_MODE = window.hospitalAuth?.MOCK_MODE || false;
 let currentUser = {};
 let notifications = [];
 let notificationBadgeCount = 0;
+let allAppointments = [];
+let allMedicalRecords = [];
+let allPrescriptions = [];
 
 // Initialize
 function init() {
@@ -18,12 +21,34 @@ function init() {
         loadPrescriptions();
         loadBills();
         initializeSampleNotifications();
+        
+        // Show initial skeleton loaders
+        showSkeletons();
 
         // Verify all quick action functions are available
         verifyQuickActionFunctions();
     } catch (error) {
         console.error('Initialization error:', error);
     }
+}
+
+/**
+ * Show skeleton loaders in data-heavy sections
+ */
+function showSkeletons() {
+    const containers = ['recentAppointments', 'appointmentsList', 'recordsList', 'prescriptionsList', 'billsList'];
+    containers.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.innerHTML = `
+                <div class="skeleton-table">
+                    ${Array(5).fill(0).map(() => `
+                        <div class="skeleton-table-row skeleton"></div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    });
 }
 
 // Run initialization when DOM is ready
@@ -181,10 +206,11 @@ async function loadDoctors() {
             return;
         }
 
-        const response = await fetchWithAuth(`${API_BASE_URL}/doctors/list`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/doctors`);
         if (!response.ok) throw new Error('Failed to fetch doctors');
 
-        const doctors = await response.json();
+        const apiResponse = await response.json();
+        const doctors = apiResponse.data || apiResponse || [];
         populateDoctors(doctors);
 
     } catch (error) {
@@ -299,28 +325,22 @@ async function loadAppointments() {
     if (!currentUser.id) return;
 
     try {
-        console.log('🔄 Fetching appointments for patient ID:', currentUser.id);
-        
-        if (MOCK_MODE) {
-            // Mock data not implemented here for brevity, rely on backend
-            return;
-        }
-
         const appointmentsUrl = `${API_BASE_URL}/appointments/patient/${currentUser.id}`;
-        console.log('📡 API URL:', appointmentsUrl);
         
         const response = await fetchWithAuth(appointmentsUrl);
-        console.log('📊 Response status:', response.status);
         
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ API Error:', response.status, errorText);
             throw new Error(`Failed to fetch appointments: ${response.status}`);
         }
 
-        const appointments = await response.json();
-        console.log('✅ Appointments loaded:', appointments.length, 'appointments');
-        console.log('📋 Appointment details:', appointments);
+        const apiResponse = await response.json();
+        
+        let appointments = [];
+        if (apiResponse.data && apiResponse.data.content) {
+            appointments = apiResponse.data.content;
+        } else {
+            appointments = apiResponse.data || apiResponse || [];
+        }
         
         allAppointments = appointments;
         displayAppointments(appointments);
@@ -382,8 +402,8 @@ function displayAppointments(appointments) {
                             <i class="fas fa-user-md"></i>
                         </div>
                         <div class="apt-details">
-                            <h4>${apt.doctor?.fullName || 'Dr. Unknown'}</h4>
-                            <p class="apt-specialty">${apt.doctor?.specialization || 'General Practice'}</p>
+                            <h4>${apt.doctorName || 'Dr. Unknown'}</h4>
+                            <p class="apt-specialty">${apt.doctorSpecialization || 'General Practice'}</p>
                             <p class="apt-datetime">
                                 <i class="fas fa-calendar-alt"></i>
                                 ${aptDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -441,8 +461,8 @@ function displayAppointments(appointments) {
                                                 <i class="fas fa-user-md"></i>
                                             </div>
                                             <div>
-                                                <div class="doctor-name">${apt.doctor?.fullName || 'Dr. Unknown'}</div>
-                                                <div class="doctor-specialty">${apt.doctor?.specialization || 'General Practice'}</div>
+                                                <div class="doctor-name">${apt.doctorName || 'Dr. Unknown'}</div>
+                                                <div class="doctor-specialty">${apt.doctorSpecialization || 'General Practice'}</div>
                                             </div>
                                         </div>
                                     </td>
@@ -478,20 +498,33 @@ function displayAppointments(appointments) {
 
 // Update Stats
 function updateStats(appointments) {
-    const upcoming = appointments.filter(apt => apt.status === 'SCHEDULED');
-    const upcomingEl = document.getElementById('upcomingCount');
-    if (upcomingEl) upcomingEl.textContent = upcoming.length;
-
+    const upcoming = appointments.filter(apt => apt.status === 'SCHEDULED' || apt.status === 'PENDING').length;
+    
     // Calculate unique doctors
-    const uniqueDoctorIds = new Set();
+    const uniqueDoctorNames = new Set();
     appointments.forEach(apt => {
-        if (apt.doctor && apt.doctor.id) {
-            uniqueDoctorIds.add(apt.doctor.id);
+        if (apt.doctorName) {
+            uniqueDoctorNames.add(apt.doctorName);
         }
     });
 
-    const myDoctorsEl = document.getElementById('myDoctorsCount');
-    if (myDoctorsEl) myDoctorsEl.textContent = uniqueDoctorIds.size;
+    const medicalRecordsCount = (allMedicalRecords && allMedicalRecords.length) || 0;
+
+    // Use animated numbers from enhancements.js
+    if (window.animateNumber) {
+        animateNumber(document.getElementById('upcomingCount'), upcoming);
+        animateNumber(document.getElementById('myDoctorsCount'), uniqueDoctorNames.size);
+        animateNumber(document.getElementById('medicalRecordsCount'), medicalRecordsCount);
+    } else {
+        const upcomingEl = document.getElementById('upcomingCount');
+        if (upcomingEl) upcomingEl.textContent = upcoming;
+        
+        const myDoctorsEl = document.getElementById('myDoctorsCount');
+        if (myDoctorsEl) myDoctorsEl.textContent = uniqueDoctorNames.size;
+        
+        const medicalRecordsEl = document.getElementById('medicalRecordsCount');
+        if (medicalRecordsEl) medicalRecordsEl.textContent = medicalRecordsCount;
+    }
 }
 
 // Book Appointment Form
@@ -511,7 +544,7 @@ if (bookingForm) {
         }
 
         const payload = {
-            patientId: currentUser.id,
+            patientId: parseInt(currentUser.id),
             doctorId: parseInt(doctorId),
             date: date,
             time: time,
@@ -520,7 +553,7 @@ if (bookingForm) {
         };
 
         try {
-            const response = await fetchWithAuth(`${API_BASE_URL}/appointments/book`, {
+            const response = await fetchWithAuth(`${API_BASE_URL}/appointments`, {
                 method: 'POST',
                 body: JSON.stringify(payload)
             });
@@ -531,8 +564,9 @@ if (bookingForm) {
                 loadAppointments();
                 switchSection('appointments');
             } else {
-                const err = await response.json();
-                throw new Error(err.error || 'Booking failed');
+                const apiResponse = await response.json();
+                const err = apiResponse.data || apiResponse;
+                throw new Error(err.message || err.error || 'Booking failed');
             }
         } catch (error) {
             console.error('Booking error:', error);
@@ -548,7 +582,7 @@ async function cancelAppointment(id) {
 
     try {
         const response = await fetchWithAuth(`${API_BASE_URL}/appointments/${id}/cancel`, {
-            method: 'PUT'
+            method: 'PATCH'
         });
 
         if (response.ok) {
@@ -570,11 +604,19 @@ async function loadMedicalRecords() {
     if (!listContainer) return;
 
     try {
+        // Show skeleton loader
+        listContainer.innerHTML = `
+            <div class="skeleton-table">
+                ${Array(3).fill(0).map(() => `<div class="skeleton-table-row skeleton"></div>`).join('')}
+            </div>
+        `;
+
         const response = await fetchWithAuth(`${API_BASE_URL}/medical-records/patient/${currentUser.id}`);
 
         if (!response.ok) throw new Error('Failed to load records');
 
-        const records = await response.json();
+        const apiResponse = await response.json();
+        const records = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse || []);
         allMedicalRecords = records;
 
         if (records.length === 0) {
@@ -621,6 +663,15 @@ async function loadMedicalRecords() {
 async function loadPrescriptions() {
     if (!currentUser.id) return;
 
+    const list = document.getElementById('prescriptionsList');
+    if (list) {
+        list.innerHTML = `
+            <div class="skeleton-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:1.5rem;">
+                ${Array(3).fill(0).map(() => `<div class="skeleton-card skeleton" style="height:250px;"></div>`).join('')}
+            </div>
+        `;
+    }
+
     try {
         if (MOCK_MODE) {
             // Mock prescription data
@@ -657,7 +708,8 @@ async function loadPrescriptions() {
         const response = await fetchWithAuth(`${API_BASE_URL}/prescriptions/patient/${currentUser.id}`);
         if (!response.ok) throw new Error('Failed to fetch prescriptions');
 
-        const prescriptions = await response.json();
+        const apiResponse = await response.json();
+        const prescriptions = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse || []);
         allPrescriptions = prescriptions;
         displayPrescriptions(prescriptions);
 
@@ -719,7 +771,7 @@ function displayPrescriptions(prescriptions) {
                     </div>
                     <div class="rx-status">
                         <span class="rx-status-badge ${isActive ? 'active' : 'expired'}">
-                            ${isActive ? `<i class="fas fa-check-circle"></i> Active` : '<i class="fas fa-times-circle"></i> Expired'}
+                            ${isActive ? \`<i class="fas fa-check-circle"></i> Active\` : '<i class="fas fa-times-circle"></i> Expired'}
                         </span>
                     </div>
                 </div>
@@ -727,59 +779,59 @@ function displayPrescriptions(prescriptions) {
                 <div class="rx-dates">
                     <div class="rx-date-item">
                         <span class="date-label">Issued</span>
-                        <span class="date-value">${createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        <span class="date-value">\${createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </div>
                     <div class="rx-date-item">
                         <span class="date-label">Expires</span>
-                        <span class="date-value">${expiryDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        <span class="date-value">\${expiryDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </div>
-                    ${isActive ? `
+                    \${isActive ? \`
                         <div class="rx-date-item">
                             <span class="date-label">Days Left</span>
-                            <span class="date-value highlight">${daysLeft} days</span>
+                            <span class="date-value highlight">\${daysLeft} days</span>
                         </div>
-                    ` : ''}
+                    \` : ''}
                 </div>
 
                 <div class="rx-medicines">
                     <h5>Medicines</h5>
                     <div class="medicine-list">
-                        ${rx.medicines.map(med => `
+                        \${rx.medicines ? rx.medicines.map(med => \`
                             <div class="medicine-item">
-                                <div class="medicine-name">${med.name}</div>
+                                <div class="medicine-name">\${med.name}</div>
                                 <div class="medicine-details">
-                                    <span class="dosage"><i class="fas fa-capsules"></i> ${med.dosage}</span>
-                                    <span class="frequency"><i class="fas fa-clock"></i> ${med.frequency}</span>
-                                    <span class="duration"><i class="fas fa-calendar"></i> ${med.days} days</span>
+                                    <span class="dosage"><i class="fas fa-capsules"></i> \${med.dosage}</span>
+                                    <span class="frequency"><i class="fas fa-clock"></i> \${med.frequency}</span>
+                                    <span class="duration"><i class="fas fa-calendar"></i> \${med.days} days</span>
                                 </div>
                             </div>
-                        `).join('')}
+                        \`).join('') : '<p>No medicines listed</p>'}
                     </div>
                 </div>
 
-                ${rx.instructions ? `
+                \${rx.instructions ? \`
                     <div class="rx-instructions">
                         <h5>Instructions</h5>
-                        <p>${rx.instructions}</p>
+                        <p>\${rx.instructions}</p>
                     </div>
-                ` : ''}
+                \` : ''}
 
                 <div class="rx-actions">
-                    <button class="rx-action-btn view" onclick="viewPrescriptionDetails(${rx.id})" title="View Details">
+                    <button class="rx-action-btn view" onclick="viewPrescriptionDetails(\${rx.id})" title="View Details">
                         <i class="fas fa-eye"></i>
                         <span>View</span>
                     </button>
-                    <button class="rx-action-btn download" onclick="downloadPrescription(${rx.id})" title="Download PDF">
+                    <button class="rx-action-btn download" onclick="downloadPrescription(\${rx.id})" title="Download PDF">
                         <i class="fas fa-download"></i>
                         <span>Download</span>
                     </button>
-                    <button class="rx-action-btn print" onclick="printPrescription(${rx.id})" title="Print">
+                    <button class="rx-action-btn print" onclick="printPrescription(\${rx.id})" title="Print">
                         <i class="fas fa-print"></i>
                         <span>Print</span>
                     </button>
                 </div>
             </div>
-        `;
+        \`;
     }).join('');
 }
 
@@ -787,7 +839,7 @@ function displayPrescriptions(prescriptions) {
  * View prescription details
  */
 function viewPrescriptionDetails(prescriptionId) {
-    window.hospitalAuth?.showToast(`Opening prescription ${prescriptionId}...`, 'info');
+    window.hospitalAuth?.showToast(\`Opening prescription \${prescriptionId}...\`, 'info');
     console.log('View prescription:', prescriptionId);
 }
 window.viewPrescriptionDetails = viewPrescriptionDetails;
@@ -798,8 +850,8 @@ window.viewPrescriptionDetails = viewPrescriptionDetails;
 function downloadPrescription(prescriptionId) {
     try {
         const link = document.createElement('a');
-        link.href = `${API_BASE_URL}/prescriptions/${prescriptionId}/download`;
-        link.download = `prescription_${prescriptionId}_${new Date().getTime()}.pdf`;
+        link.href = \`\${API_BASE_URL}/prescriptions/\${prescriptionId}/download\`;
+        link.download = \`prescription_\${prescriptionId}_\${new Date().getTime()}.pdf\`;
 
         document.body.appendChild(link);
         link.click();
@@ -819,10 +871,10 @@ window.downloadPrescription = downloadPrescription;
  */
 function downloadAllPrescriptions() {
     try {
-        const userId = localStorage.getItem('userId');
+        const userId = localStorage.getItem('auth_userId');
         const link = document.createElement('a');
-        link.href = `${API_BASE_URL}/prescriptions/patient/${userId}/download-all`;
-        link.download = `all_prescriptions_${new Date().getTime()}.zip`;
+        link.href = \`\${API_BASE_URL}/prescriptions/patient/\${userId}/download-all\`;
+        link.download = \`all_prescriptions_\${new Date().getTime()}.zip\`;
 
         document.body.appendChild(link);
         link.click();
@@ -842,7 +894,7 @@ window.downloadAllPrescriptions = downloadAllPrescriptions;
  */
 function printPrescription(prescriptionId) {
     try {
-        const printWindow = window.open(`${API_BASE_URL}/prescriptions/${prescriptionId}/print`, '_blank');
+        const printWindow = window.open(\`\${API_BASE_URL}/prescriptions/\${prescriptionId}/print\`, '_blank');
         printWindow.print();
         window.hospitalAuth?.showToast('Opening prescription for printing...', 'info');
     } catch (error) {
@@ -858,11 +910,19 @@ async function loadBills() {
     if (!billsList) return;
 
     try {
-        const response = await fetchWithAuth(`${API_BASE_URL}/bills/patient/${currentUser.id}`);
+        // Show skeleton table
+        billsList.innerHTML = \`
+            <div class="skeleton-table">
+                \${Array(4).fill(0).map(() => \`<div class="skeleton-table-row skeleton"></div>\`).join('')}
+            </div>
+        \`;
+
+        const response = await fetchWithAuth(\`\${API_BASE_URL}/bills/patient/\${currentUser.id}\`);
 
         if (!response.ok) throw new Error('Failed to load bills');
 
-        const bills = await response.json();
+        const apiResponse = await response.json();
+        const bills = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse || []);
 
         if (!bills || bills.length === 0) {
             billsList.innerHTML = '<p class="empty-state">No billing records found</p>';
@@ -877,7 +937,7 @@ async function loadBills() {
 
         updateBillsStats(pendingAmount);
 
-        billsList.innerHTML = `
+        billsList.innerHTML = \`
             <table class="bills-table" style="width:100%; border-collapse: collapse;">
                 <thead>
                     <tr style="background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
@@ -890,27 +950,27 @@ async function loadBills() {
                     </tr>
                 </thead>
                 <tbody>
-                    ${bills.map(bill => `
+                    \${bills.map(bill => \`
                         <tr style="border-bottom: 1px solid #e9ecef;">
-                            <td style="padding: 1rem;">#${bill.id}</td>
-                            <td style="padding: 1rem;">${bill.description || 'Medical Services'}</td>
-                            <td style="padding: 1rem; text-align: right; font-weight: 600;">₹${bill.amount?.toLocaleString()}</td>
+                            <td style="padding: 1rem;">#\${bill.id}</td>
+                            <td style="padding: 1rem;">\${bill.description || 'Medical Services'}</td>
+                            <td style="padding: 1rem; text-align: right; font-weight: 600;">₹\${bill.amount?.toLocaleString()}</td>
                             <td style="padding: 1rem; text-align: center;">
-                                <span class="status-badge ${bill.status?.toLowerCase()}">${bill.status}</span>
+                                <span class="status-badge \${bill.status?.toLowerCase()}">\${bill.status}</span>
                             </td>
-                            <td style="padding: 1rem; text-align: center;">${new Date(bill.createdAt || Date.now()).toLocaleDateString()}</td>
+                            <td style="padding: 1rem; text-align: center;">\${new Date(bill.createdAt || Date.now()).toLocaleDateString()}</td>
                             <td style="padding: 1rem; text-align: center;">
-                                ${bill.status !== 'PAID' ? `
-                                    <button class="btn-pay" onclick="payBill(${bill.id}, ${bill.amount})">
+                                \${bill.status !== 'PAID' ? \`
+                                    <button class="btn-pay" onclick="payBill(\${bill.id}, \${bill.amount})">
                                         <i class="fas fa-credit-card"></i> Pay Now
                                     </button>
-                                ` : '<span style="color: #28a745;">✓ Paid</span>'}
+                                \` : '<span style="color: #28a745;">✓ Paid</span>'}
                             </td>
                         </tr>
-                    `).join('')}
+                    \`).join('')}
                 </tbody>
             </table>
-        `;
+        \`;
 
     } catch (error) {
         console.error('Error loading bills:', error);
@@ -922,7 +982,13 @@ async function loadBills() {
 // Update Bills Statistics
 function updateBillsStats(pendingAmount) {
     const pendingBillsEl = document.getElementById('pendingBillsCount');
-    if (pendingBillsEl) {
+    if (!pendingBillsEl) return;
+
+    if (window.animateNumber) {
+        // Since this might have a currency symbol, we might need to handle it
+        // Or just animate the number and add the symbol back
+        animateNumber(pendingBillsEl, pendingAmount, '₹');
+    } else {
         pendingBillsEl.textContent = `₹${pendingAmount.toLocaleString()}`;
     }
 }
@@ -933,7 +999,12 @@ async function payBill(billId, amount) {
 
     try {
         const response = await fetchWithAuth(`${API_BASE_URL}/bills/${billId}/pay`, {
-            method: 'PUT'
+            method: 'POST',
+            body: JSON.stringify({
+                amount: amount,
+                paymentMethod: 'ONLINE',
+                notes: 'Paid via Patient Portal'
+            })
         });
 
         if (response.ok) {
@@ -956,7 +1027,7 @@ window.payBill = payBill;
  */
 function quickActionDownloadPrescription() {
     try {
-        const userId = localStorage.getItem('userId');
+        const userId = localStorage.getItem('auth_userId');
         if (!userId) {
             window.hospitalAuth?.showToast('User ID not found', 'error');
             return;
@@ -1097,7 +1168,7 @@ async function submitLabTest(event) {
         const testType = document.getElementById('testType').value;
         const testReason = document.getElementById('testReason').value;
         const testDate = document.getElementById('testDate').value;
-        const userId = localStorage.getItem('userId');
+        const userId = localStorage.getItem('auth_userId');
 
         if (!testType || !testDate) {
             window.hospitalAuth?.showToast('Please fill all required fields', 'warning');
@@ -1119,7 +1190,8 @@ async function submitLabTest(event) {
         });
 
         if (response.ok) {
-            const result = await response.json();
+            const apiResponse = await response.json();
+            const result = apiResponse.data || apiResponse;
             window.hospitalAuth?.showToast('Lab test request submitted successfully!', 'success');
             closeModal('labTestModal');
             console.log('Lab test request submitted:', result);
@@ -1185,7 +1257,7 @@ function cancelAppointment(appointmentId) {
     if (!confirmed) return;
 
     try {
-        const userId = localStorage.getItem('userId');
+        const userId = localStorage.getItem('auth_userId');
 
         // Simulate cancel (in production, call backend)
         if (MOCK_MODE) {
@@ -1648,3 +1720,128 @@ function simulateRealTimeNotifications() {
         simulateRealTimeNotifications();
     }, delay);
 }
+
+// ===== AI CLINICAL NAVIGATOR =====
+
+async function analyzeSymptoms() {
+    const input = document.getElementById('symptomInput');
+    const resultDiv = document.getElementById('triageResult');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    
+    if (!input.value.trim()) {
+        window.hospitalAuth?.showToast('Please describe your symptoms', 'warning');
+        return;
+    }
+
+    try {
+        analyzeBtn.disabled = true;
+        const originalText = analyzeBtn.innerHTML;
+        analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+        
+        // Hide result while loading
+        resultDiv.style.display = 'none';
+
+        const response = await fetch(`${API_BASE_URL}/ai/triage`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ symptoms: input.value })
+        });
+
+        if (!response.ok) throw new Error('Analysis failed');
+
+        const apiResponse = await response.json();
+        const triage = apiResponse.data;
+
+        // Display results
+        resultDiv.innerHTML = `
+            <div style="margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h4 style="margin: 0; color: var(--gray-900);">AI Analysis</h4>
+                    <span class="badge" style="background: ${getUrgencyColor(triage.urgencyLevel)}; color: white; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">
+                        ${triage.urgencyLevel} URGENCY
+                    </span>
+                </div>
+                
+                <p style="font-size: 0.85rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; font-weight: 600;">Recommended Specialist</p>
+                <p style="font-size: 1.25rem; font-weight: 800; color: var(--primary-color); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-user-md"></i> ${triage.recommendedSpecialization}
+                </p>
+                
+                <div style="background: white; padding: 1rem; border-radius: 0.75rem; border: 1px solid var(--gray-200); font-size: 0.95rem; line-height: 1.6; color: var(--gray-700);">
+                    ${triage.analysisSummary}
+                </div>
+            </div>
+            
+            <button class="btn-primary" onclick="bookWithSpecialist('${triage.recommendedSpecialization}')" style="width: 100%; background: var(--gray-900); border: none; padding: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                <span>Find a ${triage.recommendedSpecialization}</span>
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        `;
+        
+        resultDiv.style.display = 'block';
+        analyzeBtn.innerHTML = originalText;
+
+    } catch (error) {
+        console.error('Triage Error:', error);
+        window.hospitalAuth?.showToast('AI analysis failed. Please try again later.', 'error');
+        analyzeBtn.innerHTML = '<i class="fas fa-search-plus"></i> Analyze My Symptoms';
+    } finally {
+        analyzeBtn.disabled = false;
+    }
+}
+
+function getUrgencyColor(level) {
+    switch (level?.toUpperCase()) {
+        case 'HIGH': return '#ef4444'; // Error/Red
+        case 'MEDIUM': return '#f59e0b'; // Warning/Orange
+        default: return '#10b981'; // Success/Green
+    }
+}
+
+function bookWithSpecialist(specialization) {
+    // Switch to booking section
+    switchSection('book-appointment');
+    
+    // Find a doctor with this specialization in the select dropdown
+    const doctorSelect = document.getElementById('doctorSelect');
+    if (doctorSelect) {
+        let found = false;
+        // Search options for specialization match
+        for (let i = 0; i < doctorSelect.options.length; i++) {
+            const optionText = doctorSelect.options[i].textContent.toLowerCase();
+            if (optionText.includes(specialization.toLowerCase())) {
+                doctorSelect.selectedIndex = i;
+                found = true;
+                break;
+            }
+        }
+        
+        if (!found) {
+            console.log('No direct match for specialization:', specialization);
+        }
+    }
+    
+    // Pre-fill the reason field with the AI's recommendation context
+    const reasonEl = document.getElementById('reason');
+    const symptomInput = document.getElementById('symptomInput');
+    if (reasonEl) {
+        reasonEl.value = `Symptoms reported: ${symptomInput.value}\n\n[AI Recommendation: ${specialization}]`;
+        reasonEl.focus();
+    }
+    
+    // Smooth scroll to the booking section
+    const bookingCard = document.querySelector('#book-appointment .card');
+    if (bookingCard) {
+        bookingCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    
+    window.hospitalAuth?.showToast(`Filter applied for ${specialization}`, 'success');
+}
+
+// Export functions to global scope
+window.analyzeSymptoms = analyzeSymptoms;
+window.bookWithSpecialist = bookWithSpecialist;
+window.getUrgencyColor = getUrgencyColor;

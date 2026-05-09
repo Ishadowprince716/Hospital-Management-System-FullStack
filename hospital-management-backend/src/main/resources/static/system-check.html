@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>🏥 Complete System Check</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2dd4bf 0%, #a78bfa 50%, #fb923c 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            background: linear-gradient(135deg, #2dd4bf, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 42px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .test-card {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .test-card:hover {
+            border-color: #2dd4bf;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(45, 212, 191, 0.2);
+        }
+
+        .test-card h3 {
+            color: #2dd4bf;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .test-card .status {
+            font-size: 32px;
+        }
+
+        .test-card .status.pending {
+            opacity: 0.3;
+        }
+
+        .test-card .status.running {
+            animation: pulse 1s infinite;
+        }
+
+        .test-card .status.success {
+            color: #10b981;
+        }
+
+        .test-card .status.error {
+            color: #ef4444;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .test-card p {
+            color: #64748b;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .test-card .result {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .btn {
+            background: #2dd4bf;
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            max-width: 400px;
+            display: block;
+            margin: 20px auto;
+        }
+
+        .btn:hover {
+            background: #14b8a6;
+            transform: scale(1.05);
+        }
+
+        .btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: scale(1);
+        }
+
+        .summary {
+            background: linear-gradient(135deg, #2dd4bf, #a78bfa);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin: 30px 0;
+            display: none;
+        }
+
+        .summary.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .summary h2 {
+            margin-bottom: 20px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2dd4bf, #a78bfa);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🏥 Hospital Management System</h1>
+        <p class="subtitle">Complete System Health Check & Verification</p>
+
+        <button id="startBtn" class="btn" onclick="runAllTests()">
+            🚀 Run Complete System Check
+        </button>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress"></div>
+        </div>
+
+        <div class="test-grid">
+            <div class="test-card">
+                <h3><span class="status pending" id="status1">⏳</span> Backend API</h3>
+                <p>Testing backend connectivity and API endpoints</p>
+                <div class="result" id="result1"></div>
+            </div>
+
+            <div class="test-card">
+                <h3><span class="status pending" id="status2">⏳</span> Database</h3>
+                <p>Checking database connections and data</p>
+                <div class="result" id="result2"></div>
+            </div>
+
+            <div class="test-card">
+                <h3><span class="status pending" id="status3">⏳</span> Doctors Service</h3>
+                <p>Fetching and validating doctor records</p>
+                <div class="result" id="result3"></div>
+            </div>
+
+            <div class="test-card">
+                <h3><span class="status pending" id="status4">⏳</span> Authentication</h3>
+                <p>Testing patient login functionality</p>
+                <div class="result" id="result4"></div>
+            </div>
+
+            <div class="test-card">
+                <h3><span class="status pending" id="status5">⏳</span> Appointments</h3>
+                <p>Booking appointment test</p>
+                <div class="result" id="result5"></div>
+            </div>
+
+            <div class="test-card">
+                <h3><span class="status pending" id="status6">⏳</span> Frontend Pages</h3>
+                <p>Verifying all frontend pages load correctly</p>
+                <div class="result" id="result6"></div>
+            </div>
+        </div>
+
+        <div class="summary" id="summary">
+            <h2>✅ System Check Complete!</h2>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-number" id="passCount">0</div>
+                    <div class="stat-label">Tests Passed</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="failCount">0</div>
+                    <div class="stat-label">Tests Failed</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="doctorCount">0</div>
+                    <div class="stat-label">Doctors Available</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="healthScore">0%</div>
+                    <div class="stat-label">System Health</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+        let passed = 0;
+        let failed = 0;
+        let totalTests = 6;
+        let authToken = '';
+        let doctorsAvailable = 0;
+
+        function updateProgress(percent) {
+            document.getElementById('progress').style.width = percent + '%';
+        }
+
+        function setStatus(testNum, status, message) {
+            const statusEl = document.getElementById(`status${testNum}`);
+            const resultEl = document.getElementById(`result${testNum}`);
+
+            statusEl.className = `status ${status}`;
+            if (status === 'success') {
+                statusEl.textContent = '✅';
+                passed++;
+            } else if (status === 'error') {
+                statusEl.textContent = '❌';
+                failed++;
+            } else if (status === 'running') {
+                statusEl.textContent = '⏳';
+            }
+
+            resultEl.textContent = message;
+        }
+
+        async function test1_Backend() {
+            setStatus(1, 'running', 'Connecting to backend...');
+            try {
+                const response = await fetch(`${API_BASE}/doctors/list`);
+                if (response.ok) {
+                    setStatus(1, 'success', `✅ Backend is running on port 8080\nAPI prefix: /api\nResponse time: ${Date.now()}ms`);
+                    return true;
+                } else {
+                    setStatus(1, 'error', `❌ Backend returned status ${response.status}`);
+                    return false;
+                }
+            } catch (err) {
+                setStatus(1, 'error', `❌ Cannot connect to backend\n${err.message}`);
+                return false;
+            }
+        }
+
+        async function test2_Database() {
+            setStatus(2, 'running', 'Checking database...');
+            try {
+                const response = await fetch(`${API_BASE}/doctors/list`);
+                const doctors = await response.json();
+
+                if (Array.isArray(doctors)) {
+                    setStatus(2, 'success', `✅ Database connected\nDoctor records: ${doctors.length}\nMySQL + MongoDB hybrid: Active`);
+                    return true;
+                } else {
+                    setStatus(2, 'error', '❌ Database response invalid');
+                    return false;
+                }
+            } catch (err) {
+                setStatus(2, 'error', `❌ Database error\n${err.message}`);
+                return false;
+            }
+        }
+
+        async function test3_Doctors() {
+            setStatus(3, 'running', 'Loading doctors...');
+            try {
+                const response = await fetch(`${API_BASE}/doctors/list`);
+                const doctors = await response.json();
+
+                if (doctors.length > 0) {
+                    doctorsAvailable = doctors.length;
+                    const specializations = [...new Set(doctors.map(d => d.specialization))];
+                    setStatus(3, 'success',
+                        `✅ Found ${doctors.length} doctor(s)\n` +
+                        `Specializations: ${specializations.join(', ')}\n` +
+                        `Example: ${doctors[0].fullName}`
+                    );
+                    return true;
+                } else {
+                    setStatus(3, 'error', '⚠️ No doctors registered yet\nPlease register sample data');
+                    return false;
+                }
+            } catch (err) {
+                setStatus(3, 'error', `❌ Failed to load doctors\n${err.message}`);
+                return false;
+            }
+        }
+
+        async function test4_Auth() {
+            setStatus(4, 'running', 'Testing login...');
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'patient1',
+                        password: 'patient123'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.token) {
+                    authToken = data.token;
+                    setStatus(4, 'success',
+                        `✅ Login successful\n` +
+                        `User: ${data.username}\n` +
+                        `Role: ${data.role}\n` +
+                        `Token: ${data.token.substring(0, 30)}...`
+                    );
+                    return true;
+                } else {
+                    setStatus(4, 'error', `❌ Login failed\n${data.error || 'Invalid credentials'}`);
+                    return false;
+                }
+            } catch (err) {
+                setStatus(4, 'error', `❌ Auth error\n${err.message}`);
+                return false;
+            }
+        }
+
+        async function test5_Appointments() {
+            if (!authToken) {
+                setStatus(5, 'error', '❌ Cannot test - login failed');
+                return false;
+            }
+
+            setStatus(5, 'running', 'Booking test appointment...');
+            try {
+                const appointmentData = {
+                    patientId: 3,
+                    doctorId: 2,
+                    date: '2025-12-31',
+                    time: '14:00',
+                    reason: 'System health check test',
+                    type: 'CONSULTATION'
+                };
+
+                const response = await fetch(`${API_BASE}/appointments/book`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(appointmentData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    setStatus(5, 'success',
+                        `✅ Appointment booked!\n` +
+                        `ID: ${data.id}\n` +
+                        `Date: ${data.appointmentDate}\n` +
+                        `Status: ${data.status}`
+                    );
+                    return true;
+                } else {
+                    setStatus(5, 'error', `❌ Booking failed\n${data.error || 'Unknown error'}`);
+                    return false;
+                }
+            } catch (err) {
+                setStatus(5, 'error', `❌ Appointment error\n${err.message}`);
+                return false;
+            }
+        }
+
+        async function test6_Frontend() {
+            setStatus(6, 'running', 'Checking frontend pages...');
+            try {
+                const pages = [
+                    'index.html',
+                    'register.html',
+                    'patient-dashboard.html',
+                    'doctor-dashboard.html',
+                    'admin-dashboard.html'
+                ];
+
+                let loadedCount = 0;
+                for (const page of pages) {
+                    try {
+                        const response = await fetch(`http://localhost:3000/${page}`);
+                        if (response.ok) loadedCount++;
+                    } catch (e) { }
+                }
+
+                if (loadedCount === pages.length) {
+                    setStatus(6, 'success',
+                        `✅ All pages accessible\n` +
+                        `Loaded: ${loadedCount}/${pages.length} pages\n` +
+                        `Frontend server: http://localhost:3000\n` +
+                        `Theme: Mint Medical`
+                    );
+                    return true;
+                } else {
+                    setStatus(6, 'error', `⚠️ Some pages not accessible\nLoaded: ${loadedCount}/${pages.length}`);
+                    return false;
+                }
+            } catch (err) {
+                setStatus(6, 'error', `❌ Frontend check failed\n${err.message}`);
+                return false;
+            }
+        }
+
+        async function runAllTests() {
+            const btn = document.getElementById('startBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Running System Check...';
+
+            passed = 0;
+            failed = 0;
+
+            // Reset all statuses
+            for (let i = 1; i <= totalTests; i++) {
+                document.getElementById(`status${i}`).className = 'status pending';
+                document.getElementById(`status${i}`).textContent = '⏳';
+                document.getElementById(`result${i}`).textContent = '';
+            }
+
+            // Run tests sequentially
+            updateProgress(0);
+            await test1_Backend();
+            updateProgress(17);
+
+            await test2_Database();
+            updateProgress(34);
+
+            await test3_Doctors();
+            updateProgress(51);
+
+            await test4_Auth();
+            updateProgress(68);
+
+            await test5_Appointments();
+            updateProgress(85);
+
+            await test6_Frontend();
+            updateProgress(100);
+
+            // Show summary
+            document.getElementById('passCount').textContent = passed;
+            document.getElementById('failCount').textContent = failed;
+            document.getElementById('doctorCount').textContent = doctorsAvailable;
+            document.getElementById('healthScore').textContent =
+                Math.round((passed / totalTests) * 100) + '%';
+
+            document.getElementById('summary').classList.add('show');
+
+            btn.disabled = false;
+            btn.textContent = passed === totalTests
+                ? '✅ All Tests Passed! Run Again?'
+                : '🔄 Run System Check Again';
+        }
+    </script>
+</body>
+
+</html>

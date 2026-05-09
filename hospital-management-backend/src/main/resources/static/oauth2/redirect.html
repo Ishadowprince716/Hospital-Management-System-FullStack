@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Processing Login...</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: #f8f9fa;
+        }
+
+        .loader {
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loader">
+        <div class="spinner"></div>
+        <p>Completing secure login...</p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            const error = urlParams.get('error');
+
+            if (error) {
+                alert('Login failed: ' + error);
+                window.location.href = '../index.html';
+                return;
+            }
+
+            if (token) {
+                try {
+                    // Decode JWT to get user details
+                    const base64Url = token.split('.')[1];
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
+                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                    }).join(''));
+
+                    const payload = JSON.parse(jsonPayload);
+
+                    // Store in localStorage
+                    localStorage.setItem('token', token);
+                    localStorage.setItem('role', payload.role);
+                    localStorage.setItem('username', payload.sub);
+                    localStorage.setItem('userId', payload.userId);
+                    // Full name might not be in token, but we can display username fallback
+                    localStorage.setItem('fullName', payload.sub);
+
+                    // Redirect based on role
+                    const dashboardMap = {
+                        'PATIENT': '../patient-dashboard.html',
+                        'DOCTOR': '../doctor-dashboard.html',
+                        'ADMIN': '../admin-dashboard.html'
+                    };
+
+                    const dashboard = dashboardMap[payload.role] || '../index.html';
+                    window.location.href = dashboard;
+
+                } catch (e) {
+                    console.error('Error processing token', e);
+                    alert('Authentication error');
+                    window.location.href = '../index.html';
+                }
+            } else {
+                window.location.href = '../index.html';
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,5 +1,6 @@
 {
     "java.configuration.updateBuildConfiguration": "automatic",
     "java.compile.nullAnalysis.mode": "automatic",
-    "liveServer.settings.port": 5504
+    "liveServer.settings.port": 5504,
+    "claudeCodeChat.permissions.yoloMode": true
 }

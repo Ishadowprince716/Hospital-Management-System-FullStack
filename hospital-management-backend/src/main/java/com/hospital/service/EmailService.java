@@ -1,5 +1,6 @@
 package com.hospital.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -7,13 +8,19 @@ import org.springframework.stereotype.Service;
 @Service
 public class EmailService {
 
-    private final JavaMailSender javaMailSender;
+    private JavaMailSender javaMailSender;
 
-    public EmailService(JavaMailSender javaMailSender) {
+    @Autowired(required = false)
+    public void setJavaMailSender(JavaMailSender javaMailSender) {
         this.javaMailSender = javaMailSender;
     }
 
     public void sendSimpleMessage(String to, String subject, String text) {
+        if (javaMailSender == null) {
+            // Mail sender not configured – log and skip silently for local dev
+            System.out.println("[EmailService] Mail sender not configured. Skipping email to: " + to + " | Subject: " + subject);
+            return;
+        }
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("noreply@hospital-management.com");
         message.setTo(to);
@@ -23,9 +30,7 @@ public class EmailService {
         try {
             javaMailSender.send(message);
         } catch (Exception e) {
-            // Log error but generally don't fail the whole request, or rethrow depending on
-            // needs
-            // Just printing stack trace for now:
+            // Log error but don't fail the whole request
             e.printStackTrace();
         }
     }

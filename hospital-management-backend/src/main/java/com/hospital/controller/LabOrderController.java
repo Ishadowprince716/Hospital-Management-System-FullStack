@@ -1,11 +1,15 @@
 package com.hospital.controller;
 
-import com.hospital.model.*;
-import com.hospital.repository.mysql.*;
+import com.hospital.common.ApiResponse;
+import com.hospital.model.LabOrder;
+import com.hospital.service.LabOrderService;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -13,125 +17,66 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class LabOrderController {
 
-    private final LabOrderRepository labOrderRepository;
-    private final PatientRepository patientRepository;
-    private final DoctorRepository doctorRepository;
+    private final LabOrderService labOrderService;
 
-    public LabOrderController(LabOrderRepository labOrderRepository,
-            PatientRepository patientRepository,
-            DoctorRepository doctorRepository) {
-        this.labOrderRepository = labOrderRepository;
-        this.patientRepository = patientRepository;
-        this.doctorRepository = doctorRepository;
+    public LabOrderController(LabOrderService labOrderService) {
+        this.labOrderService = labOrderService;
     }
 
-    // Get all lab orders for a doctor
+    // Get all lab orders for a doctor with pagination
     @GetMapping("/doctor/{doctorId}")
-    public ResponseEntity<?> getDoctorLabOrders(@PathVariable Long doctorId) {
-        try {
-            List<LabOrder> orders = labOrderRepository.findByDoctorIdOrderByOrderDateDesc(doctorId);
-            return ResponseEntity.ok(orders);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<ApiResponse<Page<LabOrder>>> getDoctorLabOrders(
+            @PathVariable Long doctorId,
+            @PageableDefault(size = 10, sort = "orderDate") Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.success(labOrderService.getDoctorLabOrders(doctorId, pageable)));
     }
 
-    // Get all lab orders for a patient
+    // Get all lab orders for a patient with pagination
     @GetMapping("/patient/{patientId}")
-    public ResponseEntity<?> getPatientLabOrders(@PathVariable Long patientId) {
-        try {
-            List<LabOrder> orders = labOrderRepository.findByPatientIdOrderByOrderDateDesc(patientId);
-            return ResponseEntity.ok(orders);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<ApiResponse<Page<LabOrder>>> getPatientLabOrders(
+            @PathVariable Long patientId,
+            @PageableDefault(size = 10, sort = "orderDate") Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.success(labOrderService.getPatientLabOrders(patientId, pageable)));
     }
 
-    // Get pending lab orders for a doctor
-    @GetMapping("/doctor/{doctorId}/pending")
-    public ResponseEntity<?> getPendingLabOrders(@PathVariable Long doctorId) {
-        try {
-            List<LabOrder> orders = labOrderRepository.findByDoctorIdAndStatus(doctorId, "PENDING");
-            return ResponseEntity.ok(orders);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    // Get all lab orders with pagination
+    @GetMapping
+    public ResponseEntity<ApiResponse<Page<LabOrder>>> getAllLabOrders(
+            @PageableDefault(size = 10, sort = "orderDate") Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.success(labOrderService.getAllLabOrders(pageable)));
     }
 
     // Create new lab order
     @PostMapping
-    public ResponseEntity<?> createLabOrder(@RequestBody LabOrder labOrder) {
-        try {
-            if (labOrder.getPatient() != null) {
-                Long patientId = labOrder.getPatient().getId();
-                if (patientId != null) {
-                    Patient patient = patientRepository.findById(patientId)
-                            .orElseThrow(() -> new RuntimeException("Patient not found"));
-                    labOrder.setPatient(patient);
-                }
-            }
-
-            if (labOrder.getDoctor() != null) {
-                Long doctorId = labOrder.getDoctor().getId();
-                if (doctorId != null) {
-                    Doctor doctor = doctorRepository.findById(doctorId)
-                            .orElseThrow(() -> new RuntimeException("Doctor not found"));
-                    labOrder.setDoctor(doctor);
-                }
-            }
-
-            LabOrder saved = labOrderRepository.save(labOrder);
-            return ResponseEntity.ok(saved);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<ApiResponse<LabOrder>> createLabOrder(@Valid @RequestBody LabOrder labOrder) {
+        LabOrder saved = labOrderService.createLabOrder(labOrder);
+        return ResponseEntity.status(201).body(ApiResponse.success(saved, "Lab order created successfully"));
     }
 
     // Update lab order status
-    @PutMapping("/{id}/status")
-    public ResponseEntity<?> updateLabOrderStatus(@PathVariable Long id,
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<LabOrder>> updateLabOrderStatus(
+            @PathVariable Long id,
             @RequestBody Map<String, String> statusUpdate) {
-        try {
-            if (id == null)
-                throw new IllegalArgumentException("ID cannot be null");
-            LabOrder order = labOrderRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Lab order not found"));
-
-            order.setStatus(statusUpdate.get("status"));
-
-            if (statusUpdate.containsKey("resultSummary")) {
-                order.setResultSummary(statusUpdate.get("resultSummary"));
-            }
-
-            LabOrder updated = labOrderRepository.save(order);
-            return ResponseEntity.ok(updated);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        LabOrder updated = labOrderService.updateLabOrderStatus(id, statusUpdate.get("status"));
+        return ResponseEntity.ok(ApiResponse.success(updated, "Lab order status updated successfully"));
     }
 
-    // Get specific lab order
+    // Get a specific lab order by ID
     @GetMapping("/{id}")
-    public ResponseEntity<?> getLabOrder(@PathVariable Long id) {
-        try {
-            LabOrder order = labOrderRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Lab order not found"));
-            return ResponseEntity.ok(order);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<ApiResponse<LabOrder>> getLabOrderById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(labOrderService.getLabOrderById(id)));
     }
 
-    // Delete lab order
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteLabOrder(@PathVariable Long id) {
-        try {
-            if (id == null)
-                throw new IllegalArgumentException("ID cannot be null");
-            labOrderRepository.deleteById(id);
-            return ResponseEntity.ok(Map.of("message", "Lab order deleted successfully"));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<ApiResponse<Void>> deleteLabOrder(@PathVariable Long id) {
+        labOrderService.deleteLabOrder(id);
+        return ResponseEntity.ok(ApiResponse.success(null, "Lab order deleted successfully"));
+    }
+
+    @RequestMapping(value = "/{id}", method = RequestMethod.HEAD)
+    public ResponseEntity<Void> checkLabOrderExists(@PathVariable Long id) {
+        labOrderService.getLabOrderById(id);
+        return ResponseEntity.ok().build();
     }
 }
