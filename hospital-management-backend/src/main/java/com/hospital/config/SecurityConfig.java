@@ -9,6 +9,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -19,29 +20,24 @@ import java.util.List;
 /**
  * Security Configuration
  * Configures Spring Security for REST API with CORS, CSRF protection, and JWT
- * OAuth2 social login is disabled for local development (no provider credentials needed)
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    /**
-     * Configure password encoder for secure password hashing
-     *
-     * @return BCryptPasswordEncoder bean
-     */
+    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final RateLimitingFilter rateLimitingFilter;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, RateLimitingFilter rateLimitingFilter) {
+        this.jwtAuthFilter = jwtAuthFilter;
+        this.rateLimitingFilter = rateLimitingFilter;
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    /**
-     * Configure security filter chain with authentication and authorization
-     * 
-     * @param http HttpSecurity to configure
-     * @return SecurityFilterChain bean
-     * @throws Exception if configuration fails
-     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -50,13 +46,15 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Public authentication endpoints
-                        .requestMatchers("/api/auth/**", "/auth/**", "/login/**", "/oauth2/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/auth/**", "/login/**", "/oauth2/**", "/api/health").permitAll()
                         // Public doctor listing endpoint
-                        .requestMatchers("/api/doctors/list", "/doctors/list").permitAll()
+                        .requestMatchers("/api/doctors/**", "/doctors/**").permitAll()
                         // H2 console (dev only)
                         .requestMatchers("/h2-console/**").permitAll()
                         // All other requests require authentication (for production)
-                        .anyRequest().permitAll())
+                        .anyRequest().authenticated())
+                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 // Exception Handling
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, authException) -> {
@@ -70,20 +68,18 @@ public class SecurityConfig {
                             response.getWriter().write("{\"error\": \"Access Denied\"}");
                         }));
 
+        // Allow H2 console frames
+        http.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
+
         return http.build();
     }
 
-    /**
-     * Configure CORS settings for cross-origin requests
-     * 
-     * @return CorsConfigurationSource bean
-     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allow requests from localhost and typical development hosts
-        configuration.setAllowedOrigins(List.of("*"));
+        // Restrict to frontend local dev servers
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5174"));
 
         // Allow HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
@@ -92,7 +88,7 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(List.of("*"));
 
         // Allow credentials
-        configuration.setAllowCredentials(false);
+        configuration.setAllowCredentials(true);
 
         // Cache pre-flight response for 1 hour
         configuration.setMaxAge(3600L);

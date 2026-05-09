@@ -4,8 +4,8 @@ import type { RootState } from '../../store';
 import api from '../../api';
 import {
     Users, CalendarCheck, Activity, CreditCard,
-    Clock, TrendingUp, Stethoscope, FileText,
-    AlertCircle, CheckCircle2, XCircle, Loader2
+    TrendingUp, Stethoscope, FileText,
+    AlertCircle, Loader2
 } from 'lucide-react';
 
 // --- Types ---

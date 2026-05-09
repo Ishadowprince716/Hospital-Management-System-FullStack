@@ -24,6 +24,8 @@ import org.springframework.web.client.RestTemplate;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+
 @Service
 public class AIService {
 
@@ -54,6 +56,7 @@ public class AIService {
     @Autowired
     private DoctorRepository doctorRepository;
 
+    @CircuitBreaker(name = "aiService", fallbackMethod = "analyzeSymptomsFallback")
     public TriageResponseDTO analyzeSymptoms(String symptoms) {
         String prompt = "You are a medical triage assistant. Analyze the following patient symptoms and recommend a medical specialization.\n\n" +
                 "Symptoms: " + symptoms + "\n\n" +
@@ -66,14 +69,18 @@ public class AIService {
                 "}\n" +
                 "If symptoms are too vague, recommend 'General Practice'. If it seems like an emergency, set urgencyLevel to 'HIGH'.";
 
+        String rawResponse = callGeminiInternal(prompt);
+        String cleanedJson = rawResponse.replaceAll("```json", "").replaceAll("```", "").trim();
         try {
-            String rawResponse = callGeminiInternal(prompt);
-            String cleanedJson = rawResponse.replaceAll("```json", "").replaceAll("```", "").trim();
             return objectMapper.readValue(cleanedJson, TriageResponseDTO.class);
         } catch (Exception e) {
-            System.err.println("Triage Analysis Error: " + e.getMessage());
-            return getSimulatedTriageResponse(symptoms);
+            throw new RuntimeException("Failed to parse Gemini response", e);
         }
+    }
+
+    public TriageResponseDTO analyzeSymptomsFallback(String symptoms, Throwable t) {
+        System.err.println("[CircuitBreaker] Triage Analysis Error: " + t.getMessage());
+        return getSimulatedTriageResponse(symptoms);
     }
 
     private TriageResponseDTO getSimulatedTriageResponse(String symptoms) {
@@ -164,6 +171,7 @@ public class AIService {
         return insight;
     }
 
+    @CircuitBreaker(name = "aiService", fallbackMethod = "getHealthSummaryFallback")
     public PatientInsightDTO getHealthSummary(Long patientId) {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
@@ -198,14 +206,21 @@ public class AIService {
                 "}\n" +
                 "Focus on what a doctor needs to know immediately. If there are no critical alerts, provide an empty list.";
 
+        String rawResponse = callGeminiInternal(prompt);
+        String cleanedJson = rawResponse.replaceAll("```json", "").replaceAll("```", "").trim();
         try {
-            String rawResponse = callGeminiInternal(prompt);
-            String cleanedJson = rawResponse.replaceAll("```json", "").replaceAll("```", "").trim();
             return objectMapper.readValue(cleanedJson, PatientInsightDTO.class);
         } catch (Exception e) {
-            System.err.println("Health Summary Analysis Error: " + e.getMessage());
-            return getSimulatedPatientInsight(patient, prescriptions);
+            throw new RuntimeException("Failed to parse Gemini patient insight response", e);
         }
+    }
+
+    public PatientInsightDTO getHealthSummaryFallback(Long patientId, Throwable t) {
+        System.err.println("[CircuitBreaker] Health Summary Analysis Error: " + t.getMessage());
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new RuntimeException("Patient not found"));
+        List<Prescription> prescriptions = prescriptionRepository.findByPatientId(patientId);
+        return getSimulatedPatientInsight(patient, prescriptions);
     }
 
     private PatientInsightDTO getSimulatedPatientInsight(Patient patient, List<Prescription> prescriptions) {
@@ -239,6 +254,7 @@ public class AIService {
         return insight;
     }
 
+    @CircuitBreaker(name = "aiService", fallbackMethod = "getChatResponseFallback")
     public String getChatResponse(String message, String role, List<Map<String, String>> history) {
         String systemPrompt = role.equalsIgnoreCase("DOCTOR") ? 
             "You are a clinical decision support assistant. Provide professional, evidence-based medical information." :
@@ -263,12 +279,13 @@ public class AIService {
 
         requestBody.put("contents", contents);
 
-        try {
-            Map<String, Object> response = callGeminiApi(requestBody);
-            return extractText(response);
-        } catch (Exception e) {
-            return "Simulated AI Response: As an AI assistant, I recommend consulting with our specialists for accurate medical guidance.";
-        }
+        Map<String, Object> response = callGeminiApi(requestBody);
+        return extractText(response);
+    }
+
+    public String getChatResponseFallback(String message, String role, List<Map<String, String>> history, Throwable t) {
+        System.err.println("[CircuitBreaker] Chat Response Error: " + t.getMessage());
+        return "Simulated AI Response: As an AI assistant, I recommend consulting with our specialists for accurate medical guidance.";
     }
 
     private String callGeminiInternal(String prompt) {

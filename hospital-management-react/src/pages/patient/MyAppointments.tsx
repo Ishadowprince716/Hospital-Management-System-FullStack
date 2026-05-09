@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarCheck, Clock, XCircle, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { CalendarCheck, Clock, XCircle, CheckCircle2, AlertCircle, Loader2, Video } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../../api';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -33,6 +34,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 };
 
 const MyAppointments: React.FC = () => {
+    const navigate = useNavigate();
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -129,7 +131,17 @@ const MyAppointments: React.FC = () => {
                                             <td className="px-6 py-4">
                                                 <StatusBadge status={appt.status} />
                                             </td>
-                                            <td className="px-6 py-4 text-right">
+                                            <td className="px-6 py-4 text-right space-x-2">
+                                                {appt.status === 'CONFIRMED' && (
+                                                    <Button 
+                                                        size="sm" 
+                                                        className="bg-emerald-600 text-white hover:bg-emerald-700 px-3 py-1 h-auto flex items-center gap-1.5"
+                                                        onClick={() => navigate(`/telehealth/${appt.id}`)}
+                                                    >
+                                                        <Video className="w-3.5 h-3.5" />
+                                                        Join Call
+                                                    </Button>
+                                                )}
                                                 {(appt.status === 'PENDING' || appt.status === 'CONFIRMED') && (
                                                     <Button 
                                                         variant="ghost" 

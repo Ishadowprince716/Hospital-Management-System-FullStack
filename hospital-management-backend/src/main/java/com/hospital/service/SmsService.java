@@ -3,6 +3,7 @@ package com.hospital.service;
 import com.twilio.Twilio;
 import com.twilio.rest.api.v2010.account.Message;
 import com.twilio.type.PhoneNumber;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
@@ -41,24 +42,25 @@ public class SmsService {
         }
     }
 
+    @CircuitBreaker(name = "smsService", fallbackMethod = "sendSmsFallback")
     public boolean sendSms(String to, String messageBody) {
         if (!isEnabled) {
             logger.warn("Attempted to send SMS but service is disabled.");
             return false;
         }
 
-        try {
-            Message message = Message.creator(
-                    new PhoneNumber(to),
-                    new PhoneNumber(fromNumber),
-                    messageBody)
-                    .create();
-            logger.info("SMS sent successfully: " + message.getSid());
-            return true;
-        } catch (Exception e) {
-            logger.error("Error sending SMS to " + to + ": " + e.getMessage());
-            return false;
-        }
+        Message message = Message.creator(
+                new PhoneNumber(to),
+                new PhoneNumber(fromNumber),
+                messageBody)
+                .create();
+        logger.info("SMS sent successfully: " + message.getSid());
+        return true;
+    }
+
+    public boolean sendSmsFallback(String to, String messageBody, Throwable t) {
+        logger.error("[CircuitBreaker] SMS Service failed. Fallback executed for {}. Reason: {}", to, t.getMessage());
+        return false;
     }
 
     private boolean isValid(String value) {

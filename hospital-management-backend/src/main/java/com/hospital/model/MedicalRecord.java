@@ -6,7 +6,10 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.envers.Audited;
+
 @Entity
+@Audited
 @Table(name = "medical_records")
 public class MedicalRecord {
 
@@ -21,11 +24,13 @@ public class MedicalRecord {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "doctor_id", nullable = false)
+    @Audited(targetAuditMode = org.hibernate.envers.RelationTargetAuditMode.NOT_AUDITED)
     @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
     private Doctor doctor;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "appointment_id", unique = true)
+    @Audited(targetAuditMode = org.hibernate.envers.RelationTargetAuditMode.NOT_AUDITED)
     @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
     private Appointment appointment;
 

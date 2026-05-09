@@ -9,8 +9,15 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import org.hibernate.envers.Audited;
+
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+
 @Entity
 @Table(name = "users")
+@Audited
+@Indexed
 @Inheritance(strategy = InheritanceType.JOINED)
 public class User {
 
@@ -19,6 +26,7 @@ public class User {
     private Long id;
 
     @Column(unique = true)
+    @FullTextField
     private String username; // Nullable for OAuth2 users
 
     @Column
@@ -28,9 +36,11 @@ public class User {
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
     @Column(unique = true, nullable = false)
+    @FullTextField
     private String email;
 
     @Column(name = "phone_number")
+    @FullTextField
     private String phoneNumber;
 
     @NotBlank(message = "Role is required")
@@ -38,6 +48,7 @@ public class User {
     private String role; // PATIENT, DOCTOR, ADMIN
 
     @Column(name = "full_name")
+    @FullTextField
     private String fullName;
 
     @Column(name = "is_active")

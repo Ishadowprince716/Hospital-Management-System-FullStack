@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarCheck, Clock, XCircle, CheckCircle2, AlertCircle, Loader2, Eye, ChevronDown } from 'lucide-react';
+import { CalendarCheck, Clock, XCircle, CheckCircle2, AlertCircle, Loader2, Eye, ChevronDown, Video } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../../api';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -25,6 +26,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 };
 
 const DoctorAppointments: React.FC = () => {
+    const navigate = useNavigate();
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -102,6 +104,16 @@ const DoctorAppointments: React.FC = () => {
                                             <td className="px-6 py-4"><StatusBadge status={appt.status} /></td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2">
+                                                    {['SCHEDULED', 'CONFIRMED', 'PENDING'].includes(appt.status) && (
+                                                        <Button 
+                                                            size="sm" 
+                                                            className="bg-teal-600 text-white hover:bg-teal-700 px-3 py-1.5 h-auto flex items-center gap-1.5 text-xs font-medium rounded-lg"
+                                                            onClick={() => navigate(`/telehealth/${appt.id}`)}
+                                                        >
+                                                            <Video className="w-3.5 h-3.5" />
+                                                            Start Call
+                                                        </Button>
+                                                    )}
                                                     <button onClick={() => setSelected(appt)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700" title="View"><Eye className="h-4 w-4 text-blue-600" /></button>
                                                     <div className="relative group">
                                                         <button className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-[var(--border-color)] hover:border-teal-400 transition-colors" style={{ color: 'var(--text-color)' }} disabled={updatingId === appt.id}>

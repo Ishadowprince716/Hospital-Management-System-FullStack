@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+import org.springframework.cache.annotation.Cacheable;
+
 @Service
 public class DoctorService {
 
@@ -17,10 +19,12 @@ public class DoctorService {
         this.doctorRepository = doctorRepository;
     }
 
+    @Cacheable(value = "doctors", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public Page<Doctor> getAllActiveDoctors(Pageable pageable) {
         return doctorRepository.findByIsActive(true, pageable);
     }
 
+    @Cacheable(value = "doctors")
     public List<Doctor> getAllActiveDoctors() {
         return doctorRepository.findByIsActive(true);
     }
