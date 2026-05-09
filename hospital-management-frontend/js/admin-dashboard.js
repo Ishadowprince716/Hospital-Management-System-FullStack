@@ -13,6 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loadUserData();
     setupNavigation();
     updateDateTime();
+    
+    // Show skeleton loaders for initial dashboard
+    showSkeletons(['totalUsers', 'activeDoctors', 'totalPatients', 'totalAppointments']);
+    
     loadDashboardData();
     setupEventListeners();
     initializeNotifications();
@@ -23,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (userForm) {
         userForm.addEventListener('submit', async function (e) {
             e.preventDefault();
-            console.log('User form submitted');
 
             const userId = userForm.dataset.userId;
             const isEdit = !!userId;
@@ -49,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? `${API_BASE_URL}/admin/users/${userId}`
                     : `${API_BASE_URL}/admin/users`;
 
-                const method = isEdit ? 'PUT' : 'POST';
+                const method = isEdit ? 'PATCH' : 'POST';
 
                 showToast(isEdit ? 'Updating user...' : 'Creating user...', 'info');
 
@@ -209,15 +212,22 @@ async function loadStats() {
         });
 
         if (usersResponse.ok) {
-            const users = await usersResponse.json();
-            const activeUsers = users.filter(u => u.isActive);
-            document.getElementById('totalUsers').textContent = activeUsers.length;
+            const apiResponse = await usersResponse.json();
+            const users = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse || []);
+            const activeUsers = Array.isArray(users) ? users.filter(u => u.isActive) : [];
 
-            const doctors = users.filter(u => u.role === 'DOCTOR' && u.isActive);
-            const patients = users.filter(u => u.role === 'PATIENT' && u.isActive);
+            const doctors = Array.isArray(users) ? users.filter(u => u.role === 'DOCTOR' && u.isActive) : [];
+            const patients = Array.isArray(users) ? users.filter(u => u.role === 'PATIENT' && u.isActive) : [];
 
-            document.getElementById('activeDoctors').textContent = doctors.length;
-            document.getElementById('totalPatients').textContent = patients.length;
+            if (window.animateNumber) {
+                animateNumber(document.getElementById('totalUsers'), activeUsers.length);
+                animateNumber(document.getElementById('activeDoctors'), doctors.length);
+                animateNumber(document.getElementById('totalPatients'), patients.length);
+            } else {
+                document.getElementById('totalUsers').textContent = activeUsers.length;
+                document.getElementById('activeDoctors').textContent = doctors.length;
+                document.getElementById('totalPatients').textContent = patients.length;
+            }
         }
 
         // Load appointments count - try to get all appointments
@@ -227,11 +237,16 @@ async function loadStats() {
             });
 
             if (appointmentsResponse.ok) {
-                const appointments = await appointmentsResponse.json();
-                document.getElementById('totalAppointments').textContent = appointments.length;
+                const apiResponse = await appointmentsResponse.json();
+                const appointments = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse || []);
+                const count = Array.isArray(appointments) ? appointments.length : 0;
+                if (window.animateNumber) {
+                    animateNumber(document.getElementById('totalAppointments'), count);
+                } else {
+                    document.getElementById('totalAppointments').textContent = count;
+                }
             }
-        } catch (e) {
-            console.log('Could not load appointments count');
+        } catch (e) {            // Silently fail if appointments can't be loaded
         }
 
     } catch (error) {
@@ -241,6 +256,15 @@ async function loadStats() {
 
 // Load All Users
 async function loadAllUsers() {
+    const tbody = document.getElementById('usersTableBody');
+    if (tbody) {
+        tbody.innerHTML = Array(5).fill(0).map(() => `
+            <tr>
+                <td colspan="7"><div class="skeleton-table-row skeleton"></div></td>
+            </tr>
+        `).join('');
+    }
+
     try {
         const token = localStorage.getItem('auth_token');
         const response = await fetch(`${API_BASE_URL}/admin/users`, {
@@ -249,7 +273,8 @@ async function loadAllUsers() {
 
         if (!response.ok) throw new Error('Failed to load users');
 
-        allUsers = await response.json();
+        const apiResponse = await response.json();
+        allUsers = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse || []);
 
         const showInactive = document.getElementById('showInactiveUsers')?.checked || false;
         const filteredUsers = showInactive ? allUsers : allUsers.filter(u => u.isActive);
@@ -303,12 +328,22 @@ function displayUsers(users) {
 
 // Load Doctors
 async function loadDoctors() {
+    const tbody = document.getElementById('doctorsTableBody');
+    if (tbody) {
+        tbody.innerHTML = Array(5).fill(0).map(() => `
+            <tr>
+                <td colspan="7"><div class="skeleton-table-row skeleton"></div></td>
+            </tr>
+        `).join('');
+    }
+
     try {
-        const response = await fetch(`${API_BASE_URL}/doctors/list`);
+        const response = await fetch(`${API_BASE_URL}/doctors`);
 
         if (!response.ok) throw new Error('Failed to load doctors');
 
-        allDoctors = await response.json();
+        const apiResponse = await response.json();
+        allDoctors = apiResponse.data || apiResponse || [];
         // Filter out inactive doctors by default for the doctor list
         const activeDoctors = allDoctors.filter(d => d.isActive);
         displayDoctors(activeDoctors);
@@ -366,6 +401,15 @@ function displayDoctors(doctors) {
 
 // Load Patients
 async function loadPatients() {
+    const tbody = document.getElementById('patientsTableBody');
+    if (tbody) {
+        tbody.innerHTML = Array(5).fill(0).map(() => `
+            <tr>
+                <td colspan="7"><div class="skeleton-table-row skeleton"></div></td>
+            </tr>
+        `).join('');
+    }
+
     try {
         const token = localStorage.getItem('auth_token');
         const response = await fetch(`${API_BASE_URL}/admin/users`, {
@@ -374,7 +418,8 @@ async function loadPatients() {
 
         if (!response.ok) throw new Error('Failed to load patients');
 
-        const allUsers = await response.json();
+        const apiResponse = await response.json();
+        const allUsers = apiResponse.data || apiResponse || [];
         allPatients = allUsers.filter(u => u.role === 'PATIENT' && u.isActive);
         displayPatients(allPatients);
     } catch (error) {
@@ -415,26 +460,33 @@ function displayPatients(patients) {
 
 // Load All Appointments
 async function loadAllAppointments() {
-    try {
-        console.log('🔄 Fetching all appointments for admin');
+    const tbody = document.getElementById('appointmentsTableBody');
+    if (tbody) {
+        tbody.innerHTML = Array(5).fill(0).map(() => `
+            <tr>
+                <td colspan="8"><div class="skeleton-table-row skeleton"></div></td>
+            </tr>
+        `).join('');
+    }
 
+    try {
         const token = localStorage.getItem('auth_token');
         let appointments = [];
 
         try {
             const appointmentsUrl = `${API_BASE_URL}/appointments`;
-            console.log('📡 API URL:', appointmentsUrl);
 
             const response = await fetch(appointmentsUrl, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            console.log('📊 Response status:', response.status);
-
             if (response.ok) {
-                appointments = await response.json();
-                console.log('✅ Appointments loaded:', appointments.length, 'appointments');
-                console.log('📋 Appointment details:', appointments);
+                const apiResponse = await response.json();
+                if (apiResponse.data && apiResponse.data.content) {
+                    appointments = apiResponse.data.content;
+                } else {
+                    appointments = apiResponse.data || apiResponse || [];
+                }
             } else {
                 const errorText = await response.text();
                 console.error('❌ API Error Response:', response.status, errorText);
@@ -473,8 +525,8 @@ function displayAppointments(appointments) {
     tbody.innerHTML = appointments.map(apt => `
         <tr>
             <td>${apt.id}</td>
-            <td>${apt.patient?.fullName || 'N/A'}</td>
-            <td>${apt.doctor?.fullName || 'N/A'}</td>
+            <td>${apt.patientName || 'N/A'}</td>
+            <td>${apt.doctorName || 'N/A'}</td>
             <td>${new Date(apt.appointmentDate).toLocaleDateString()}</td>
             <td>${apt.appointmentTime}</td>
             <td>${apt.appointmentType || 'Consultation'}</td>
@@ -490,6 +542,15 @@ function displayAppointments(appointments) {
 
 // Load Revenue Data & Charts
 async function loadRevenueData() {
+    const tbody = document.getElementById('invoicesTableBody');
+    if (tbody) {
+        tbody.innerHTML = Array(5).fill(0).map(() => `
+            <tr>
+                <td colspan="8"><div class="skeleton-table-row skeleton"></div></td>
+            </tr>
+        `).join('');
+    }
+
     // Render Charts
     renderCharts();
 
@@ -554,8 +615,8 @@ function exportAppointments() {
         headers.join(','),
         ...allAppointments.map(a => [
             a.id,
-            `"${a.patient?.fullName || 'N/A'}"`,
-            `"${a.doctor?.fullName || 'N/A'}"`,
+            `"${a.patientName || 'N/A'}"`,
+            `"${a.doctorName || 'N/A'}"`,
             a.appointmentDate,
             a.appointmentTime,
             a.appointmentType,
@@ -778,13 +839,11 @@ async function toggleUserStatus(userId, activate) {
         const token = localStorage.getItem('auth_token');
         showToast(`${activate ? 'Activating' : 'Deactivating'} user...`, 'info');
 
-        const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/${action}`, {
-            method: 'PUT',
+        const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/status?active=${activate}`, {
+            method: 'PATCH',
             headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ isActive: activate })
+                'Authorization': `Bearer ${token}`
+            }
         });
 
         if (!response.ok) {
@@ -819,13 +878,12 @@ async function toggleDoctorStatus(doctorId, activate) {
         showToast(`${activate ? 'Activating' : 'Deactivating'} doctor...`, 'info');
 
         // Try to call API
-        const response = await fetch(`${API_BASE_URL}/admin/users/${doctorId}/${action}`, {
-            method: 'PUT',
+        const response = await fetch(`${API_BASE_URL}/admin/users/${doctorId}/status?active=${activate}`, {
+            method: 'PATCH',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ isActive: activate })
+            }
         });
 
         if (!response.ok) {
@@ -1068,7 +1126,7 @@ async function viewAppointmentDetails(appointmentId) {
                         <i class="fas fa-user-injured"></i> Patient
                     </h4>
                     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                        <p style="margin: 0; font-weight: 600; font-size: 1.125rem;">${appointment.patient?.fullName || 'Unknown'}</p>
+                        <p style="margin: 0; font-weight: 600; font-size: 1.125rem;">${appointment.patientName || 'Unknown'}</p>
                         <p style="margin: 0; color: var(--gray-600); font-size: 0.875rem;">ID: ${appointment.patientId}</p>
                         <button class="btn-sm btn-outline-primary" style="margin-top: 0.5rem;" onclick="closeModal('appointmentDetailsModal'); viewPatientDetails(${appointment.patientId})">
                             View Profile
@@ -1082,8 +1140,8 @@ async function viewAppointmentDetails(appointmentId) {
                         <i class="fas fa-user-md"></i> Doctor
                     </h4>
                     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                        <p style="margin: 0; font-weight: 600; font-size: 1.125rem;">${appointment.doctor?.fullName || 'Unknown'}</p>
-                        <p style="margin: 0; color: var(--gray-600); font-size: 0.875rem;">Specialization: ${appointment.doctor?.specialization || 'N/A'}</p>
+                        <p style="margin: 0; font-weight: 600; font-size: 1.125rem;">${appointment.doctorName || 'Unknown'}</p>
+                        <p style="margin: 0; color: var(--gray-600); font-size: 0.875rem;">ID: ${appointment.doctorId}</p>
                          <button class="btn-sm btn-outline-primary" style="margin-top: 0.5rem;" onclick="closeModal('appointmentDetailsModal'); viewDoctorDetails(${appointment.doctorId})">
                             View Profile
                         </button>
@@ -1141,14 +1199,12 @@ async function approveDoctor(doctorId) {
     if (!confirm('Are you sure you want to approve this doctor?')) return;
 
     try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/admin/users/${doctorId}/activate`, {
-            method: 'PUT',
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${API_BASE_URL}/admin/users/${doctorId}/status?active=true`, {
+            method: 'PATCH',
             headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ isActive: true })
+                'Authorization': `Bearer ${token}`
+            }
         });
 
         if (response.ok) {
@@ -1170,7 +1226,7 @@ async function rejectDoctor(doctorId) {
     if (!confirm('Are you sure you want to reject this doctor? This action will delete the registration.')) return;
 
     try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('auth_token');
         const response = await fetch(`${API_BASE_URL}/admin/users/${doctorId}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
@@ -1382,6 +1438,18 @@ function saveNotifications() {
     localStorage.setItem('adminNotifications', JSON.stringify(notifications));
 }
 
+/**
+ * Show skeleton loaders in specified elements
+ */
+function showSkeletons(ids) {
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.innerHTML = '<div class="skeleton-text skeleton" style="width: 50%; height: 2rem; margin: 0 auto;"></div>';
+        }
+    });
+}
+
 // Add New Notification
 function addNotification(type, title, message) {
     const newNotif = createNotification(type, title, message);
@@ -1414,7 +1482,7 @@ function startNotificationPolling() {
 // Check for New Activities
 async function checkForNewActivities() {
     try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('auth_token');
         const lastCheck = localStorage.getItem('lastActivityCheck') || Date.now() - 60000;
 
         // Get current counts
@@ -1423,38 +1491,42 @@ async function checkForNewActivities() {
         });
 
         if (usersResponse.ok) {
-            const users = await usersResponse.json();
-            const currentDoctorCount = users.filter(u => u.role === 'DOCTOR').length;
-            const currentPatientCount = users.filter(u => u.role === 'PATIENT').length;
-            const currentPendingCount = users.filter(u => u.role === 'DOCTOR' && !u.isActive).length;
+            const apiResponse = await usersResponse.json();
+            const users = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse || []);
+            
+            if (Array.isArray(users)) {
+                const currentDoctorCount = users.filter(u => u.role === 'DOCTOR').length;
+                const currentPatientCount = users.filter(u => u.role === 'PATIENT').length;
+                const currentPendingCount = users.filter(u => u.role === 'DOCTOR' && !u.isActive).length;
 
-            // Get stored counts
-            const storedDoctorCount = parseInt(localStorage.getItem('lastDoctorCount') || '0');
-            const storedPatientCount = parseInt(localStorage.getItem('lastPatientCount') || '0');
-            const storedPendingCount = parseInt(localStorage.getItem('lastPendingCount') || '0');
+                // Get stored counts
+                const storedDoctorCount = parseInt(localStorage.getItem('lastDoctorCount') || '0');
+                const storedPatientCount = parseInt(localStorage.getItem('lastPatientCount') || '0');
+                const storedPendingCount = parseInt(localStorage.getItem('lastPendingCount') || '0');
 
-            // Check for new doctors
-            if (currentDoctorCount > storedDoctorCount) {
-                const diff = currentDoctorCount - storedDoctorCount;
-                addNotification('doctor', 'New Doctor Added', `${diff} new doctor${diff > 1 ? 's have' : ' has'} been registered`);
+                // Check for new doctors
+                if (currentDoctorCount > storedDoctorCount) {
+                    const diff = currentDoctorCount - storedDoctorCount;
+                    addNotification('doctor', 'New Doctor Added', `${diff} new doctor${diff > 1 ? 's have' : ' has'} been registered`);
+                }
+
+                // Check for new patients
+                if (currentPatientCount > storedPatientCount) {
+                    const diff = currentPatientCount - storedPatientCount;
+                    addNotification('patient', 'New Patient Registered', `${diff} new patient${diff > 1 ? 's have' : ' has'} joined the system`);
+                }
+
+                // Check for pending approvals
+                if (currentPendingCount > storedPendingCount) {
+                    const diff = currentPendingCount - storedPendingCount;
+                    addNotification('system', 'Pending Doctor Approval', `${diff} new doctor registration${diff > 1 ? 's' : ''} pending approval`);
+                }
+
+                // Update stored counts
+                localStorage.setItem('lastDoctorCount', currentDoctorCount.toString());
+                localStorage.setItem('lastPatientCount', currentPatientCount.toString());
+                localStorage.setItem('lastPendingCount', currentPendingCount.toString());
             }
-
-            // Check for new patients
-            if (currentPatientCount > storedPatientCount) {
-                const diff = currentPatientCount - storedPatientCount;
-                addNotification('patient', 'New Patient Registered', `${diff} new patient${diff > 1 ? 's have' : ' has'} joined the system`);
-            }
-
-            // Check for pending approvals
-            if (currentPendingCount > storedPendingCount) {
-                const diff = currentPendingCount - storedPendingCount;
-                addNotification('system', 'Pending Doctor Approval', `${diff} new doctor registration${diff > 1 ? 's' : ''} pending approval`);
-            }
-
-            // Update stored counts
-            localStorage.setItem('lastDoctorCount', currentDoctorCount.toString());
-            localStorage.setItem('lastPatientCount', currentPatientCount.toString());
-            localStorage.setItem('lastPendingCount', currentPendingCount.toString());
         }
 
         // Try to get appointments
@@ -1464,8 +1536,9 @@ async function checkForNewActivities() {
             });
 
             if (aptResponse.ok) {
-                const appointments = await aptResponse.json();
-                const currentAptCount = appointments.length;
+                const apiResponse = await aptResponse.json();
+                const appointments = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse || []);
+                const currentAptCount = Array.isArray(appointments) ? appointments.length : 0;
                 const storedAptCount = parseInt(localStorage.getItem('lastAppointmentCount') || '0');
 
                 if (currentAptCount > storedAptCount) {
@@ -1525,7 +1598,8 @@ async function renderInvoices() {
         });
 
         if (response.ok) {
-            const invoices = await response.json();
+            const apiResponse = await response.json();
+            const invoices = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse || []);
             const tbody = document.getElementById('invoicesTableBody');
 
             // Should match the table headers in HTML: ID, Patient, Amount, Date, Status, Actions
@@ -1537,13 +1611,13 @@ async function renderInvoices() {
 
                 tbody.innerHTML = invoices.map(invoice => `
                     <tr>
-                        <td>#${invoice.id}</td>
+                        <td>#${invoice.billNumber || invoice.id}</td>
                         <td>${invoice.patient?.fullName || 'N/A'}</td>
                         <td>
                             <div>Total: ₹${invoice.amount}</div>
                             <small class="text-muted">Pending: ₹${invoice.balanceAmount || 0}</small>
                         </td>
-                        <td>${new Date(invoice.generatedAt).toLocaleDateString()}</td>
+                        <td>${invoice.generatedAt ? new Date(invoice.generatedAt).toLocaleDateString() : 'N/A'}</td>
                         <td>
                             <span class="status-badge ${invoice.status?.toLowerCase() || 'pending'}">
                                 ${invoice.status || 'PENDING'}
@@ -1606,8 +1680,9 @@ async function openInvoiceModal() {
         });
 
         if (response.ok) {
-            const users = await response.json();
-            const patients = users.filter(u => u.role === 'PATIENT');
+            const apiResponse = await response.json();
+            const users = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse);
+            const patients = Array.isArray(users) ? users.filter(u => u.role === 'PATIENT') : [];
 
             const patientSelect = document.getElementById('invoicePatient');
             patientSelect.innerHTML = '<option value="">Select Patient</option>' +
@@ -1802,10 +1877,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to create invoice');
+                    const apiResponse = await response.json();
+                    const err = apiResponse.data || apiResponse;
+                    throw new Error(err.message || err.error || 'Failed to create invoice');
                 }
 
-                const result = await response.json();
+                const apiResponse = await response.json();
+                const result = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse);
                 showToast('Invoice created successfully!', 'success');
                 closeModal('invoiceModal');
 
@@ -1889,8 +1967,9 @@ async function viewInvoiceDetails(invoiceId) {
         });
 
         if (response.ok) {
-            const invoices = await response.json();
-            const invoice = invoices.find(i => i.id === invoiceId);
+            const apiResponse = await response.json();
+            const invoices = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse);
+            const invoice = Array.isArray(invoices) ? invoices.find(i => i.id === invoiceId) : null;
 
             if (!invoice) {
                 showToast('Invoice not found', 'error');
@@ -1923,8 +2002,8 @@ async function viewInvoiceDetails(invoiceId) {
                     </div>
                     <div style="text-align: right;">
                         <h4 style="color: var(--text-light);">Invoice Info:</h4>
-                        <div style="margin-bottom: 0.25rem;"><strong>Invoice #:</strong> ${invoice.id}</div>
-                        <div style="margin-bottom: 0.25rem;"><strong>Date:</strong> ${new Date(invoice.generatedAt).toLocaleDateString()}</div>
+                        <div style="margin-bottom: 0.25rem;"><strong>Invoice #:</strong> ${invoice.billNumber || invoice.id}</div>
+                        <div style="margin-bottom: 0.25rem;"><strong>Date:</strong> ${invoice.generatedAt ? new Date(invoice.generatedAt).toLocaleDateString() : 'N/A'}</div>
                         <div style="margin-bottom: 0.25rem;"><strong>Due Date:</strong> ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}</div>
                         <div><span class="status-badge ${invoice.status?.toLowerCase()}">${invoice.status}</span></div>
                     </div>
@@ -1996,13 +2075,18 @@ async function openRecordPaymentModal(invoiceId) {
         });
 
         if (response.ok) {
-            const invoices = await response.json();
-            const invoice = invoices.find(i => i.id === invoiceId);
+            const apiResponse = await response.json();
+            const invoices = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse);
+            const invoice = Array.isArray(invoices) ? invoices.find(i => i.id === invoiceId) : null;
 
             if (!invoice) return;
 
             // Setup modal data
             document.getElementById('paymentInvoiceId').value = invoice.id;
+            const billNumber = invoice.billNumber || invoice.id;
+            const billNumberEl = document.getElementById('paymentBillNumber');
+            if (billNumberEl) billNumberEl.textContent = '#' + billNumber;
+            
             document.getElementById('paymentTotalAmount').textContent = '₹' + invoice.amount.toFixed(2);
             document.getElementById('paymentPaidAlready').textContent = '₹' + (invoice.paidAmount || 0).toFixed(2);
             document.getElementById('paymentPendingBalance').textContent = '₹' + (invoice.balanceAmount || 0).toFixed(2);
@@ -2144,10 +2228,13 @@ async function resetUserPassword(userId) {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to reset password');
+            const apiResponse = await response.json();
+            const err = apiResponse.data || apiResponse;
+            throw new Error(err.message || err.error || 'Failed to reset password');
         }
 
-        const result = await response.json();
+        const apiResponse = await response.json();
+        const result = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse);
 
         // Show success with the temporary password
         alert(`Password Reset Successful!\n\nUser: ${user.fullName || user.username}\nTemporary Password: Hospital@123\n\nPlease inform the user to change this password after logging in.`);

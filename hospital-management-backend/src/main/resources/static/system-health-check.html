@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Health Check - Hospital Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .test-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .test-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .test-item .icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 14px;
+        }
+
+        .test-item.pending .icon {
+            background: #fef3c7;
+            color: #f59e0b;
+        }
+
+        .test-item.success .icon {
+            background: #d1fae5;
+            color: #10b981;
+        }
+
+        .test-item.error .icon {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+
+        .test-item .label {
+            flex: 1;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .test-item .result {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .summary-card.total {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .summary-card.passed {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .summary-card.failed {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .summary-card h3 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .summary-card p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+
+        .log-entry.error {
+            color: #f87171;
+        }
+
+        .log-entry.success {
+            color: #4ade80;
+        }
+
+        .log-entry.info {
+            color: #60a5fa;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🏥 Hospital Management System</h1>
+        <p class="subtitle">Comprehensive System Health Check</p>
+
+        <div class="summary" id="summary">
+            <div class="summary-card total">
+                <h3 id="totalTests">0</h3>
+                <p>Total Tests</p>
+            </div>
+            <div class="summary-card passed">
+                <h3 id="passedTests">0</h3>
+                <p>Passed</p>
+            </div>
+            <div class="summary-card failed">
+                <h3 id="failedTests">0</h3>
+                <p>Failed</p>
+            </div>
+        </div>
+
+        <button class="btn" id="runTestsBtn" onclick="runAllTests()">🚀 Run All Tests</button>
+
+        <div class="test-section">
+            <h2>🔌 Backend API Tests</h2>
+            <div id="backendTests"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>💾 Database Connectivity</h2>
+            <div id="databaseTests"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🎨 Frontend Pages</h2>
+            <div id="frontendTests"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔐 Authentication Flow</h2>
+            <div id="authTests"></div>
+        </div>
+
+        <div class="log" id="logContainer">
+            <div class="log-entry info">Ready to run tests...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080/api';
+        let testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0
+        };
+
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function updateSummary() {
+            document.getElementById('totalTests').textContent = testResults.total;
+            document.getElementById('passedTests').textContent = testResults.passed;
+            document.getElementById('failedTests').textContent = testResults.failed;
+        }
+
+        function createTestItem(label) {
+            const item = document.createElement('div');
+            item.className = 'test-item pending';
+            item.innerHTML = `
+                <div class="icon">⏳</div>
+                <div class="label">${label}</div>
+                <div class="result">Pending...</div>
+            `;
+            return item;
+        }
+
+        function updateTestItem(item, success, message) {
+            testResults.total++;
+            if (success) {
+                testResults.passed++;
+                item.className = 'test-item success';
+                item.querySelector('.icon').textContent = '✓';
+                item.querySelector('.result').textContent = message;
+                log(`✓ ${item.querySelector('.label').textContent}: ${message}`, 'success');
+            } else {
+                testResults.failed++;
+                item.className = 'test-item error';
+                item.querySelector('.icon').textContent = '✗';
+                item.querySelector('.result').textContent = message;
+                log(`✗ ${item.querySelector('.label').textContent}: ${message}`, 'error');
+            }
+            updateSummary();
+        }
+
+        async function testEndpoint(url, method = 'GET', body = null) {
+            try {
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+                const response = await fetch(url, options);
+                return {
+                    success: response.ok,
+                    status: response.status,
+                    data: await response.json().catch(() => null)
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+
+        async function runBackendTests() {
+            const container = document.getElementById('backendTests');
+            container.innerHTML = '';
+
+            // Test 1: Doctors List
+            const doctorsTest = createTestItem('GET /api/doctors/list');
+            container.appendChild(doctorsTest);
+            const doctorsResult = await testEndpoint(`${API_BASE_URL}/doctors/list`);
+            updateTestItem(doctorsTest, doctorsResult.success,
+                doctorsResult.success ? `Found ${doctorsResult.data?.length || 0} doctors` : `Error: ${doctorsResult.status || doctorsResult.error}`);
+
+            // Test 2: Appointments All
+            const appointmentsTest = createTestItem('GET /api/appointments/all');
+            container.appendChild(appointmentsTest);
+            const appointmentsResult = await testEndpoint(`${API_BASE_URL}/appointments/all`);
+            updateTestItem(appointmentsTest, appointmentsResult.success,
+                appointmentsResult.success ? `Found ${appointmentsResult.data?.length || 0} appointments` : `Error: ${appointmentsResult.status || appointmentsResult.error}`);
+
+            // Test 3: Admin Users
+            const usersTest = createTestItem('GET /api/admin/users');
+            container.appendChild(usersTest);
+            const usersResult = await testEndpoint(`${API_BASE_URL}/admin/users`);
+            updateTestItem(usersTest, usersResult.success,
+                usersResult.success ? `Found ${usersResult.data?.length || 0} users` : `Error: ${usersResult.status || usersResult.error}`);
+        }
+
+        async function runDatabaseTests() {
+            const container = document.getElementById('databaseTests');
+            container.innerHTML = '';
+
+            // Test database by checking if we can fetch data
+            const dbTest = createTestItem('MySQL Connection via API');
+            container.appendChild(dbTest);
+            const result = await testEndpoint(`${API_BASE_URL}/doctors/list`);
+            updateTestItem(dbTest, result.success,
+                result.success ? 'Database connected and responding' : 'Database connection failed');
+        }
+
+        async function runFrontendTests() {
+            const container = document.getElementById('frontendTests');
+            container.innerHTML = '';
+
+            const pages = [
+                { name: 'Login Page', url: '/index.html' },
+                { name: 'Patient Dashboard', url: '/patient-dashboard.html' },
+                { name: 'Doctor Dashboard', url: '/doctor-dashboard.html' },
+                { name: 'Admin Dashboard', url: '/admin-dashboard.html' }
+            ];
+
+            for (const page of pages) {
+                const pageTest = createTestItem(page.name);
+                container.appendChild(pageTest);
+                try {
+                    const response = await fetch(page.url);
+                    updateTestItem(pageTest, response.ok,
+                        response.ok ? 'Page loads successfully' : `HTTP ${response.status}`);
+                } catch (error) {
+                    updateTestItem(pageTest, false, error.message);
+                }
+            }
+        }
+
+        async function runAuthTests() {
+            const container = document.getElementById('authTests');
+            container.innerHTML = '';
+
+            // Test 1: Check if auth.js is loaded
+            const authJsTest = createTestItem('Auth.js Module');
+            container.appendChild(authJsTest);
+            const hasAuth = typeof window.hospitalAuth !== 'undefined';
+            updateTestItem(authJsTest, hasAuth,
+                hasAuth ? 'Auth module loaded' : 'Auth module not found');
+
+            // Test 2: LocalStorage access
+            const storageTest = createTestItem('LocalStorage Access');
+            container.appendChild(storageTest);
+            try {
+                localStorage.setItem('test', 'value');
+                localStorage.removeItem('test');
+                updateTestItem(storageTest, true, 'LocalStorage working');
+            } catch (error) {
+                updateTestItem(storageTest, false, error.message);
+            }
+        }
+
+        async function runAllTests() {
+            const btn = document.getElementById('runTestsBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Running Tests...';
+
+            testResults = { total: 0, passed: 0, failed: 0 };
+            updateSummary();
+
+            log('Starting comprehensive system tests...', 'info');
+
+            await runBackendTests();
+            await runDatabaseTests();
+            await runFrontendTests();
+            await runAuthTests();
+
+            btn.disabled = false;
+            btn.textContent = '🔄 Run Tests Again';
+
+            const passRate = ((testResults.passed / testResults.total) * 100).toFixed(1);
+            log(`Tests completed! Pass rate: ${passRate}%`, passRate >= 80 ? 'success' : 'error');
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            setTimeout(runAllTests, 500);
+        });
+    </script>
+</body>
+
+</html>

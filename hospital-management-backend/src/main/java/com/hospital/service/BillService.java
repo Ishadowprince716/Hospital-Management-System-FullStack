@@ -4,6 +4,8 @@ import com.hospital.model.Bill;
 import com.hospital.model.Patient;
 import com.hospital.repository.mysql.BillRepository;
 import com.hospital.repository.mysql.PatientRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,10 @@ public class BillService {
 
         invoiceData.setPatient(patient);
         invoiceData.setGeneratedAt(LocalDateTime.now());
+        
+        if (invoiceData.getBillNumber() == null) {
+            invoiceData.setBillNumber("BILL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        }
 
         // Calculate status based on amounts
         if (invoiceData.getPaidAmount() >= invoiceData.getAmount()) {
@@ -63,7 +69,7 @@ public class BillService {
         }
 
         double currentPaid = bill.getPaidAmount() != null ? bill.getPaidAmount() : 0.0;
-        double newPaid = currentPaid + amount;
+        double newPaid = amount != null ? currentPaid + amount : bill.getAmount();
 
         // Simple validation to prevent overpayment logic errors
         if (newPaid > bill.getAmount() + 0.1) { // 0.1 tolerance
@@ -79,7 +85,7 @@ public class BillService {
         if (notes != null && !notes.isEmpty()) {
             String currentNotes = bill.getNotes() != null ? bill.getNotes() : "";
             bill.setNotes(
-                    currentNotes + (currentNotes.isEmpty() ? "" : " | ") + "Payment: " + amount + " (" + notes + ")");
+                    currentNotes + (currentNotes.isEmpty() ? "" : " | ") + "Payment: " + (amount != null ? amount : "FULL") + " (" + notes + ")");
         }
 
         if (bill.getBalanceAmount() <= 0.01) {
@@ -97,13 +103,26 @@ public class BillService {
         return billRepository.save(bill);
     }
 
-    public List<Bill> getPatientBills(Long patientId) {
-        Patient patient = patientRepository.findById(patientId)
-                .orElseThrow(() -> new RuntimeException("Patient not found"));
-        return billRepository.findByPatientOrderByGeneratedAtDesc(patient);
+    @Transactional(readOnly = true)
+    public Page<Bill> getAllBills(Pageable pageable) {
+        return billRepository.findAll(pageable);
     }
 
-    public List<Bill> getAllBills() {
-        return billRepository.findAll();
+    @Transactional(readOnly = true)
+    public Page<Bill> getPatientBills(Long patientId, Pageable pageable) {
+        return billRepository.findByPatientId(patientId, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Bill getBillById(Long id) {
+        return billRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Bill not found with ID: " + id));
+    }
+
+    @Transactional
+    public void deleteBill(Long id) {
+        Bill bill = billRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Bill not found with ID: " + id));
+        billRepository.delete(bill);
     }
 }

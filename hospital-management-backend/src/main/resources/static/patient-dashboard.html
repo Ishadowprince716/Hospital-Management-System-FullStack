@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Dashboard - Hospital Management</title>
+    <link rel="stylesheet" href="css/dashboard.css?v=2">
+    <link rel="stylesheet" href="css/ai-chat-perplexity.css">
+    <link rel="stylesheet" href="css/skeleton-loaders.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Apply theme immediately to prevent flashing -->
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.documentElement.classList.add('dark-mode');
+            document.body.classList.add('dark-mode');
+        }
+    </script>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-heartbeat"></i>
+                    <span>Hospital</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-section="overview">
+                    <i class="fas fa-th-large"></i>
+                    <span>Overview</span>
+                </a>
+                <a href="#" class="nav-item" data-section="appointments">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Appointments</span>
+                </a>
+                <a href="#" class="nav-item" data-section="book-appointment">
+                    <i class="fas fa-calendar-plus"></i>
+                    <span>Book Appointment</span>
+                </a>
+                <a href="#" class="nav-item" data-section="medical-records">
+                    <i class="fas fa-file-medical"></i>
+                    <span>Medical Records</span>
+                </a>
+                <a href="#" class="nav-item" data-section="prescriptions">
+                    <i class="fas fa-prescription-bottle-alt"></i>
+                    <span>Prescriptions</span>
+                </a>
+                <a href="#" class="nav-item" data-section="billing">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Billing</span>
+                </a>
+                <a href="#" class="nav-item" data-section="messages">
+                    <i class="fas fa-comments"></i>
+                    <span>Messages</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="nav-item btn-logout" onclick="window.hospitalAuth.logout()"
+                    style="width: 100%; border: none; cursor: pointer;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <!-- Breadcrumb Navigation -->
+                    <div class="breadcrumb">
+                        <a href="#" onclick="switchSection('overview'); return false;" class="breadcrumb-item">
+                            <i class="fas fa-home"></i>
+                            <span>Home</span>
+                        </a>
+                        <span class="breadcrumb-separator">/</span>
+                        <span class="breadcrumb-current" id="breadcrumbCurrent">Overview</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <!-- Notification Bell -->
+                    <div class="notification-container">
+                        <button class="notification-bell" onclick="toggleNotifications(event); return false;"
+                            type="button">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge" id="notificationBadge">0</span>
+                        </button>
+                        <div class="notification-panel" id="notificationPanel">
+                            <div class="notification-header">
+                                <h4>Notifications</h4>
+                                <button type="button" onclick="clearAllNotifications(); return false;"
+                                    class="clear-btn">
+                                    Clear All
+                                </button>
+                            </div>
+                            <div class="notification-list" id="notificationList">
+                                <p class="empty-notification">No notifications</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dark Mode Toggle -->
+                    <button type="button" class="theme-toggle" onclick="toggleTheme(); return false;"
+                        title="Toggle Dark Mode">
+                        <i class="fas fa-moon" id="themeIcon"></i>
+                    </button>
+
+                    <!-- User Profile -->
+                    <div class="user-info">
+                        <i class="fas fa-user-circle"></i>
+                        <div>
+                            <p class="user-name" id="userName">Loading...</p>
+                            <p class="user-role">Patient</p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Overview Section -->
+                <section id="overview" class="content-section active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon gradient-blue">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="stat-info">
+                                <p class="stat-label">Upcoming Appointments</p>
+                                <h3 class="stat-value" id="upcomingCount">0</h3>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-icon gradient-purple">
+                                <i class="fas fa-file-medical"></i>
+                            </div>
+                            <div class="stat-info">
+                                <p class="stat-label">Medical Records</p>
+                                <h3 class="stat-value" id="medicalRecordsCount">0</h3>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
+                                <i class="fas fa-receipt"></i>
+                            </div>
+                            <div class="stat-info">
+                                <p class="stat-label">Pending Bills</p>
+                                <h3 class="stat-value" id="pendingBillsCount">₹0</h3>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b, #38f9d7);">
+                                <i class="fas fa-user-md"></i>
+                            </div>
+                            <div class="stat-info">
+                                <p class="stat-label">My Doctors</p>
+                                <h3 class="stat-value" id="myDoctorsCount">0</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Smart Health Timeline -->
+                    <div class="health-timeline">
+                        <div class="timeline-header">
+                            <h3><i class="fas fa-history"
+                                    style="color: var(--primary-color); margin-right: 0.5rem;"></i> Recent Activity</h3>
+                            <button class="btn-outline-primary" style="font-size: 0.8rem;">View Full History</button>
+                        </div>
+                        <div class="timeline-items">
+                            <div class="timeline-item">
+                                <div class="timeline-dot gradient-blue"></div>
+                                <div class="timeline-content">
+                                    <p class="timeline-date">Today, 10:30 AM</p>
+                                    <h4 class="timeline-title">Vitals Check</h4>
+                                    <p class="timeline-desc">Blood Pressure (120/80), Pulse (72 bpm) recorded.</p>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-dot gradient-purple"></div>
+                                <div class="timeline-content">
+                                    <p class="timeline-date">Yesterday, 4:00 PM</p>
+                                    <h4 class="timeline-title">Lab Results Available</h4>
+                                    <p class="timeline-desc">Blood Test (CBC) results are ready for review.</p>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-dot gradient-orange"></div>
+                                <div class="timeline-content">
+                                    <p class="timeline-date">Dec 24, 2024</p>
+                                    <h4 class="timeline-title">Prescription Renewed</h4>
+                                    <p class="timeline-desc">Dr. Sarah updated your Amoxicillin prescription.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <div class="card appointment-card">
+                            <div class="card-header">
+                                <div class="header-content">
+                                    <div>
+                                        <h3>Recent Appointments</h3>
+                                        <p class="header-subtitle">Your upcoming and past appointments</p>
+                                    </div>
+                                </div>
+                                <a href="#" class="view-all" onclick="switchSection('appointments'); return false;">
+                                    <span>View All</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                            <div class="card-body">
+                                <div id="recentAppointments" class="appointments-list enhanced">
+                                    <div class="loading-state">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        <p>Loading appointments...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Quick Actions</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="quick-actions">
+                                    <button type="button" class="action-btn"
+                                        onclick="window.switchSection('book-appointment'); return false;">
+                                        <i class="fas fa-calendar-plus"></i>
+                                        <span>Book Appointment</span>
+                                    </button>
+                                    <button type="button" class="action-btn"
+                                        onclick="window.switchSection('medical-records'); return false;">
+                                        <i class="fas fa-file-medical"></i>
+                                        <span>View Records</span>
+                                    </button>
+                                    <button type="button" class="action-btn"
+                                        onclick="window.switchSection('billing'); return false;">
+                                        <i class="fas fa-credit-card"></i>
+                                        <span>Pay Bills</span>
+                                    </button>
+                                    <button type="button" class="action-btn"
+                                        onclick="window.switchSection('appointments'); return false;">
+                                        <i class="fas fa-calendar-check"></i>
+                                        <span>My Appointments</span>
+                                    </button>
+                                    <button type="button" class="action-btn"
+                                        onclick="window.switchSection('messages'); return false;">
+                                        <i class="fas fa-comments"></i>
+                                        <span>Messages</span>
+                                    </button>
+                                    <button type="button" class="action-btn"
+                                        onclick="window.quickActionDownloadPrescription(); return false;">
+                                        <i class="fas fa-download"></i>
+                                        <span>Download Prescription</span>
+                                    </button>
+                                    <button type="button" class="action-btn"
+                                        onclick="window.quickActionScheduleFollowUp(); return false;">
+                                        <i class="fas fa-stethoscope"></i>
+                                        <span>Schedule Follow-up</span>
+                                    </button>
+                                    <button type="button" class="action-btn"
+                                        onclick="window.quickActionRequestLabTest(); return false;">
+                                        <i class="fas fa-flask"></i>
+                                        <span>Request Lab Test</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- AI Clinical Navigator Card -->
+                        <div class="card ai-nav-card" style="grid-column: span 2;">
+                            <div class="card-header">
+                                <h3><i class="fas fa-robot" style="color: var(--primary-color);"></i> AI Clinical Navigator</h3>
+                                <span class="badge" style="background: var(--gray-100); color: var(--primary-color);">BETA</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="ai-nav-container" style="display: flex; gap: 2rem; align-items: flex-start;">
+                                    <div class="ai-nav-input" style="flex: 1;">
+                                        <p style="margin-bottom: 1rem; color: var(--gray-600);">Describe your symptoms in natural language, and our AI will recommend the right specialist for you.</p>
+                                        <div class="form-group">
+                                            <textarea id="symptomInput" rows="4" 
+                                                style="width: 100%; padding: 1rem; border: 1px solid var(--gray-200); border-radius: 0.75rem; resize: none; font-family: inherit;"
+                                                placeholder="e.g., I've been having sharp chest pains that radiate to my left arm, especially when climbing stairs..."></textarea>
+                                        </div>
+                                        <button class="btn-primary" onclick="analyzeSymptoms()" id="analyzeBtn" style="margin-top: 1rem; width: 100%;">
+                                            <i class="fas fa-search-plus"></i> Analyze My Symptoms
+                                        </button>
+                                    </div>
+                                    <div id="triageResult" class="ai-nav-result" style="flex: 1; display: none; background: var(--gray-50); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--gray-200);">
+                                        <!-- Result will be injected here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Appointments Section -->
+                <section id="appointments" class="content-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>My Appointments</h3>
+                                <p class="header-subtitle">View and manage all your appointments</p>
+                            </div>
+                        </div>
+                        <!-- Search & Filter Bar -->
+                        <div class="filter-bar">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="appointmentSearch" placeholder="Search doctor name..."
+                                    onkeyup="filterAppointments()">
+                            </div>
+                            <div class="filter-select">
+                                <label for="appointmentStatus">Status:</label>
+                                <select id="appointmentStatus" onchange="filterAppointments()">
+                                    <option value="">All Status</option>
+                                    <option value="upcoming">Upcoming</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+                            <div class="filter-select">
+                                <label for="appointmentSort">Sort:</label>
+                                <select id="appointmentSort" onchange="filterAppointments()">
+                                    <option value="date-desc">Newest First</option>\n <option value="date-asc">Oldest
+                                        First</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="appointmentsList" class="table-wrapper">
+                                <p class="empty-state">Loading appointments...</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Book Appointment Section -->
+                <section id="book-appointment" class="content-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Book New Appointment</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="bookingForm" class="booking-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Select Doctor</label>
+                                        <select id="doctorSelect" required>
+                                            <option value="">Choose a doctor...</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Appointment Date</label>
+                                        <input type="date" id="appointmentDate" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Appointment Time</label>
+                                        <input type="time" id="appointmentTime" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Reason for Visit</label>
+                                        <textarea id="reason" rows="4"
+                                            placeholder="Describe your symptoms or reason for visit..."
+                                            required></textarea>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-calendar-check"></i>
+                                    Book Appointment
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Medical Records Section -->
+                <section id="medical-records" class="content-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>Medical Records</h3>
+                                <p class="header-subtitle">Your complete medical history and reports</p>
+                            </div>
+                        </div>
+                        <!-- Search & Filter Bar -->
+                        <div class="filter-bar">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="recordSearch" placeholder="Search records..."
+                                    onkeyup="filterMedicalRecords()">
+                            </div>
+                            <div class="filter-select">
+                                <label for="recordType">Type:</label>
+                                <select id="recordType" onchange="filterMedicalRecords()">
+                                    <option value="">All Types</option>
+                                    <option value="report">Report</option>
+                                    <option value="test">Test Result</option>
+                                    <option value="diagnosis">Diagnosis</option>
+                                </select>
+                            </div>
+                            <div class="filter-select">
+                                <label for="recordSort">Sort:</label>
+                                <select id="recordSort" onchange="filterMedicalRecords()">
+                                    <option value="date-desc">Newest First</option>
+                                    <option value="date-asc">Oldest First</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="recordsList">
+                                <p class="empty-state">No medical records available</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Prescriptions Section -->
+                <section id="prescriptions" class="content-section">
+                    <div class="card prescription-card">
+                        <div class="card-header">
+                            <div class="header-content">
+                                <div>
+                                    <h3>My Prescriptions</h3>
+                                    <p class="header-subtitle">Active and past prescriptions from your doctors</p>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-download-all"
+                                onclick="window.downloadAllPrescriptions(); return false;">
+                                <i class="fas fa-download"></i>
+                                <span>Download All</span>
+                            </button>
+                        </div>
+                        <!-- Search & Filter Bar -->
+                        <div class="filter-bar">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="prescriptionSearch" placeholder="Search by doctor or medicine..."
+                                    onkeyup="filterPrescriptions()">
+                            </div>
+                            <div class="filter-select">
+                                <label for="prescriptionStatus">Status:</label>
+                                <select id="prescriptionStatus" onchange="filterPrescriptions()">
+                                    <option value="">All Status</option>
+                                    <option value="active">Active</option>
+                                    <option value="expired">Expired</option>
+                                </select>
+                            </div>
+                            <div class="filter-select">
+                                <label for="prescriptionSort">Sort:</label>
+                                <select id="prescriptionSort" onchange="filterPrescriptions()">
+                                    <option value="date-desc">Newest First</option>
+                                    <option value="date-asc">Oldest First</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="prescriptionsList" class="prescriptions-grid">
+                                <div class="loading-state">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <p>Loading prescriptions...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Billing Section -->
+                <section id="billing" class="content-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Billing & Payments</h3>
+                        </div>
+                        <div class="card-body">
+                            <div id="billsList">
+                                <p class="empty-state">No billing records found</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Messages Section -->
+                <section id="messages" class="content-section">
+                    <div class="card ai-chat-card">
+                        <div class="card-header ai-chat-header">
+                            <div class="ai-avatar-header">
+                                <div class="ai-avatar-circle">
+                                    <i class="fas fa-brain"></i>
+                                </div>
+                                <div>
+                                    <h3>MediMate AI</h3>
+                                    <p class="header-subtitle">
+                                        <i class="fas fa-circle online-indicator"></i>
+                                        Your intelligent health companion
+                                    </p>
+                                </div>
+                            </div>
+                            <button type="button" class="clear-chat-btn" onclick="clearChatHistory()"
+                                title="Clear Chat">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                        <div class="card-body chat-body">
+                            <!-- Chat Messages Container -->
+                            <div class="chat-messages" id="chatMessages">
+                                <!-- Welcome message will be added by JavaScript -->
+                            </div>
+
+                            <!-- Typing Indicator -->
+                            <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                            </div>
+
+                            <!-- Suggested Questions -->
+                            <div class="suggested-questions" id="suggestedQuestions">
+                                <p class="suggestions-title">Suggested questions:</p>
+                                <div class="suggestions-grid">
+                                    <button class="suggestion-chip" onclick="sendSuggestedQuestion(this)">
+                                        <i class="fas fa-calendar-check"></i>
+                                        How do I book an appointment?
+                                    </button>
+                                    <button class="suggestion-chip" onclick="sendSuggestedQuestion(this)">
+                                        <i class="fas fa-clock"></i>
+                                        What are the hospital hours?
+                                    </button>
+                                    <button class="suggestion-chip" onclick="sendSuggestedQuestion(this)">
+                                        <i class="fas fa-stethoscope"></i>
+                                        Tell me about your services
+                                    </button>
+                                    <button class="suggestion-chip" onclick="sendSuggestedQuestion(this)">
+                                        <i class="fas fa-file-medical"></i>
+                                        How do I access my records?
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Chat Input -->
+                            <div class="chat-input-container">
+                                <div class="chat-input-wrapper">
+                                    <textarea id="chatInput" class="chat-input" placeholder="Type your message here..."
+                                        rows="1" onkeypress="handleChatKeyPress(event)"></textarea>
+                                    <button type="button" class="send-btn" onclick="sendMessage()" id="sendBtn">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                                <p class="chat-disclaimer">
+                                    <i class="fas fa-shield-alt"></i>
+                                    MediMate AI provides general guidance. For emergencies, call emergency services
+                                    immediately.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <div class="toast-content">
+            <i class="toast-icon"></i>
+            <span class="toast-message"></span>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/enhancements.js"></script>
+    <script src="js/patient-dashboard.js"></script>
+    <script src="js/ai-assistant.js"></script>
+    <script src="js/theme.js"></script>
+</body>
+
+</html>

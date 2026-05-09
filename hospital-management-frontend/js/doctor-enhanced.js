@@ -31,7 +31,7 @@ function initializeDashboard() {
     // Get doctor info from localStorage
     const doctorName = localStorage.getItem('auth_fullName') || 'Doctor';
     const userId = localStorage.getItem('auth_userId') || '1'; // FALLBACK: Default to ID 1 if missing for demo
-    currentDoctorId = userId;
+    currentDoctorId = parseInt(userId);
     console.log("Auth Check: Doctor ID is", currentDoctorId);
 
     document.getElementById('doctorName').textContent = doctorName;
@@ -86,6 +86,68 @@ function setupEventListeners() {
     }
 }
 
+// Handle Prescription Submit
+async function handlePrescriptionSubmit(e) {
+    e.preventDefault();
+    console.log('Submitting prescription...');
+
+    try {
+        const patientId = document.getElementById('prescriptionPatient').value;
+        const diagnosis = document.getElementById('prescriptionDiagnosis').value;
+        const notes = document.getElementById('prescriptionNotes').value;
+
+        // Collect medications
+        const medRows = document.querySelectorAll('.medication-item');
+        const medicines = Array.from(medRows).map(row => {
+            const inputs = row.querySelectorAll('input');
+            return {
+                medicationName: inputs[0].value,
+                dosage: inputs[1].value,
+                duration: inputs[2].value,
+                instructions: inputs[3].value
+            };
+        });
+
+        if (!patientId || !diagnosis || medicines.length === 0) {
+            showToast('Please fill all required fields and add at least one medicine', 'warning');
+            return;
+        }
+
+        const prescriptionData = {
+            patient: { id: parseInt(patientId) },
+            doctor: { id: parseInt(currentDoctorId) },
+            diagnosis: diagnosis,
+            notes: notes,
+            status: 'ACTIVE',
+            items: medicines
+        };
+
+        const response = await fetch(`${API_BASE}/prescriptions`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            },
+            body: JSON.stringify(prescriptionData)
+        });
+
+        if (response.ok) {
+            showToast('Prescription saved successfully!', 'success');
+            document.getElementById('prescriptionModal').style.display = 'none';
+            prescriptionForm.reset();
+            document.getElementById('medicationsList').innerHTML = '<p class="empty-state-small">No medications added yet.</p>';
+            loadSectionData('prescriptions');
+        } else {
+            const apiResponse = await response.json();
+            const err = apiResponse.data || apiResponse;
+            throw new Error(err.message || 'Failed to save prescription');
+        }
+    } catch (error) {
+        console.error('Prescription Error:', error);
+        showToast(error.message, 'error');
+    }
+}
+
 // Show Section
 function showSection(sectionName) {
     // Update navigation
@@ -123,7 +185,8 @@ async function loadDoctorData() {
     try {
         const response = await fetch(`${API_BASE}/doctors/${currentDoctorId}`);
         if (response.ok) {
-            const doctor = await response.json();
+            const apiResponse = await response.json();
+            const doctor = apiResponse.data || apiResponse;
             document.getElementById('specialization').textContent = doctor.specialization || 'General';
         }
     } catch (error) {
@@ -146,7 +209,8 @@ async function loadDashboardData() {
 
         const appointmentsResponse = await fetch(`${API_BASE}/appointments/doctor/${currentDoctorId}`);
         if (appointmentsResponse.ok) {
-            const appointments = await appointmentsResponse.json();
+            const apiResponse = await appointmentsResponse.json();
+            const appointments = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse || []);
 
             // FALLBACK: If API returns empty list, show sample data for demo
             if (appointments.length === 0) {
@@ -159,8 +223,22 @@ async function loadDashboardData() {
             const d = new Date();
             const today = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
 
-            // RELAXED FILTER: If strict today filter returns 0, show all for debugging
-            let todayAppointments = appointments.filter(apt => apt.appointmentDate && apt.appointmentDate.startsWith(today));
+            // RELAXED FILTER: Handle both string and array dates from backend
+            let todayAppointments = appointments.filter(apt => {
+                if (!apt.appointmentDate) return false;
+
+                let aptDateStr = '';
+                if (Array.isArray(apt.appointmentDate)) {
+                    // Handle [year, month, day] array format
+                    const [y, m, d] = apt.appointmentDate;
+                    aptDateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                } else if (typeof apt.appointmentDate === 'string') {
+                    // Handle "YYYY-MM-DD" or "YYYY-MM-DDTHH:mm:ss" string format
+                    aptDateStr = apt.appointmentDate.split('T')[0];
+                }
+
+                return aptDateStr === today;
+            });
 
             if (todayAppointments.length === 0 && appointments.length > 0) {
                 console.log("No appointments for strict today, showing all for demo");
@@ -184,11 +262,11 @@ async function loadDashboardData() {
         // Load prescriptions count
         const prescriptionsResponse = await fetch(`${API_BASE}/emr/doctor/${currentDoctorId}/prescriptions`);
         if (prescriptionsResponse.ok) {
-            const prescriptions = await prescriptionsResponse.json();
-            const active = prescriptions.filter(p => p.status === 'ACTIVE').length;
+            const apiResponse = await prescriptionsResponse.json();
+            const prescriptions = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse || []);
+            const active = Array.isArray(prescriptions) ? prescriptions.filter(p => p.status === 'ACTIVE').length : 0;
             document.getElementById('activePrescriptions').textContent = active;
         }
-
     } catch (error) {
         console.error('Error loading dashboard data:', error);
         // Fallback to sample data for smooth UI/UX
@@ -225,7 +303,9 @@ function displayTodaySchedule(appointments) {
         return;
     }
 
-    container.innerHTML = appointments.map(apt => `
+    container.innerHTML = appointments.map(apt => {
+        const patientId = apt.patient?.id || apt.patientId;
+        return `
         <div class="appointment-item">
             <div class="appointment-time">${apt.appointmentTime || 'N/A'}</div>
             <div class="appointment-patient">
@@ -233,7 +313,7 @@ function displayTodaySchedule(appointments) {
                 <p>${apt.reason || 'General Consultation'}</p>
             </div>
             <div class="appointment-actions">
-                <button class="btn-sm btn-primary" onclick="viewPatientEMR(${apt.patientId})">
+                <button class="btn-sm btn-primary" onclick="viewPatientEMR(${patientId})">
                     <i class="fas fa-file-medical"></i> View EMR
                 </button>
                 <button class="btn-sm btn-success" onclick="completeAppointment(${apt.id})">
@@ -241,7 +321,7 @@ function displayTodaySchedule(appointments) {
                 </button>
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 // Load Section Data
@@ -265,10 +345,11 @@ async function loadSectionData(section) {
 // Load Patients
 async function loadPatients() {
     try {
-        const response = await fetch(`${API_BASE}/patients/list`);
+        const response = await fetch(`${API_BASE}/patients`);
         if (!response.ok) throw new Error('Failed to load patients');
 
-        const patients = await response.json();
+        const apiResponse = await response.json();
+        const patients = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse || []);
         displayPatients(patients);
     } catch (error) {
         console.error('Error loading patients:', error);
@@ -321,7 +402,8 @@ async function viewPatientEMR(patientId) {
         const response = await fetch(`${API_BASE}/emr/patient/${patientId}/complete`);
         if (!response.ok) throw new Error('Failed to load EMR');
 
-        const emrData = await response.json();
+        const apiResponse = await response.json();
+        const emrData = apiResponse.data || apiResponse;
         displayEMRModal(emrData);
     } catch (error) {
         console.error('Error loading EMR:', error);
@@ -341,20 +423,20 @@ function displayEMRModal(emrData) {
 // Display EMR Overview
 function displayEMROverview(emrData) {
     const content = document.getElementById('emrContent');
-    const patient = emrData.patient;
-    const vitals = emrData.vitalSigns?.[0] || {};
+    const patient = emrData.patient || {};
+    const vitals = (emrData.vitalSigns && emrData.vitalSigns.length > 0) ? emrData.vitalSigns[0] : {};
     const allergies = emrData.allergies || [];
 
     content.innerHTML = `
         <div class="emr-overview">
             <h3>Patient Information</h3>
             <div class="info-grid">
-                <div><strong>Name:</strong> ${patient.fullName}</div>
-                <div><strong>Age:</strong> ${calculateAge(patient.dateOfBirth)} years</div>
-                <div><strong>Gender:</strong> ${patient.gender}</div>
-                <div><strong>Blood Group:</strong> ${patient.bloodGroup}</div>
-                <div><strong>Phone:</strong> ${patient.phoneNumber}</div>
-                <div><strong>Email:</strong> ${patient.email}</div>
+                <div><strong>Name:</strong> \${patient.fullName || 'N/A'}</div>
+                <div><strong>Age:</strong> \${calculateAge(patient.dateOfBirth)} years</div>
+                <div><strong>Gender:</strong> \${patient.gender || 'N/A'}</div>
+                <div><strong>Blood Group:</strong> \${patient.bloodGroup || 'N/A'}</div>
+                <div><strong>Phone:</strong> \${patient.phoneNumber || 'N/A'}</div>
+                <div><strong>Email:</strong> \${patient.email || 'N/A'}</div>
             </div>
 
             <div class="vitals-section" style="margin-top: 2rem;">
@@ -370,47 +452,47 @@ function displayEMROverview(emrData) {
                     <div class="vital-card">
                         <h4>Blood Pressure</h4>
                         <div class="value">
-                            ${vitals.bloodPressure || 'N/A'}
-                            ${getVitalTrend(vitals.bloodPressure, 'bp')}
+                            \${vitals.bloodPressure || 'N/A'}
+                            \${getVitalTrend(vitals.bloodPressure, 'bp')}
                         </div>
                     </div>
                     <div class="vital-card">
                         <h4>Pulse</h4>
                         <div class="value">
-                            ${vitals.pulse || 'N/A'}
-                            ${getVitalTrend(vitals.pulse, 'pulse')}
+                            \${vitals.pulse || 'N/A'}
+                            \${getVitalTrend(vitals.pulse, 'pulse')}
                         </div>
                         <div class="unit">bpm</div>
                     </div>
                     <div class="vital-card">
                         <h4>Temperature</h4>
                         <div class="value">
-                            ${vitals.temperature || 'N/A'}
-                            ${getVitalTrend(vitals.temperature, 'temp')}
+                            \${vitals.temperature || 'N/A'}
+                            \${getVitalTrend(vitals.temperature, 'temp')}
                         </div>
                         <div class="unit">°C</div>
                     </div>
                     <div class="vital-card">
                         <h4>SpO2</h4>
                         <div class="value">
-                            ${vitals.oxygenSaturation || 'N/A'}
-                            ${getVitalTrend(vitals.oxygenSaturation, 'spo2')}
+                            \${vitals.oxygenSaturation || 'N/A'}
+                            \${getVitalTrend(vitals.oxygenSaturation, 'spo2')}
                         </div>
                         <div class="unit">%</div>
                     </div>
                 </div>
             </div>
 
-            ${allergies.length > 0 ? `
+            \${allergies.length > 0 ? \`
                 <div class="alert alert-warning" style="margin-top: 2rem;">
                     <h4><i class="fas fa-exclamation-triangle"></i> Allergies</h4>
                     <ul>
-                        ${allergies.map(a => `<li><strong>${a.allergen}</strong> - ${a.severity} (${a.reaction})</li>`).join('')}
+                        \${allergies.map(a => \`<li><strong>\${a.allergen}</strong> - \${a.severity} (\${a.reaction})</li>\`).join('')}
                     </ul>
                 </div>
-            ` : ''}
+            \` : ''}
         </div>
-    `;
+    \`;
 
     // Render Chart if data exists
     if (emrData.vitalSigns && emrData.vitalSigns.length > 0) {
@@ -464,10 +546,11 @@ function displayEMROverview(emrData) {
 // Load Prescriptions
 async function loadPrescriptions() {
     try {
-        const response = await fetch(`${API_BASE}/emr/doctor/${currentDoctorId}/prescriptions`);
+        const response = await fetch(\`\${API_BASE}/emr/doctor/\${currentDoctorId}/prescriptions\`);
         if (!response.ok) throw new Error('Failed to load prescriptions');
 
-        const prescriptions = await response.json();
+        const apiResponse = await response.json();
+        const prescriptions = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse || []);
         displayPrescriptions(prescriptions);
     } catch (error) {
         console.error('Error loading prescriptions:', error);
@@ -483,20 +566,20 @@ function displayPrescriptions(prescriptions) {
         return;
     }
 
-    container.innerHTML = prescriptions.map(rx => `
+    container.innerHTML = prescriptions.map(rx => \`
         <div class="prescription-card">
             <div class="prescription-header">
-                <h4>Patient: ${rx.patient?.fullName || 'Unknown'}</h4>
-                <span class="badge ${rx.status === 'ACTIVE' ? 'badge-success' : 'badge-secondary'}">
-                    ${rx.status}
+                <h4>Patient: \${rx.patient?.fullName || 'Unknown'}</h4>
+                <span class="badge \${rx.status === 'ACTIVE' ? 'badge-success' : 'badge-secondary'}">
+                    \${rx.status}
                 </span>
             </div>
-            <p><strong>Diagnosis:</strong> ${rx.diagnosis}</p>
-            <p><strong>Date:</strong> ${new Date(rx.prescriptionDate).toLocaleDateString()}</p>
-            <p><small>${rx.items?.length || 0} medications</small></p>
-            <button class="btn-sm btn-primary" onclick="viewPrescription(${rx.id})">View Details</button>
+            <p><strong>Diagnosis:</strong> \${rx.diagnosis}</p>
+            <p><strong>Date:</strong> \${new Date(rx.prescriptionDate).toLocaleDateString()}</p>
+            <p><small>\${rx.items?.length || 0} medications</small></p>
+            <button class="btn-sm btn-primary" onclick="viewPrescription(\${rx.id})">View Details</button>
         </div>
-    `).join('');
+    \`).join('');
 }
 
 // Utility Functions
@@ -709,8 +792,8 @@ function openNewLabOrderModal() {
         document.getElementById('labOrderForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const orderData = {
-                patientId: document.getElementById('labOrderPatient').value,
-                doctorId: currentDoctorId,
+                patient: { id: parseInt(document.getElementById('labOrderPatient').value) },
+                doctor: { id: parseInt(currentDoctorId) },
                 testType: document.getElementById('labOrderType').value,
                 testName: document.getElementById('labOrderName').value,
                 priority: document.getElementById('labOrderPriority').value,
@@ -772,8 +855,9 @@ function addMedicationRow(data = null) {
 
 async function loadPatientsForLabOrder() {
     try {
-        const response = await fetch(`${API_BASE}/patients/list`);
-        const patients = await response.json();
+        const response = await fetch(`${API_BASE}/patients`);
+        const apiResponse = await response.json();
+        const patients = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse || []);
 
         const select = document.getElementById('labOrderPatient');
         if (select) {
@@ -957,16 +1041,17 @@ async function loadAllAppointments() {
             currentDoctorId = localStorage.getItem('auth_userId');
         }
 
-        const response = await fetch(`${API_BASE} /appointments/doctor / ${currentDoctorId} `, {
+        const response = await fetch(`${API_BASE}/appointments/doctor/${currentDoctorId}`, {
             headers: {
-                'Authorization': `Bearer ${token} `,
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });
 
         if (!response.ok) throw new Error('Failed to fetch appointments');
 
-        const appointments = await response.json();
+        const apiResponse = await response.json();
+        const appointments = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse || []);
         // Update global variable if exists, otherwise local
         if (typeof allAppointments !== 'undefined') {
             allAppointments = appointments;
@@ -992,7 +1077,7 @@ function renderAppointments(appointments) {
     const sorted = [...appointments].sort((a, b) => new Date(b.appointmentDate) - new Date(a.appointmentDate));
 
     container.innerHTML = `
-        < div class="table-responsive" >
+        <div class="table-responsive">
             <table class="table" style="width:100%">
                 <thead>
                     <tr>
@@ -1005,31 +1090,33 @@ function renderAppointments(appointments) {
                     </tr>
                 </thead>
                 <tbody>
-                    ${sorted.map(apt => `
-                    <tr>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-sm me-2" style="width:32px;height:32px;background:#e0e7ff;color:#4f46e5;display:flex;align-items:center;justify-content:center;border-radius:50%;font-weight:bold;">${(apt.patient?.fullName || 'U').charAt(0)}</div>
-                                <div>
-                                    <div class="fw-bold">${apt.patient?.fullName || 'Unknown Patient'}</div>
-                                    <small class="text-muted" style="font-size:0.75rem;">ID: ${apt.patientId}</small>
+                    ${sorted.map(apt => {
+                        const patientId = apt.patient?.id || apt.patientId;
+                        return `
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm me-2" style="width:32px;height:32px;background:#e0e7ff;color:#4f46e5;display:flex;align-items:center;justify-content:center;border-radius:50%;font-weight:bold;">${(apt.patient?.fullName || 'U').charAt(0)}</div>
+                                    <div>
+                                        <div class="fw-bold">${apt.patient?.fullName || 'Unknown Patient'}</div>
+                                        <small class="text-muted" style="font-size:0.75rem;">ID: ${patientId}</small>
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                        <td>${new Date(apt.appointmentDate).toLocaleDateString()}</td>
-                        <td>${apt.appointmentTime}</td>
-                        <td>${apt.appointmentType || 'Consultation'}</td>
-                        <td><span class="status-badge ${apt.status.toLowerCase()}" style="padding:0.25rem 0.5rem;border-radius:999px;font-size:0.75rem;font-weight:600;text-transform:uppercase;">${apt.status}</span></td>
-                        <td>
-                            <button class="btn-sm btn-outline-primary" onclick="viewPatientEMR(${apt.patientId})" style="padding:0.25rem 0.5rem;border:1px solid #4f46e5;color:#4f46e5;background:none;border-radius:4px;cursor:pointer;">
-                                <i class="fas fa-file-medical"></i> EMR
-                            </button>
-                        </td>
-                    </tr>
-                `).join('')}
+                            </td>
+                            <td>${new Date(apt.appointmentDate).toLocaleDateString()}</td>
+                            <td>${apt.appointmentTime}</td>
+                            <td>${apt.appointmentType || 'Consultation'}</td>
+                            <td><span class="status-badge ${apt.status.toLowerCase()}" style="padding:0.25rem 0.5rem;border-radius:999px;font-size:0.75rem;font-weight:600;text-transform:uppercase;">${apt.status}</span></td>
+                            <td>
+                                <button class="btn-sm btn-outline-primary" onclick="viewPatientEMR(${patientId})" style="padding:0.25rem 0.5rem;border:1px solid #4f46e5;color:#4f46e5;background:none;border-radius:4px;cursor:pointer;">
+                                    <i class="fas fa-file-medical"></i> EMR
+                                </button>
+                            </td>
+                        </tr>
+                    `}).join('')}
                 </tbody>
             </table>
-                            </div >
+        </div>
         `;
 }
 

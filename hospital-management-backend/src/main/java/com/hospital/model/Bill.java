@@ -26,7 +26,10 @@ public class Bill {
     @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
     private Appointment appointment;
 
-    @Column(name = "amount", nullable = false)
+    @Column(name = "bill_number", unique = true)
+    private String billNumber;
+
+    @Column(name = "total_amount", nullable = false)
     private Double amount; // Total Amount
 
     @Column(name = "paid_amount")
@@ -35,7 +38,7 @@ public class Bill {
     @Column(name = "balance_amount")
     private Double balanceAmount = 0.0;
 
-    @Column(name = "status", nullable = false)
+    @Column(name = "payment_status", nullable = false)
     private String status; // PENDING, PAID, PARTIAL
 
     @Column(name = "payment_method")
@@ -44,7 +47,7 @@ public class Bill {
     @Column(name = "transaction_id")
     private String transactionId;
 
-    @Column(name = "generated_at")
+    @Column(name = "created_at")
     private LocalDateTime generatedAt;
 
     @Column(name = "bill_date")
@@ -83,6 +86,14 @@ public class Bill {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getBillNumber() {
+        return billNumber;
+    }
+
+    public void setBillNumber(String billNumber) {
+        this.billNumber = billNumber;
     }
 
     public Patient getPatient() {

@@ -9,12 +9,12 @@
 const AI_CONFIG = {
     // Backend endpoint for secure AI communication
     BACKEND_API_URL: 'http://localhost:8080/api/ai',
-    
-    // Fallback to direct Gemini API (not recommended for production)
-    GEMINI_API_KEY: 'AIzaSyCucnZd57Lht_iZzJp5EeN-JUYSqGo8mOo',
-    API_ENDPOINT: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
-    MODEL: 'gemini-1.5-flash',
-    USE_BACKEND: true,  // Use secure backend endpoint
+
+    // Fallback to direct OpenAI API (not recommended for production)
+    OPENAI_API_KEY: 'YOUR_OPENAI_API_KEY_HERE',
+    API_ENDPOINT: 'https://api.openai.com/v1/chat/completions',
+    MODEL: 'gpt-3.5-turbo',
+    USE_BACKEND: true,  // ENABLED: Secure communication via backend
     FALLBACK_MODE: true,  // Enable fallback responses if API fails
     PATIENT_PROMPT: `You are MediMate AI, a helpful medical assistant for a hospital management system. 
 Your role is to:
@@ -112,7 +112,7 @@ function addWelcomeMessage() {
  */
 function sendMessage() {
     if (!chatInput || isProcessing) return;
-    
+
     const userMessage = chatInput.value.trim();
     if (!userMessage) return;
 
@@ -147,11 +147,11 @@ function renderMessage(message) {
 
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${message.role === 'assistant' ? 'assistant' : 'user'}`;
-    
+
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
     contentDiv.innerHTML = formatMessageContent(message.content);
-    
+
     messageDiv.appendChild(contentDiv);
 
     if (message.role === 'assistant') {
@@ -182,7 +182,7 @@ function formatMessageContent(content) {
  */
 function renderChatHistory() {
     if (!chatMessages) return;
-    
+
     chatMessages.innerHTML = '';
     chatHistory.forEach(msg => {
         renderMessage(msg);
@@ -199,7 +199,7 @@ async function getAIResponse(userMessage) {
 
     try {
         const role = window.hospitalAuth ? window.hospitalAuth.getRole() : 'PATIENT';
-        
+
         if (AI_CONFIG.USE_BACKEND) {
             // Use secure backend endpoint (RECOMMENDED)
             await getAIResponseViaBackend(role, userMessage);
@@ -246,12 +246,14 @@ async function getAIResponseViaBackend(role, userMessage) {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`API Error: ${response.status} - ${errorData.error || 'Unknown error'}`);
+            const apiResponse = await response.json();
+            const err = apiResponse.data || apiResponse;
+            throw new Error(err.message || err.error || `API Error: ${response.status}`);
         }
 
-        const data = await response.json();
-        const aiMessage = data.message;
+        const apiResponse = await response.json();
+        const data = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse);
+        const aiMessage = data.message || data; // Support both wrapped message and raw string
 
         // Add AI response to chat
         const assistantMsg = {
@@ -279,32 +281,33 @@ async function getAIResponseDirect(role, userMessage) {
     try {
         const systemPrompt = role === 'DOCTOR' ? AI_CONFIG.DOCTOR_PROMPT : AI_CONFIG.PATIENT_PROMPT;
 
-        // Build conversation history for Gemini
+        // Build conversation history for OpenAI
         const conversationHistory = chatHistory.slice(-10)
             .filter(msg => msg.role !== 'system')
             .map(msg => ({
-                role: msg.role === 'assistant' ? 'model' : 'user',
-                parts: [{ text: msg.content }]
+                role: msg.role === 'assistant' ? 'assistant' : 'user',
+                content: msg.content
             }));
+            
+        // Prepend system instruction
+        conversationHistory.unshift({
+            role: 'system',
+            content: systemPrompt
+        });
 
-        // Prepare request body for Gemini API
+        // Prepare request body for OpenAI API
         const requestBody = {
-            contents: conversationHistory,
-            systemInstruction: {
-                parts: [{ text: systemPrompt }]
-            },
-            generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 500,
-                topP: 0.8,
-                topK: 10
-            }
+            model: AI_CONFIG.MODEL,
+            messages: conversationHistory,
+            temperature: 0.7,
+            max_tokens: 500
         };
 
-        const response = await fetch(`${AI_CONFIG.API_ENDPOINT}?key=${AI_CONFIG.GEMINI_API_KEY}`, {
+        const response = await fetch(AI_CONFIG.API_ENDPOINT, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${AI_CONFIG.OPENAI_API_KEY}`
             },
             body: JSON.stringify(requestBody)
         });
@@ -315,7 +318,7 @@ async function getAIResponseDirect(role, userMessage) {
         }
 
         const data = await response.json();
-        const aiMessage = data.candidates[0].content.parts[0].text;
+        const aiMessage = data.choices[0].message.content;
 
         // Add AI response to chat
         const assistantMsg = {
@@ -340,48 +343,39 @@ async function getAIResponseDirect(role, userMessage) {
  * Handle AI errors with appropriate messages
  */
 function handleAIError(error) {
-    // Check if API key is the issue
+    console.error('AI Error Details:', error);
+    
+    let message = "I apologize, but I'm having trouble connecting right now. Please try again in a moment.";
+    
     if (error.message.includes('403') || error.message.includes('Invalid')) {
-        const errorMsg = {
-            role: 'assistant',
-            content: "⚠️ **API Configuration Issue**\n\nThe AI service is not properly configured. Please:\n\n1. Check if the Gemini API key is valid\n2. Visit https://ai.google.dev/ to get a valid API key\n3. Contact system administrator to update the API key\n\nFor now, you can still ask questions and our team will respond shortly.",
-            timestamp: new Date().toISOString()
-        };
-        chatHistory.push(errorMsg);
-        saveChatHistory();
-        renderMessage(errorMsg);
-    } else if (AI_CONFIG.FALLBACK_MODE) {
-        // Provide fallback response
-        const fallbackMsg = {
-            role: 'assistant',
-            content: "I'm currently experiencing connectivity issues, but your message has been noted. Our medical team will review it shortly. For urgent matters, please contact our support team directly.",
-            timestamp: new Date().toISOString()
-        };
-        chatHistory.push(fallbackMsg);
-        saveChatHistory();
-        renderMessage(fallbackMsg);
-    } else {
-        // Show generic error message
-        const errorMsg = {
-            role: 'assistant',
-            content: "I apologize, but I'm having trouble connecting right now. Please try again in a moment, or contact our support team for immediate assistance.",
-            timestamp: new Date().toISOString()
-        };
-
-        chatHistory.push(errorMsg);
-        saveChatHistory();
-        renderMessage(errorMsg);
+        message = "⚠️ **API Configuration Issue**\n\nThe AI service is not properly configured. Please contact the administrator.";
+    } else if (error.message.includes('503')) {
+        message = "The AI service is currently overloaded. Please try again in a few seconds.";
+    } else if (error.message.includes('401')) {
+        message = "Your session has expired. Please log in again to use the AI assistant.";
     }
+
+    const errorMsg = {
+        role: 'assistant',
+        content: message,
+        timestamp: new Date().toISOString()
+    };
+    
+    chatHistory.push(errorMsg);
+    saveChatHistory();
+    renderMessage(errorMsg);
 }
 
 /**
  * Get authentication token if available
  */
 function getAuthToken() {
-    if (window.hospitalAuth) {
-        return window.hospitalAuth.getToken ? window.hospitalAuth.getToken() : '';
+    // Try window.hospitalAuth first
+    if (window.hospitalAuth && window.hospitalAuth.getToken) {
+        return window.hospitalAuth.getToken();
     }
-    return '';
+    // Fallback to direct localStorage
+    return localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
 }
 
 /**

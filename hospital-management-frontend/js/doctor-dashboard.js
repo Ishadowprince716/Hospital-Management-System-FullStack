@@ -71,55 +71,64 @@ async function fetchAppointments() {
     try {
         console.log('🔄 Fetching appointments for doctor ID:', currentUser.id);
         
+        // Show Skeleton Loaders
+        showSkeletons();
+        
         const token = localStorage.getItem('token');
         const appointmentsUrl = `${API_BASE_URL}/appointments/doctor/${currentUser.id}`;
-        console.log('📡 API URL:', appointmentsUrl);
-        console.log('🔑 Token present:', !!token);
-
+        
         const response = await fetch(appointmentsUrl, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        console.log('📊 Response status:', response.status);
-        console.log('📊 Response headers:', response.headers);
-
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('❌ API Error Response:', errorText);
             throw new Error(`API Error: ${response.status} - ${errorText || 'Unknown error'}`);
         }
 
-        appointments = await response.json();
-        console.log('✅ Appointments loaded:', appointments.length, 'appointments');
-        console.log('📋 Appointment details:', appointments);
+        const apiResponse = await response.json();
+        
+        if (apiResponse.success) {
+            // Handle pagination wrapper
+            if (apiResponse.data && apiResponse.data.content) {
+                appointments = apiResponse.data.content;
+            } else {
+                appointments = apiResponse.data || [];
+            }
+        } else {
+            console.error('❌ API Error:', apiResponse.message);
+            appointments = [];
+        }
         
         updateStats();
         renderAppointments();
 
     } catch (error) {
         console.error('❌ Error fetching appointments:', error);
-        console.error('Stack trace:', error.stack);
-        
-        const container = document.getElementById('appointmentsList');
-        if (container) {
-            container.innerHTML = `
-                <div style="padding: 20px; background: #fee; border-radius: 5px; color: #c00;">
-                    <h4>⚠️ Error Loading Appointments</h4>
-                    <p><strong>Error:</strong> ${error.message}</p>
-                    <p><strong>Doctor ID:</strong> ${currentUser.id}</p>
-                    <p><strong>API URL:</strong> ${API_BASE_URL}/appointments/doctor/${currentUser.id}</p>
-                    <button onclick="location.reload()" style="padding: 10px 20px; background: #0099cc; color: white; border: none; border-radius: 3px; cursor: pointer;">
-                        🔄 Reload Page
-                    </button>
-                </div>
-            `;
-        }
-        showToast('Could not load appointments: ' + error.message, 'error');
+        showToast('Failed to load appointments: ' + error.message, 'error');
+        appointments = [];
+        updateStats();
+        renderAppointments();
     }
 }
 
+function showSkeletons() {
+    const containers = ['todaySchedule', 'appointmentsList'];
+    containers.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.innerHTML = `
+                <div class="skeleton-table">
+                    ${Array(5).fill(0).map(() => `
+                        <div class="skeleton-table-row skeleton"></div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    });
+}
+
 function updateStats() {
-    // Fix: Use local date instead of UTC to match backend LocalDate
     const d = new Date();
     const todayStr = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
 
@@ -127,9 +136,16 @@ function updateStats() {
     const completedCount = appointments.filter(a => a.status === 'COMPLETED').length;
     const pendingCount = appointments.filter(a => a.status === 'SCHEDULED' || a.status === 'PENDING').length;
 
-    document.getElementById('todayCount').innerText = todayCount;
-    document.getElementById('completedCount').innerText = completedCount;
-    document.getElementById('pendingCount').innerText = pendingCount;
+    // Use animated numbers from enhancements.js
+    if (window.animateNumber) {
+        animateNumber(document.getElementById('todayCount'), todayCount);
+        animateNumber(document.getElementById('completedCount') || {textContent: ''}, completedCount);
+        animateNumber(document.getElementById('pendingCount') || {textContent: ''}, pendingCount);
+    } else {
+        document.getElementById('todayCount').innerText = todayCount;
+        if(document.getElementById('completedCount')) document.getElementById('completedCount').innerText = completedCount;
+        if(document.getElementById('pendingCount')) document.getElementById('pendingCount').innerText = pendingCount;
+    }
 }
 
 function renderAppointments() {
@@ -174,10 +190,10 @@ function createTable(apps) {
                     <tr>
                         <td>
                             <div class="patient-cell">
-                                <div class="avatar-sm">${(app.patient && app.patient.fullName) ? app.patient.fullName.charAt(0) : 'U'}</div>
+                                <div class="avatar-sm">${app.patientName ? app.patientName.charAt(0) : 'U'}</div>
                                 <div>
-                                    <p class="font-medium">${(app.patient && app.patient.fullName) ? app.patient.fullName : 'Unknown Patient'}</p>
-                                    <small>${(app.patient && app.patient.age) || '--'} yrs, ${(app.patient && app.patient.gender) || ''}</small>
+                                    <p class="font-medium">${app.patientName || 'Unknown Patient'}</p>
+                                    <small>${app.patientAge || '--'} yrs, ${app.patientGender || ''}</small>
                                 </div>
                             </div>
                         </td>
@@ -240,7 +256,7 @@ window.updateStatus = async function (id, status) {
     try {
         const token = localStorage.getItem('token');
         const response = await fetch(`${API_BASE_URL}/appointments/${id}/status?status=${status}`, {
-            method: 'PUT',
+            method: 'PATCH',
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -248,8 +264,9 @@ window.updateStatus = async function (id, status) {
             showToast(`Appointment ${status.toLowerCase()}`, 'success');
             fetchAppointments();
         } else {
-            const data = await response.json();
-            showToast(data.error || 'Update failed', 'error');
+            const apiResponse = await response.json();
+            const data = apiResponse.data || apiResponse;
+            showToast(data.message || data.error || 'Update failed', 'error');
         }
     } catch (error) {
         console.error('Error:', error);
@@ -289,8 +306,9 @@ if (consultationForm) {
                 closeConsultationModal();
                 fetchAppointments(); // Refresh
             } else {
-                const data = await response.json();
-                showToast(data.error || 'Failed to save record', 'error');
+                const apiResponse = await response.json();
+                const err = apiResponse.data || apiResponse;
+                showToast(err.message || err.error || 'Failed to save record', 'error');
             }
         } catch (error) {
             console.error('EMR Error:', error);

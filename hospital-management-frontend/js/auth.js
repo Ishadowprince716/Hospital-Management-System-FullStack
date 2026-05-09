@@ -16,7 +16,7 @@
 // ============== Configuration ==============
 const CONFIG = {
     MOCK_MODE: false,
-    API_BASE_URL: `http://127.0.0.1:8080/api`,
+    API_BASE_URL: `http://localhost:8080/api`,
     REQUEST_TIMEOUT: 10000, // 10 seconds
     SESSION_TIMEOUT: 3600000, // 1 hour in milliseconds
     TOKEN_KEYS: {
@@ -197,7 +197,7 @@ async function handleLogin(e) {
     setLoadingState(true);
 
     try {
-        const credentials = { username, password, role: selectedRole };
+        const credentials = { username, password, role: selectedRole ? selectedRole.toUpperCase() : 'PATIENT' };
         let data;
 
         if (CONFIG.MOCK_MODE) {
@@ -286,19 +286,29 @@ async function performBackendLogin(credentials) {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `HTTP ${response.status}: Login failed`);
+            const apiResponse = await response.json().catch(() => ({}));
+            const err = apiResponse.data || apiResponse;
+            throw new Error(err.message || err.error || `HTTP ${response.status}: Login failed`);
         }
 
-        const data = await response.json();
+        const apiResponse = await response.json();
+        
+        // Unwrap ApiResponse wrapper: { success, message, data: { token, userId, role, ... } }
+        const data = (apiResponse.data && apiResponse.data.content) ? apiResponse.data.content : (apiResponse.data || apiResponse);
 
         // Fix: Map backend 'id' to 'userId' if needed
         if (!data.userId && data.id) {
             data.userId = data.id;
         }
+        
+        // Fix: Map 'userId' to 'id' for compatibility with older frontend code
+        if (!data.id && data.userId) {
+            data.id = data.userId;
+        }
 
         // Validate response structure
         if (!data.token || !data.userId || !data.role) {
+            console.error('Login response:', apiResponse);
             throw new Error('Invalid server response: missing required fields');
         }
 
@@ -386,6 +396,12 @@ function handleLoginSuccess(data) {
     Object.keys(authData).forEach(key => {
         localStorage.setItem(CONFIG.TOKEN_KEYS[key], authData[key]);
     });
+
+    // Compatibility keys (for other modules using raw keys)
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('userId', data.userId);
+    localStorage.setItem('role', data.role);
+    localStorage.setItem('user', JSON.stringify(data));
 
     showToast(`Welcome back, ${data.fullName || data.username}!`, 'success');
 

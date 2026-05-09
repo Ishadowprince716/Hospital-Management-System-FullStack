@@ -1,71 +1,56 @@
 package com.hospital.controller;
 
+import com.hospital.common.ApiResponse;
 import com.hospital.dto.AuthResponse;
+import com.hospital.dto.FirebaseLoginRequest;
 import com.hospital.dto.LoginRequest;
 import com.hospital.dto.RegisterRequest;
 import com.hospital.service.AuthService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping({"/api/auth", "/api/v1/auth"})
 @CrossOrigin(origins = "*")
 public class AuthController {
 
     private final AuthService authService;
 
-    // Constructor
     public AuthController(AuthService authService) {
         this.authService = authService;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        try {
-            AuthResponse response = authService.login(request);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
-        }
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
+        AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Login successful"));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-        try {
-            AuthResponse response = authService.register(request);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
-        }
+    public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        AuthResponse response = authService.register(request);
+        return ResponseEntity.status(201).body(ApiResponse.success(response, "Registration successful"));
+    }
+
+    @PostMapping("/firebase")
+    public ResponseEntity<ApiResponse<AuthResponse>> firebaseLogin(@RequestBody FirebaseLoginRequest request) {
+        AuthResponse response = authService.loginWithFirebase(request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Firebase login successful"));
     }
 
     @PostMapping("/initialize")
-    public ResponseEntity<?> initializeUsers() {
-        try {
-            authService.initializeDefaultUsers();
-            return ResponseEntity.ok(new SuccessResponse("Default users initialized successfully"));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
-        }
+    public ResponseEntity<ApiResponse<Void>> initializeUsers() {
+        authService.initializeDefaultUsers();
+        return ResponseEntity.ok(ApiResponse.success(null, "Default users initialized successfully"));
     }
 
     @PostMapping("/verify-otp")
-    public ResponseEntity<?> verifyOtp(@RequestBody OtpRequest request) {
-        try {
-            AuthResponse response = authService.verifyOtp(request.email(), request.otp());
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
-        }
+    public ResponseEntity<ApiResponse<AuthResponse>> verifyOtp(@RequestBody OtpRequest request) {
+        AuthResponse response = authService.verifyOtp(request.email(), request.otp());
+        return ResponseEntity.ok(ApiResponse.success(response, "OTP verified successfully"));
     }
 
-    // Helper classes
-    record ErrorResponse(String error) {
-    }
-
-    record SuccessResponse(String message) {
-    }
-
-    record OtpRequest(String email, String otp) {
+    public record OtpRequest(String email, String otp) {
     }
 }

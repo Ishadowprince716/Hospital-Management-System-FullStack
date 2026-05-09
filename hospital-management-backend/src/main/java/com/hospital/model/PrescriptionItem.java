@@ -1,6 +1,7 @@
 package com.hospital.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 
 @Entity
@@ -13,7 +14,7 @@ public class PrescriptionItem {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "prescription_id", nullable = false)
-    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
+    @JsonIgnore
     private Prescription prescription;
 
     @Column(name = "medication_name", length = 255, nullable = false)
@@ -64,6 +65,16 @@ public class PrescriptionItem {
 
     public void setMedicationName(String medicationName) {
         this.medicationName = medicationName;
+    }
+
+    @JsonProperty("medicineName")
+    public String getMedicineName() {
+        return medicationName;
+    }
+
+    @JsonProperty("medicineName")
+    public void setMedicineName(String medicineName) {
+        this.medicationName = medicineName;
     }
 
     public String getDosage() {

@@ -1,0 +1,3 @@
+-- Initial Schema Migration
+-- Please replace this file with the actual dump of your existing 'hospital_management' database schema.
+-- You can generate it using: mysqldump -u root -p --no-data hospital_management > V1__init_schema.sql

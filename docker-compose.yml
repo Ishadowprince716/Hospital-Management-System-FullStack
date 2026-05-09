@@ -1,39 +1,25 @@
 version: "3.9"
 
 services:
-  backend:
-    build: ./hospital-management-backend
-    ports:
-      - "8080:8080"
-    env_file:
-      - .env.local
-    depends_on:
-      - db
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-
-  frontend:
-    build: ./hospital-management-frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-
-  db:
-    image: postgres:15-alpine
+  mysql:
+    image: mysql:8.0
     environment:
-      POSTGRES_DB: hospital
-      POSTGRES_USER: hospital_user
-      POSTGRES_PASSWORD: hospital_pass
+      MYSQL_DATABASE: hospital_management
+      MYSQL_USER: hospital_user
+      MYSQL_PASSWORD: hospital123
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
 
-  redis:
-    image: redis:7-alpine
-    # optional, can be removed if not used
+  mongodb:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
 
 volumes:
-  pgdata:
+  mysql_data:
+  mongodb_data:

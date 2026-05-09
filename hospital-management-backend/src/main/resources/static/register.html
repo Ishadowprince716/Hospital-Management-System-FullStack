@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Management System - Register</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body>
+    <!-- Animated Background -->
+    <div class="background-animation">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Left Section - Branding -->
+        <div class="branding-section">
+            <div class="branding-content">
+                <div class="logo-container">
+                    <i class="fas fa-heartbeat"></i>
+                </div>
+                <h1 class="brand-title">Join Us</h1>
+                <p class="brand-subtitle">Create your account today</p>
+
+                <div class="features">
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <div>
+                            <h3>Instant Access</h3>
+                            <p>Book appointments immediately after signup</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Section - Register Form -->
+        <div class="form-section">
+            <div class="form-container">
+                <div class="form-header">
+                    <h2>Create Account</h2>
+                    <p>Enter your details to register</p>
+                </div>
+
+                <!-- Registration Form -->
+                <form id="registerForm" class="login-form">
+                    <div class="form-group">
+                        <label for="fullName">
+                            <i class="fas fa-id-card"></i>
+                            Full Name
+                        </label>
+                        <input type="text" id="fullName" name="fullName" placeholder="John Doe" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="username">
+                            <i class="fas fa-user"></i>
+                            Username
+                        </label>
+                        <input type="text" id="username" name="username" placeholder="johndoe" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">
+                            <i class="fas fa-envelope"></i>
+                            Email
+                        </label>
+                        <input type="email" id="email" name="email" placeholder="john@example.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phoneNumber">
+                            <i class="fas fa-phone"></i>
+                            Phone Number
+                        </label>
+                        <input type="tel" id="phoneNumber" name="phoneNumber" placeholder="1234567890">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">
+                            <i class="fas fa-lock"></i>
+                            Password
+                        </label>
+                        <input type="password" id="password" name="password" placeholder="Create a password" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>I am a:</label>
+                        <div class="role-selector">
+                            <button type="button" class="role-btn active" data-role="PATIENT">
+                                <i class="fas fa-user-injured"></i>
+                                <span>Patient</span>
+                            </button>
+                            <button type="button" class="role-btn" data-role="DOCTOR">
+                                <i class="fas fa-user-md"></i>
+                                <span>Doctor</span>
+                            </button>
+                        </div>
+                        <input type="hidden" id="role" name="role" value="PATIENT">
+                    </div>
+
+                    <button type="submit" class="btn-login" id="registerBtn">
+                        <span class="btn-text">Register</span>
+                        <span class="btn-loader" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </span>
+                    </button>
+
+                    <!-- Social Login -->
+                    <div class="social-login">
+                        <p class="divider-text"><span>Or continue with</span></p>
+                        <div class="social-buttons">
+                            <a href="http://localhost:8080/oauth2/authorization/google" class="social-btn google">
+                                <i class="fab fa-google"></i>
+                            </a>
+                            <a href="http://localhost:8080/oauth2/authorization/facebook" class="social-btn facebook">
+                                <i class="fab fa-facebook-f"></i>
+                            </a>
+                            <a href="http://localhost:8080/oauth2/authorization/github" class="social-btn github">
+                                <i class="fab fa-github"></i>
+                            </a>
+                            <!-- Instagram uses Facebook login internally mostly but for separate button -->
+                            <!-- Usually Instagram Basic Display API is not for auth, but we can put a placeholder or use Facebook -->
+                            <a href="http://localhost:8080/oauth2/authorization/facebook" class="social-btn instagram">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                </form>
+
+                <div class="form-footer">
+                    <p>Already have an account? <a href="index.html">Login here</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <div class="toast-content">
+            <i class="toast-icon"></i>
+            <span class="toast-message"></span>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/register.js"></script>
+</body>
+
+</html>

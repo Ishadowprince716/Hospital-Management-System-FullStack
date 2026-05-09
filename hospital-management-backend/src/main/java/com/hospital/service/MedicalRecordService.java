@@ -5,6 +5,8 @@ import com.hospital.model.MedicalRecord;
 import com.hospital.repository.mysql.AppointmentRepository;
 import com.hospital.repository.mysql.MedicalRecordRepository;
 import com.hospital.repository.mysql.PatientRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +31,7 @@ public class MedicalRecordService {
     }
 
     @Transactional
-    public MedicalRecord createMedicalRecord(@org.springframework.lang.NonNull Long appointmentId, String diagnosis,
+    public MedicalRecord createMedicalRecord(Long appointmentId, String diagnosis,
             String prescription,
             String notes, String treatmentPlan) {
 
@@ -71,13 +73,23 @@ public class MedicalRecordService {
         return medicalRecordRepository.save(record);
     }
 
-    public List<MedicalRecord> getPatientMedicalRecords(@org.springframework.lang.NonNull Long patientId) {
+    @Transactional(readOnly = true)
+    public Page<MedicalRecord> getPatientMedicalRecords(Long patientId, Pageable pageable) {
+        return medicalRecordRepository.findByPatient(
+                patientRepository.findById(patientId)
+                        .orElseThrow(() -> new RuntimeException("Patient not found")),
+                pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MedicalRecord> getPatientMedicalRecords(Long patientId) {
         return medicalRecordRepository.findByPatientOrderByCreatedAtDesc(
                 patientRepository.findById(patientId)
                         .orElseThrow(() -> new RuntimeException("Patient not found")));
     }
 
-    public MedicalRecord getRecordByAppointment(@org.springframework.lang.NonNull Long appointmentId) {
+    @Transactional(readOnly = true)
+    public MedicalRecord getRecordByAppointment(Long appointmentId) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new RuntimeException("Appointment not found"));
         return medicalRecordRepository.findByAppointment(appointment)

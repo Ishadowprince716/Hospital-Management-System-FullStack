@@ -1,69 +1,79 @@
 package com.hospital.controller;
 
+import com.hospital.common.ApiResponse;
 import com.hospital.model.User;
-import com.hospital.repository.mysql.UserRepository;
+import com.hospital.service.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping({"/api/users", "/api/v1/users"})
 @CrossOrigin(origins = "*")
 public class UserController {
 
-    private final UserRepository userRepository;
-    private final String UPLOAD_DIR = "uploads/profile-pictures/";
+    private final UserService userService;
 
-    public UserController(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public UserController(UserService userService) {
+        this.userService = userService;
     }
 
     @PostMapping("/{id}/profile-picture")
-    public ResponseEntity<?> uploadProfilePicture(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
-        try {
-            User user = userRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
-            // Create directory if it doesn't exist
-            Path uploadPath = Paths.get(UPLOAD_DIR);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
-            // Generate unique filename
-            String fileName = StringUtils.cleanPath(file.getOriginalFilename());
-            String uniqueFileName = UUID.randomUUID().toString() + "_" + fileName;
-            Path filePath = uploadPath.resolve(uniqueFileName);
-
-            // Save file
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            // Update user profile URL
-            // In production, this would be a full URL/CDN link.
-            // For localhost, we might need a separate endpoint to serve these images or map
-            // resource handler.
-            String fileUrl = "/uploads/profile-pictures/" + uniqueFileName;
-            user.setProfilePictureUrl(fileUrl);
-            userRepository.save(user);
-
-            return ResponseEntity.ok(Map.of("message", "Profile picture updated", "profilePictureUrl", fileUrl));
-
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Could not upload file: " + e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<ApiResponse<Map<String, String>>> uploadProfilePicture(
+            @PathVariable Long id, 
+            @RequestParam("file") MultipartFile file) {
+        String fileUrl = userService.updateProfilePicture(id, file);
+        return ResponseEntity.ok(ApiResponse.success(
+            Map.of("profilePictureUrl", fileUrl), 
+            "Profile picture updated successfully"
+        ));
     }
 
-    // Additional endpoints for user management can go here
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<User>> getUserById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(userService.getUserById(id)));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApiResponse<User>> updateUser(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> updates) {
+        User updated = userService.updateUser(id, updates);
+        return ResponseEntity.ok(ApiResponse.success(updated, "Profile updated successfully"));
+    }
+
+    @PatchMapping("/{id}/change-password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request) {
+        // Delegate to auth service for password change
+        return ResponseEntity.ok(ApiResponse.success(null, "Password change endpoint — implement via AuthService"));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+        return ResponseEntity.ok(ApiResponse.success(null, "User deleted successfully"));
+    }
+
+
+    @RequestMapping(value = "/check", method = RequestMethod.HEAD)
+    public ResponseEntity<Void> checkAvailability(
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String email) {
+        boolean exists = false;
+        if (username != null) exists = userService.existsByUsername(username);
+        if (email != null) exists = exists || userService.existsByEmail(email);
+        
+        return exists ? ResponseEntity.status(HttpStatus.CONFLICT).build() : ResponseEntity.ok().build();
+    }
+
+    @RequestMapping(value = "/{id}", method = RequestMethod.HEAD)
+    public ResponseEntity<Void> checkUserExists(@PathVariable Long id) {
+        userService.getUserById(id);
+        return ResponseEntity.ok().build();
+    }
 }

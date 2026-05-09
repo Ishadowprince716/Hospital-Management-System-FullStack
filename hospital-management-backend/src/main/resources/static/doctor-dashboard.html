@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard - Hospital Management</title>
+    <link rel="stylesheet" href="css/dashboard.css?v=8">
+    <link rel="stylesheet" href="css/doctor-enhanced.css?v=8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/ai-chat-perplexity.css?v=5">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Enhanced Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-heartbeat"></i>
+                <h2>HMS Doctor</h2>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-section="overview">
+                    <i class="fas fa-th-large"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-section="patients">
+                    <i class="fas fa-user-injured"></i>
+                    <span>My Patients</span>
+                </a>
+                <a href="#" class="nav-item" data-section="appointments">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Appointments</span>
+                </a>
+                <a href="#" class="nav-item" data-section="prescriptions">
+                    <i class="fas fa-prescription"></i>
+                    <span>Prescriptions</span>
+                </a>
+                <a href="#" class="nav-item" data-section="lab-orders">
+                    <i class="fas fa-flask"></i>
+                    <span>Lab Orders</span>
+                </a>
+                <a href="#" class="nav-item" data-section="messages">
+                    <i class="fas fa-comments"></i>
+                    <span>Messages</span>
+                </a>
+                <a href="#" class="nav-item" data-section="analytics">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analytics</span>
+                </a>
+
+                <a href="#" class="nav-item" data-section="earnings">
+                    <i class="fas fa-wallet"></i>
+                    <span>My Earnings</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer" style="padding: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                <a href="#" class="nav-item" onclick="logout()"
+                    style="color: #ef4444 !important; background: rgba(239, 68, 68, 0.1); width: 100%; justify-content: flex-start;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1 id="pageTitle">Dashboard</h1>
+                    <p class="date-display" id="currentDate"></p>
+                </div>
+                <div class="header-right">
+                    <!-- Theme Toggle -->
+                    <!-- Theme Toggle -->
+                    <button class="header-btn" onclick="toggleTheme()" title="Toggle Dark Mode"
+                        style="margin-right: 0.5rem; visibility: visible; opacity: 1;">
+                        <i class="fas fa-moon" id="themeIcon" style="font-size: 1.2rem;"></i>
+                    </button>
+                    <button class="header-btn" title="Notifications" onclick="toggleNotifications(event)">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                    </button>
+                    <!-- Notification Panel -->
+                    <div class="notification-panel" id="notificationPanel">
+                        <div class="notification-header">
+                            <h3>Notifications</h3>
+                            <button class="clear-all-btn" onclick="clearAllNotifications()">Clear All</button>
+                        </div>
+                        <div class="notification-list" id="notificationList">
+                            <p class="empty-notification">No new notifications</p>
+                        </div>
+                    </div>
+                    <div class="user-info">
+                        <i class="fas fa-user-md"></i>
+                        <div>
+                            <span id="doctorName">Dr. Loading...</span>
+                            <small id="specialization">General</small>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Overview Section -->
+            <section id="overview" class="content-section active">
+                <!-- Quick Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(37, 99, 235, 0.1); color: #2563eb;">
+                            <i class="fas fa-calendar-day"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="todayCount">0</h3>
+                            <p>Today's Appointments</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="totalPatients">0</h3>
+                            <p>Total Patients</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                            <i class="fas fa-prescription"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="activePrescriptions">0</h3>
+                            <p>Active Prescriptions</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+                            <i class="fas fa-flask"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="pendingLabs">0</h3>
+                            <p>Pending Lab Results</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Today's Schedule -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-calendar-alt"></i> Today's Schedule</h3>
+                        <button class="btn-primary btn-sm">View All</button>
+                    </div>
+                    <div class="card-body">
+                        <div id="todaySchedule" class="appointments-list">
+                            <p class="empty-state">Loading schedule...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <h3>Quick Actions</h3>
+                    <div class="action-grid">
+                        <button class="action-btn" onclick="openNewPrescriptionModal()">
+                            <i class="fas fa-prescription-bottle"></i>
+                            <span>New Prescription</span>
+                        </button>
+                        <button class="action-btn" onclick="openNewLabOrderModal()">
+                            <i class="fas fa-vial"></i>
+                            <span>Order Lab Test</span>
+                        </button>
+                        <button class="action-btn" onclick="showSection('patients')">
+                            <i class="fas fa-user-plus"></i>
+                            <span>View Patient EMR</span>
+                        </button>
+                        <button class="action-btn" onclick="showSection('messages')">
+                            <i class="fas fa-comment-medical"></i>
+                            <span>Send Message</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Patients Section (EMR) -->
+            <section id="patients" class="content-section">
+                <div class="section-toolbar">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="patientSearch" placeholder="Search patients by name or ID...">
+                    </div>
+                    <button class="btn-primary" onclick="refreshPatients()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+
+                <div class="patients-grid" id="patientsList">
+                    <p class="empty-state">Loading patients...</p>
+                </div>
+            </section>
+
+            <!-- Appointments Section -->
+            <section id="appointments" class="content-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>All Appointments</h3>
+                        <div class="filter-tabs">
+                            <button class="filter-tab active" data-filter="all">All</button>
+                            <button class="filter-tab" data-filter="today">Today</button>
+                            <button class="filter-tab" data-filter="upcoming">Upcoming</button>
+                            <button class="filter-tab" data-filter="completed">Completed</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="appointmentsList" class="table-responsive">
+                            <p class="empty-state">Loading appointments...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Prescriptions Section -->
+            <section id="prescriptions" class="content-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Digital Prescriptions</h3>
+                        <button class="btn-primary" onclick="openNewPrescriptionModal()">
+                            <i class="fas fa-plus"></i> New Prescription
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="prescriptionsList">
+                            <p class="empty-state">No prescriptions yet</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Lab Orders Section -->
+            <section id="lab-orders" class="content-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Laboratory Orders</h3>
+                        <button class="btn-primary" onclick="openNewLabOrderModal()">
+                            <i class="fas fa-plus"></i> New Lab Order
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="labOrdersList">
+                            <p class="empty-state">No lab orders yet</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Messages Section (AI Assistant) -->
+            <section id="messages" class="content-section">
+                <div class="card ai-chat-card">
+                    <div class="card-header ai-chat-header">
+                        <div class="ai-avatar-header">
+                            <div class="ai-avatar-circle">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <div>
+                                <h3>MediMate AI</h3>
+                                <p class="header-subtitle">
+                                    <i class="fas fa-circle online-indicator"></i>
+                                    Clinical Decision Support & Assistant
+                                </p>
+                            </div>
+                        </div>
+                        <button type="button" class="clear-chat-btn" onclick="clearChatHistory()" title="Clear Chat">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                    <div class="card-body chat-body">
+                        <!-- Chat Messages Container -->
+                        <div class="chat-messages" id="chatMessages">
+                            <!-- Welcome message will be added by JavaScript -->
+                        </div>
+
+                        <!-- Typing Indicator -->
+                        <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+
+                        <!-- Suggested Questions (Doctor Specific) -->
+                        <div class="suggested-questions" id="suggestedQuestions">
+                            <p class="suggestions-title">Quick Actions:</p>
+                            <div class="suggestions-grid">
+                                <button class="suggestion-chip" onclick="sendSuggestedQuestion(this)">
+                                    <i class="fas fa-pills"></i>
+                                    Check Drug Interactions
+                                </button>
+                                <button class="suggestion-chip" onclick="sendSuggestedQuestion(this)">
+                                    <i class="fas fa-diagnoses"></i>
+                                    Differential Diagnosis
+                                </button>
+                                <button class="suggestion-chip" onclick="sendSuggestedQuestion(this)">
+                                    <i class="fas fa-book-medical"></i>
+                                    Treatment Guidelines
+                                </button>
+                                <button class="suggestion-chip" onclick="sendSuggestedQuestion(this)">
+                                    <i class="fas fa-flask"></i>
+                                    Interpret Lab Results
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Chat Input -->
+                        <div class="chat-input-container">
+                            <div class="chat-input-wrapper">
+                                <textarea id="chatInput" class="chat-input"
+                                    placeholder="Ask about drugs, diagnosis, or patient care..." rows="1"
+                                    onkeypress="handleChatKeyPress(event)"></textarea>
+                                <button type="button" class="send-btn" onclick="sendMessage()" id="sendBtn">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                            <p class="chat-disclaimer">
+                                <i class="fas fa-shield-alt"></i>
+                                AI output is for support/educational purposes only. Always verify with standard medical
+                                resources.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics Section -->
+            <section id="analytics" class="content-section">
+                <div class="analytics-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Patient Visits Trend</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="visitsChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Diagnosis Distribution</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="diagnosisChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Earnings Section -->
+            <section id="earnings" class="content-section">
+                <div class="section-header">
+                    <h2>My Financials</h2>
+                    <div class="header-actions">
+                        <button class="btn-secondary"><i class="fas fa-download"></i> Download Report</button>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card mint">
+                        <div class="stat-icon"><i class="fas fa-rupee-sign"></i></div>
+                        <div class="stat-info">
+                            <h3>₹0</h3>
+                            <p>Total Earnings</p>
+                        </div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+                        <div class="stat-info">
+                            <h3>₹0</h3>
+                            <p>This Month</p>
+                        </div>
+                    </div>
+                    <div class="stat-card peach">
+                        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                        <div class="stat-info">
+                            <h3>₹0</h3>
+                            <p>Pending Payouts</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Recent Transactions</h3>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Patient</th>
+                                    <th>Service</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="earningsTableBody">
+                                <tr>
+                                    <td colspan="5" class="empty-state">Loading financial data...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Patient EMR Modal -->
+    <div id="emrModal" class="modal">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-file-medical"></i> Patient EMR</h2>
+                <button class="modal-close" onclick="closeEMRModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="emr-tabs">
+                    <button class="emr-tab active" data-tab="overview">Overview</button>
+                    <button class="emr-tab" data-tab="vitals">Vital Signs</button>
+                    <button class="emr-tab" data-tab="history">Medical History</button>
+                    <button class="emr-tab" data-tab="allergies">Allergies</button>
+                    <button class="emr-tab" data-tab="medications">Medications</button>
+                    <button class="emr-tab ai-tab" data-tab="ai-insights" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">
+                        <i class="fas fa-brain"></i> AI Insights
+                    </button>
+                </div>
+                <div id="emrContent" class="emr-content">
+                    <!-- Content loaded dynamically -->
+                </div>
+                <div id="aiInsightsContent" class="emr-content" style="display: none;">
+                    <div id="aiInsightsLoading" class="skeleton-table" style="display: none;">
+                        <div class="skeleton-table-row skeleton"></div>
+                        <div class="skeleton-table-row skeleton"></div>
+                        <div class="skeleton-table-row skeleton"></div>
+                    </div>
+                    <div id="aiInsightsData">
+                        <!-- AI Insights will be injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Prescription Modal -->
+    <div id="prescriptionModal" class="modal">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-prescription"></i> New Prescription</h2>
+                <button class="modal-close" onclick="closePrescriptionModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="prescriptionForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Patient</label>
+                            <select id="prescriptionPatient" required>
+                                <option value="">Select Patient</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Diagnosis</label>
+                            <input type="text" id="prescriptionDiagnosis" required>
+                        </div>
+                    </div>
+
+                    <div class="medications-section">
+                        <h4>Medications</h4>
+                        <div id="medicationsList">
+                            <!-- Medication items added dynamically -->
+                        </div>
+                        <button type="button" class="btn-secondary" onclick="addMedication()">
+                            <i class="fas fa-plus"></i> Add Medication
+                        </button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Additional Notes</label>
+                        <textarea id="prescriptionNotes" rows="3"></textarea>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-cancel" onclick="closePrescriptionModal()">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Prescription</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <div class="toast-content">
+            <i class="toast-icon"></i>
+            <span class="toast-message"></span>
+        </div>
+    </div>
+
+    <!-- Template Selection Modal -->
+    <div id="templateSelectionModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-magic"></i> Select Prescription Template</h2>
+                <button class="modal-close"
+                    onclick="document.getElementById('templateSelectionModal').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="template-grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem;">
+                    <!-- Templates will be injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js?v=7"></script>
+    <script src="js/doctor-enhanced.js?v=7"></script>
+    <script src="js/doctor-enhancements.js?v=7"></script>
+    <script src="js/ai-assistant.js?v=7"></script>
+    <script src="js/theme.js?v=7"></script>
+</body>
+
+</html>
