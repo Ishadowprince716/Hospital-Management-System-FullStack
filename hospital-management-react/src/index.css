@@ -48,6 +48,16 @@ body {
   padding: 0;
 }
 
+.patient-portal-bg {
+  background:
+    linear-gradient(180deg, #f8fbff 0%, #eef7f4 48%, #f6f8fb 100%);
+}
+
+.dark-mode .patient-portal-bg {
+  background:
+    linear-gradient(180deg, #08111f 0%, #0d1f24 48%, #0f172a 100%);
+}
+
 /* ===========================
    Scrollbar Styling
    =========================== */
@@ -72,7 +82,7 @@ body {
 .card {
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   transition: box-shadow 0.2s ease;
 }
@@ -85,7 +95,7 @@ body {
 .stat-card {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 1.5rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }

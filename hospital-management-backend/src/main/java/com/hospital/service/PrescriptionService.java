@@ -1,6 +1,10 @@
 package com.hospital.service;
 
 import com.hospital.model.Prescription;
+import com.hospital.model.Doctor;
+import com.hospital.model.Patient;
+import com.hospital.repository.mysql.DoctorRepository;
+import com.hospital.repository.mysql.PatientRepository;
 import com.hospital.repository.mysql.PrescriptionRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,9 +15,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class PrescriptionService {
 
     private final PrescriptionRepository prescriptionRepository;
+    private final PatientRepository patientRepository;
+    private final DoctorRepository doctorRepository;
 
-    public PrescriptionService(PrescriptionRepository prescriptionRepository) {
+    public PrescriptionService(PrescriptionRepository prescriptionRepository,
+            PatientRepository patientRepository,
+            DoctorRepository doctorRepository) {
         this.prescriptionRepository = prescriptionRepository;
+        this.patientRepository = patientRepository;
+        this.doctorRepository = doctorRepository;
     }
 
     @Transactional(readOnly = true)
@@ -39,6 +49,24 @@ public class PrescriptionService {
 
     @Transactional
     public Prescription createPrescription(Prescription prescription) {
+        if (prescription.getPatient() == null || prescription.getPatient().getId() == null) {
+            throw new RuntimeException("Patient is required");
+        }
+        if (prescription.getDoctor() == null || prescription.getDoctor().getId() == null) {
+            throw new RuntimeException("Doctor is required");
+        }
+
+        Patient patient = patientRepository.findById(prescription.getPatient().getId())
+                .orElseThrow(() -> new RuntimeException("Patient not found"));
+        Doctor doctor = doctorRepository.findById(prescription.getDoctor().getId())
+                .orElseThrow(() -> new RuntimeException("Doctor not found"));
+
+        prescription.setPatient(patient);
+        prescription.setDoctor(doctor);
+        if (prescription.getItems() != null) {
+            prescription.getItems().forEach(item -> item.setPrescription(prescription));
+        }
+
         return prescriptionRepository.save(prescription);
     }
 

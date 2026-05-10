@@ -6,7 +6,7 @@ import type { RootState } from '../store';
 import api, { getApiErrorMessage } from '../api';
 
 type ApiResponse<T> = { success: boolean; message: string; data: T };
-type AuthResponse = { token: string; username: string; role: string; userId: number; fullName: string };
+type AuthResponse = { token: string; username: string; role: string; userId: number; fullName: string; profilePictureUrl?: string };
 type Role = 'PATIENT' | 'DOCTOR' | 'ADMIN';
 
 const ROLES: { id: Role; label: string }[] = [
@@ -59,8 +59,16 @@ const Login: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((s: RootState) => s.auth);
+  const [apiStatus, setApiStatus] = useState<string | null>(null);
 
-  useEffect(() => { setTimeout(() => setMounted(true), 60); }, []);
+  useEffect(() => {
+    setTimeout(() => setMounted(true), 60);
+
+    // API Health Check
+    api.get('/health')
+      .then(() => setApiStatus('🟢 API Server is Online'))
+      .catch(() => setApiStatus('🔴 API Server is Offline'));
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +79,7 @@ const Login: React.FC = () => {
       if (d?.token) {
         localStorage.setItem('token', d.token);
         const r = d.role ?? role;
-        dispatch(loginSuccess({ user: { id: d.userId ?? 0, username: d.username ?? username, email: '', role: r, fullName: d.fullName ?? username }, token: d.token }));
+        dispatch(loginSuccess({ user: { id: d.userId ?? 0, username: d.username ?? username, email: '', role: r, fullName: d.fullName ?? username, profilePictureUrl: d.profilePictureUrl }, token: d.token }));
         navigate(r === 'ADMIN' ? '/admin' : r === 'DOCTOR' ? '/doctor' : '/patient');
       }
     } catch (err: unknown) {
@@ -96,6 +104,11 @@ const Login: React.FC = () => {
         <div style={{ marginBottom: 36 }}>
           <h1 style={S.heading}>Hospital<br/>Management</h1>
           <p style={S.tagline}>Appointment &amp; Patient Record System</p>
+          {apiStatus && (
+            <div style={{ marginTop: 14, display: 'inline-flex', alignItems: 'center', padding: '6px 14px', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', borderRadius: 20, fontSize: 13, color: '#fff', fontWeight: 600, border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+              {apiStatus}
+            </div>
+          )}
         </div>
 
         {/* Features */}

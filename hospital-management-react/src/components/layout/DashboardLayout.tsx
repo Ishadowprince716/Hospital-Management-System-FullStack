@@ -11,9 +11,10 @@ const DashboardLayout: React.FC = () => {
     const { user } = useSelector((state: RootState) => state.auth);
 
     if (!user) return null; // Or loading spinner
+    const isPatient = user.role === 'PATIENT';
 
     return (
-        <div className="min-h-screen bg-[var(--bg-color)] transition-colors duration-300">
+        <div className={`min-h-screen bg-[var(--bg-color)] transition-colors duration-300 ${isPatient ? 'patient-portal-bg' : ''}`}>
             <Sidebar
                 userRole={user.role}
                 mobileMenuOpen={mobileMenuOpen}
@@ -26,7 +27,7 @@ const DashboardLayout: React.FC = () => {
             />
 
             <main className="md:pl-64 pt-16 min-h-screen transition-all duration-300">
-                <div className="p-6">
+                <div className={isPatient ? 'px-4 py-5 sm:px-6 lg:px-8' : 'p-6'}>
                     <Outlet />
                 </div>
             </main>

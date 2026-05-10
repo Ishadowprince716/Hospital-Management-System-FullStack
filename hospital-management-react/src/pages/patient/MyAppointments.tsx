@@ -1,8 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarCheck, Clock, XCircle, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { CalendarCheck, CalendarPlus, Clock, XCircle, CheckCircle2, AlertCircle, Video } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../../api';
-import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { formatDoctorName } from '../../utils/displayNames';
+import {
+    PatientAlert,
+    PatientEmptyState,
+    PatientLoader,
+    PatientPageFrame,
+    PatientPageHeader,
+    PatientStatCard,
+    patientCardClass,
+} from '../../components/patient/PatientPanel';
 
 interface Appointment {
     id: number;
@@ -33,6 +43,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 };
 
 const MyAppointments: React.FC = () => {
+    const navigate = useNavigate();
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -64,40 +75,50 @@ const MyAppointments: React.FC = () => {
         }
     };
 
+    const upcomingCount = appointments.filter(appt => ['CONFIRMED', 'PENDING', 'SCHEDULED'].includes((appt.status || '').toUpperCase())).length;
+    const completedCount = appointments.filter(appt => (appt.status || '').toUpperCase() === 'COMPLETED').length;
+    const cancelledCount = appointments.filter(appt => (appt.status || '').toUpperCase() === 'CANCELLED').length;
+
     return (
-        <div className="max-w-5xl mx-auto space-y-6 animate-fadeIn">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-[var(--text-color)]">My Appointments</h1>
-                    <p className="text-[var(--text-muted)] mt-1">Manage and view your upcoming and past appointments.</p>
-                </div>
-                <Button onClick={() => window.location.href = '/patient/book-appointment'} className="bg-[var(--primary)] text-white">
-                    + Book New
-                </Button>
+        <PatientPageFrame size="lg">
+            <PatientPageHeader
+                title="My Appointments"
+                description="Review upcoming visits, join confirmed video calls, and cancel bookings when plans change."
+                icon={CalendarCheck}
+                tone="blue"
+                action={
+                    <Button onClick={() => navigate('/patient/book-appointment')} className="gap-2 bg-[var(--primary)] text-white">
+                        <CalendarPlus className="h-4 w-4" />
+                        Book New
+                    </Button>
+                }
+            />
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <PatientStatCard label="Upcoming" value={upcomingCount} icon={CalendarCheck} tone="blue" helper="Confirmed or pending" />
+                <PatientStatCard label="Completed" value={completedCount} icon={CheckCircle2} tone="emerald" helper="Past consultations" />
+                <PatientStatCard label="Cancelled" value={cancelledCount} icon={XCircle} tone="rose" helper="No longer active" />
             </div>
 
             {error && (
-                <div className="flex items-center gap-2 p-4 rounded-xl text-red-600 bg-red-50 border border-red-200">
-                    <AlertCircle className="h-5 w-5 shrink-0" /> {error}
-                </div>
+                <PatientAlert icon={AlertCircle} tone="rose">{error}</PatientAlert>
             )}
 
-            <Card className="border-[var(--border-color)] shadow-sm">
-                <CardContent className="p-0">
-                    {loading ? (
-                        <div className="flex justify-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
-                        </div>
-                    ) : appointments.length === 0 ? (
-                        <div className="text-center py-16">
-                            <CalendarCheck className="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-                            <h3 className="text-lg font-medium text-[var(--text-color)]">No appointments found</h3>
-                            <p className="text-sm text-[var(--text-muted)] mt-1 mb-4">You haven't booked any appointments yet.</p>
-                            <Button onClick={() => window.location.href = '/patient/book-appointment'} variant="outline">
+            {loading ? (
+                <PatientLoader label="Loading appointments" />
+            ) : appointments.length === 0 ? (
+                <PatientEmptyState
+                    icon={CalendarCheck}
+                    title="No appointments found"
+                    description="Your appointments will appear here after you book a consultation."
+                    action={
+                        <Button onClick={() => navigate('/patient/book-appointment')} variant="outline">
                                 Book your first appointment
-                            </Button>
-                        </div>
-                    ) : (
+                        </Button>
+                    }
+                />
+            ) : (
+                <div className={`${patientCardClass} overflow-hidden`}>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm text-left">
                                 <thead className="text-xs uppercase bg-gray-50 dark:bg-slate-800/50 text-[var(--text-muted)] border-b border-[var(--border-color)]">
@@ -113,7 +134,7 @@ const MyAppointments: React.FC = () => {
                                     {appointments.map((appt) => (
                                         <tr key={appt.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
                                             <td className="px-6 py-4">
-                                                <div className="font-medium text-[var(--text-color)]">Dr. {appt.doctorName || 'Unknown'}</div>
+                                                <div className="font-medium text-[var(--text-color)]">{formatDoctorName(appt.doctorName, 'Unknown')}</div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="text-[var(--text-color)] font-medium">
@@ -129,11 +150,21 @@ const MyAppointments: React.FC = () => {
                                             <td className="px-6 py-4">
                                                 <StatusBadge status={appt.status} />
                                             </td>
-                                            <td className="px-6 py-4 text-right">
+                                            <td className="px-6 py-4 text-right space-x-2">
+                                                {appt.status === 'CONFIRMED' && (
+                                                    <Button
+                                                        size="sm"
+                                                        className="bg-emerald-600 text-white hover:bg-emerald-700 px-3 py-1 h-auto flex items-center gap-1.5"
+                                                        onClick={() => navigate(`/telehealth/${appt.id}`)}
+                                                    >
+                                                        <Video className="w-3.5 h-3.5" />
+                                                        Join Call
+                                                    </Button>
+                                                )}
                                                 {(appt.status === 'PENDING' || appt.status === 'CONFIRMED') && (
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="sm" 
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
                                                         className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1 h-auto"
                                                         onClick={() => handleCancel(appt.id)}
                                                     >
@@ -146,10 +177,9 @@ const MyAppointments: React.FC = () => {
                                 </tbody>
                             </table>
                         </div>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
+                </div>
+            )}
+        </PatientPageFrame>
     );
 };
 

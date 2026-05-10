@@ -5,7 +5,9 @@ import com.hospital.model.MedicalDocument;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+import org.mapstruct.ReportingPolicy;
+
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface MedicalDocumentMapper {
 
     @Mapping(source = "uploadedBy.fullName", target = "uploadedByName")

@@ -6,6 +6,7 @@ public class AuthResponse {
     private String role;
     private Long userId;
     private String fullName;
+    private String profilePictureUrl;
     private String message;
 
     // Constructors
@@ -13,11 +14,16 @@ public class AuthResponse {
     }
 
     public AuthResponse(String token, String username, String role, Long userId, String fullName, String message) {
+        this(token, username, role, userId, fullName, null, message);
+    }
+
+    public AuthResponse(String token, String username, String role, Long userId, String fullName, String profilePictureUrl, String message) {
         this.token = token;
         this.username = username;
         this.role = role;
         this.userId = userId;
         this.fullName = fullName;
+        this.profilePictureUrl = profilePictureUrl;
         this.message = message;
     }
 
@@ -60,6 +66,14 @@ public class AuthResponse {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
+    }
+
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
     }
 
     public String getMessage() {

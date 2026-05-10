@@ -15,6 +15,11 @@ compile_*.txt
 final_compile.txt
 full_compile.txt
 
+# Local generated search indexes
+hospital-management-backend/Doctor/
+hospital-management-backend/Patient/
+hospital-management-backend/User/
+
 # IDE
 .idea/
 *.iml

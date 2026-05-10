@@ -1,5 +1,8 @@
 package com.hospital.service;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -8,6 +11,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class EmailService {
 
+    private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
     private JavaMailSender javaMailSender;
 
     @Autowired(required = false)
@@ -15,10 +19,10 @@ public class EmailService {
         this.javaMailSender = javaMailSender;
     }
 
+    @CircuitBreaker(name = "emailService", fallbackMethod = "sendSimpleMessageFallback")
     public void sendSimpleMessage(String to, String subject, String text) {
         if (javaMailSender == null) {
-            // Mail sender not configured – log and skip silently for local dev
-            System.out.println("[EmailService] Mail sender not configured. Skipping email to: " + to + " | Subject: " + subject);
+            logger.info("[EmailService] Mail sender not configured. Skipping email to: {} | Subject: {}", to, subject);
             return;
         }
         SimpleMailMessage message = new SimpleMailMessage();
@@ -27,11 +31,10 @@ public class EmailService {
         message.setSubject(subject);
         message.setText(text);
 
-        try {
-            javaMailSender.send(message);
-        } catch (Exception e) {
-            // Log error but don't fail the whole request
-            e.printStackTrace();
-        }
+        javaMailSender.send(message);
+    }
+
+    public void sendSimpleMessageFallback(String to, String subject, String text, Throwable t) {
+        logger.error("[CircuitBreaker] EmailService is open/failed. Skipping email to: {}. Reason: {}", to, t.getMessage());
     }
 }

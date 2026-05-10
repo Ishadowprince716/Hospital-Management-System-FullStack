@@ -12,6 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+
 @Service
 public class AdminService {
 
@@ -33,6 +36,7 @@ public class AdminService {
         this.userRepository = userRepository;
     }
 
+    @Cacheable(value = "dashboardStats")
     @Transactional(readOnly = true)
     public DashboardDTO getDashboardStats() {
         return DashboardDTO.builder()
@@ -50,6 +54,7 @@ public class AdminService {
         return userRepository.findAll(pageable);
     }
 
+    @CacheEvict(value = "dashboardStats", allEntries = true)
     @Transactional
     public User createUser(UserRequestDTO userRequest) {
         if (userRepository.existsByUsername(userRequest.getUsername())) {
@@ -71,6 +76,7 @@ public class AdminService {
         return userRepository.save(newUser);
     }
 
+    @CacheEvict(value = "dashboardStats", allEntries = true)
     @Transactional
     public User updateUser(Long userId, UserRequestDTO userRequest) {
         User user = userRepository.findById(userId)
@@ -88,6 +94,7 @@ public class AdminService {
         return userRepository.save(user);
     }
 
+    @CacheEvict(value = "dashboardStats", allEntries = true)
     @Transactional
     public User updateUserStatus(Long userId, boolean isActive) {
         User user = userRepository.findById(userId)

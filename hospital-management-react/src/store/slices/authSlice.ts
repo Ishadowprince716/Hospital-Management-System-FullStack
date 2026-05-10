@@ -7,6 +7,7 @@ interface User {
     role: string;
     fullName: string;
     phoneNumber?: string;
+    profilePictureUrl?: string;
 }
 
 interface AuthState {
@@ -61,6 +62,11 @@ const authSlice = createSlice({
             localStorage.removeItem('token');
             localStorage.removeItem('user');
         },
+        updateCurrentUser: (state, action: PayloadAction<Partial<User>>) => {
+            if (!state.user) return;
+            state.user = { ...state.user, ...action.payload };
+            localStorage.setItem('user', JSON.stringify(state.user));
+        },
         initializeAuth: (state) => {
             const token = localStorage.getItem('token');
             const userStr = localStorage.getItem('user');
@@ -73,5 +79,5 @@ const authSlice = createSlice({
     },
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout, initializeAuth } = authSlice.actions;
+export const { loginStart, loginSuccess, loginFailure, logout, updateCurrentUser, initializeAuth } = authSlice.actions;
 export default authSlice.reducer;

@@ -4,9 +4,11 @@ import type { RootState } from '../../store';
 import api from '../../api';
 import {
     Users, CalendarCheck, Activity, CreditCard,
-    Clock, TrendingUp, Stethoscope, FileText,
-    AlertCircle, CheckCircle2, XCircle, Loader2
+    TrendingUp, Stethoscope, FileText,
+    AlertCircle, Loader2, CalendarPlus
 } from 'lucide-react';
+import { formatDoctorName } from '../../utils/displayNames';
+import { PatientPageHeader, PatientStatCard } from '../../components/patient/PatientPanel';
 
 // --- Types ---
 interface DashboardDTO {
@@ -18,11 +20,33 @@ interface DashboardDTO {
 
 interface Appointment {
     id: number;
+    patientId?: number;
     doctorName?: string;
     patientName?: string;
     appointmentDate: string;
     reason: string;
     status: string;
+}
+
+interface Bill {
+    status?: string;
+}
+
+interface Prescription {
+    id: number;
+    status?: string;
+}
+
+interface LabOrder {
+    id: number;
+    status?: string;
+}
+
+interface DoctorStats {
+    myPatients: number;
+    todayAppointments: number;
+    pendingReviews: number;
+    activeCases: number;
 }
 
 interface StatCard {
@@ -44,15 +68,42 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     }
 };
 
+const unwrapList = <T,>(payload: any): T[] => {
+    const data = payload?.data ?? payload;
+    if (Array.isArray(data?.content)) return data.content;
+    if (Array.isArray(data)) return data;
+    return [];
+};
+
+const isToday = (date?: string) => {
+    if (!date) return false;
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) return false;
+    const today = new Date();
+    return parsed.toDateString() === today.toDateString();
+};
+
+import AIHealthSummary from '../../components/dashboard/AIHealthSummary';
+import AdminAIInsights from '../../components/dashboard/AdminAIInsights';
+
 // --- Main Dashboard ---
 const Overview: React.FC = () => {
     const { user } = useSelector((state: RootState) => state.auth);
     const role = user?.role || 'PATIENT';
 
     const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [patientBills, setPatientBills] = useState<Bill[]>([]);
+    const [patientPrescriptions, setPatientPrescriptions] = useState<Prescription[]>([]);
     const [statsLoading, setStatsLoading] = useState(true);
+    const [doctorStatsLoading, setDoctorStatsLoading] = useState(false);
     const [apptLoading, setApptLoading] = useState(true);
     const [adminStats, setAdminStats] = useState<DashboardDTO | null>(null);
+    const [doctorStats, setDoctorStats] = useState<DoctorStats>({
+        myPatients: 0,
+        todayAppointments: 0,
+        pendingReviews: 0,
+        activeCases: 0,
+    });
     const [error, setError] = useState<string | null>(null);
 
     const greeting = () => {
@@ -71,8 +122,7 @@ const Overview: React.FC = () => {
                 if (role === 'ADMIN') url = '/appointments/all';
                 if (role === 'DOCTOR') url = '/appointments/doctor';
                 const res = await api.get(url);
-                const data = res.data?.data || res.data || [];
-                setAppointments(Array.isArray(data) ? data.slice(0, 5) : []);
+                setAppointments(unwrapList<Appointment>(res.data).slice(0, 5));
             } catch {
                 setAppointments([]);
             } finally {
@@ -81,6 +131,79 @@ const Overview: React.FC = () => {
         };
         fetchAppointments();
     }, [role]);
+
+    useEffect(() => {
+        if (role !== 'PATIENT' || !user?.id) return;
+
+        const fetchPatientPanelData = async () => {
+            const [billsResult, prescriptionsResult] = await Promise.allSettled([
+                api.get(`/bills/patient/${user.id}?size=50`),
+                api.get(`/prescriptions/patient/${user.id}?size=50`),
+            ]);
+
+            if (billsResult.status === 'fulfilled') {
+                setPatientBills(unwrapList<Bill>(billsResult.value.data));
+            } else {
+                setPatientBills([]);
+            }
+
+            if (prescriptionsResult.status === 'fulfilled') {
+                setPatientPrescriptions(unwrapList<Prescription>(prescriptionsResult.value.data));
+            } else {
+                setPatientPrescriptions([]);
+            }
+        };
+
+        fetchPatientPanelData();
+    }, [role, user?.id]);
+
+    useEffect(() => {
+        if (role !== 'DOCTOR' || !user?.id) return;
+
+        const fetchDoctorStats = async () => {
+            setDoctorStatsLoading(true);
+            const [appointmentResult, prescriptionResult, labOrderResult] = await Promise.allSettled([
+                api.get('/appointments/my?size=200&sort=appointmentDate,desc'),
+                api.get(`/prescriptions/doctor/${user.id}?size=100`),
+                api.get(`/lab-orders/doctor/${user.id}?size=100`),
+            ]);
+
+            const doctorAppointments = appointmentResult.status === 'fulfilled'
+                ? unwrapList<Appointment>(appointmentResult.value.data)
+                : [];
+            const doctorPrescriptions = prescriptionResult.status === 'fulfilled'
+                ? unwrapList<Prescription>(prescriptionResult.value.data)
+                : [];
+            const doctorLabOrders = labOrderResult.status === 'fulfilled'
+                ? unwrapList<LabOrder>(labOrderResult.value.data)
+                : [];
+
+            const patientIds = new Set(
+                doctorAppointments
+                    .map(appointment => appointment.patientId)
+                    .filter((id): id is number => typeof id === 'number')
+            );
+            const activeAppointmentCount = doctorAppointments.filter(appointment =>
+                ['SCHEDULED', 'PENDING', 'CONFIRMED'].includes((appointment.status || '').toUpperCase())
+            ).length;
+            const activePrescriptionCount = doctorPrescriptions.filter(prescription =>
+                (prescription.status || '').toUpperCase() === 'ACTIVE'
+            ).length;
+            const pendingLabOrderCount = doctorLabOrders.filter(order =>
+                ['PENDING', 'IN_PROGRESS'].includes((order.status || '').toUpperCase())
+            ).length;
+
+            setDoctorStats({
+                myPatients: patientIds.size,
+                todayAppointments: doctorAppointments.filter(appointment => isToday(appointment.appointmentDate)).length,
+                pendingReviews: pendingLabOrderCount,
+                activeCases: activeAppointmentCount + activePrescriptionCount,
+            });
+            setDoctorStatsLoading(false);
+        };
+
+        fetchDoctorStats();
+    }, [role, user?.id]);
 
     // Fetch admin stats
     useEffect(() => {
@@ -110,18 +233,19 @@ const Overview: React.FC = () => {
         }
         if (role === 'DOCTOR') {
             return [
-                { label: 'My Patients',           value: '—', icon: Users,         color: 'text-blue-600',   bg: 'bg-blue-50' },
-                { label: 'Today\'s Appointments', value: '—', icon: CalendarCheck, color: 'text-teal-600',   bg: 'bg-teal-50' },
-                { label: 'Pending Reviews',       value: '—', icon: FileText,      color: 'text-amber-600',  bg: 'bg-amber-50' },
-                { label: 'Active Cases',          value: '—', icon: Activity,      color: 'text-purple-600', bg: 'bg-purple-50' },
+                { label: 'My Patients',           value: doctorStats.myPatients,           icon: Users,         color: 'text-blue-600',   bg: 'bg-blue-50' },
+                { label: 'Today\'s Appointments', value: doctorStats.todayAppointments,    icon: CalendarCheck, color: 'text-teal-600',   bg: 'bg-teal-50' },
+                { label: 'Pending Reviews',       value: doctorStats.pendingReviews,       icon: FileText,      color: 'text-amber-600',  bg: 'bg-amber-50' },
+                { label: 'Active Cases',          value: doctorStats.activeCases,          icon: Activity,      color: 'text-purple-600', bg: 'bg-purple-50' },
             ];
         }
         // PATIENT
+        const pendingBillCount = patientBills.filter(b => (b.status || '').toUpperCase() !== 'PAID').length;
         return [
-            { label: 'Upcoming Appointments', value: appointments.filter(a => a.status === 'CONFIRMED' || a.status === 'PENDING').length, icon: CalendarCheck, color: 'text-blue-600',    bg: 'bg-blue-50' },
-            { label: 'Total Appointments',    value: appointments.length,                                                                  icon: Activity,      color: 'text-teal-600',    bg: 'bg-teal-50' },
-            { label: 'Prescriptions',         value: '—',                                                                                  icon: FileText,      color: 'text-purple-600',  bg: 'bg-purple-50' },
-            { label: 'Pending Bills',         value: '—',                                                                                  icon: CreditCard,    color: 'text-amber-600',   bg: 'bg-amber-50' },
+            { label: 'Upcoming Appointments', value: appointments.filter(a => ['CONFIRMED', 'PENDING', 'SCHEDULED'].includes(a.status)).length, icon: CalendarCheck, color: 'text-blue-600',    bg: 'bg-blue-50' },
+            { label: 'Total Appointments',    value: appointments.length,                                                                       icon: Activity,      color: 'text-teal-600',    bg: 'bg-teal-50' },
+            { label: 'Prescriptions',         value: patientPrescriptions.length,                                                               icon: FileText,      color: 'text-purple-600',  bg: 'bg-purple-50' },
+            { label: 'Pending Bills',         value: pendingBillCount,                                                                          icon: CreditCard,    color: 'text-amber-600',   bg: 'bg-amber-50' },
         ];
     };
 
@@ -130,21 +254,39 @@ const Overview: React.FC = () => {
     return (
         <div className="space-y-6 animate-fadeIn">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold" style={{ color: 'var(--text-color)' }}>
-                        {greeting()}, {user?.fullName?.split(' ')[0] || user?.username}! 👋
-                    </h1>
-                    <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
-                        {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                    </p>
+            {role === 'PATIENT' ? (
+                <PatientPageHeader
+                    title={`${greeting()}, ${user?.fullName?.split(' ')[0] || user?.username || 'there'}`}
+                    description={`${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. Your care dashboard is ready with appointments, records, prescriptions, and billing shortcuts.`}
+                    icon={Activity}
+                    tone="blue"
+                    action={
+                        <a
+                            href="/patient/book-appointment"
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--primary-dark)]"
+                        >
+                            <CalendarPlus className="h-4 w-4" />
+                            Book Appointment
+                        </a>
+                    }
+                />
+            ) : (
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-color)' }}>
+                            {greeting()}, {user?.fullName?.split(' ')[0] || user?.username}
+                        </h1>
+                        <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
+                            {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </p>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium"
+                        style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-dot" />
+                        System Online
+                    </div>
                 </div>
-                <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium"
-                    style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-dot" />
-                    System Online
-                </div>
-            </div>
+            )}
 
             {error && (
                 <div className="flex items-center gap-2 p-3 rounded-xl text-sm text-amber-600 bg-amber-50 border border-amber-200">
@@ -154,8 +296,20 @@ const Overview: React.FC = () => {
 
             {/* Stat Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                {statCards.map((stat) => {
+                {statCards.map((stat, index) => {
                     const Icon = stat.icon;
+                    if (role === 'PATIENT') {
+                        const tones = ['blue', 'teal', 'purple', 'amber'] as const;
+                        return (
+                            <PatientStatCard
+                                key={stat.label}
+                                label={stat.label}
+                                value={stat.value}
+                                icon={Icon}
+                                tone={tones[index] || 'blue'}
+                            />
+                        );
+                    }
                     return (
                         <div key={stat.label} className="stat-card">
                             <div className="flex items-center justify-between mb-3">
@@ -169,7 +323,7 @@ const Overview: React.FC = () => {
                                 )}
                             </div>
                             <p className="text-2xl font-bold" style={{ color: 'var(--text-color)' }}>
-                                {statsLoading && role === 'ADMIN' ? (
+                                {(statsLoading && role === 'ADMIN') || (doctorStatsLoading && role === 'DOCTOR') ? (
                                     <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
                                 ) : stat.value}
                             </p>
@@ -178,6 +332,20 @@ const Overview: React.FC = () => {
                     );
                 })}
             </div>
+
+            {/* AI Insights for Patients */}
+            {role === 'PATIENT' && user?.id && (
+                <div className="mt-6">
+                    <AIHealthSummary patientId={Number(user.id)} />
+                </div>
+            )}
+
+            {/* AI Insights for Admins */}
+            {role === 'ADMIN' && (
+                <div className="mt-6">
+                    <AdminAIInsights />
+                </div>
+            )}
 
             {/* Recent Appointments */}
             <div className="card p-6">
@@ -222,7 +390,7 @@ const Overview: React.FC = () => {
                                 {appointments.map((appt) => (
                                     <tr key={appt.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
                                         <td className="py-3 font-medium" style={{ color: 'var(--text-color)' }}>
-                                            {role === 'PATIENT' ? (appt.doctorName || 'Dr. —') : (appt.patientName || '—')}
+                                            {role === 'PATIENT' ? formatDoctorName(appt.doctorName, 'Dr. —') : (appt.patientName || '—')}
                                         </td>
                                         <td className="py-3" style={{ color: 'var(--text-muted)' }}>
                                             {appt.appointmentDate

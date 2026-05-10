@@ -1,23 +1,29 @@
-import React, { useState } from 'react';
-import { Settings, User, Lock, Bell, Shield, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { useSelector } from 'react-redux';
+import React, { useRef, useState } from 'react';
+import { Settings, User, Lock, Bell, Shield, CheckCircle2, AlertCircle, Eye, EyeOff, Camera, Upload, Trash2 } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import api, { getApiErrorMessage } from '../../api';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { updateCurrentUser } from '../../store/slices/authSlice';
+import { getProfileImageUrl } from '../../utils/profileImage';
 
 type Tab = 'profile' | 'security' | 'notifications' | 'system';
 
 const SystemSettings: React.FC = () => {
     const { user } = useSelector((state: RootState) => state.auth);
+    const dispatch = useDispatch();
     const isAdmin = user?.role === 'ADMIN';
     const [tab, setTab] = useState<Tab>('profile');
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     // Profile form
     const [fullName, setFullName] = useState(user?.fullName || '');
     const [email, setEmail] = useState(user?.email || '');
     const [phone, setPhone] = useState(user?.phoneNumber || '');
+    const [profilePictureUrl, setProfilePictureUrl] = useState(user?.profilePictureUrl || '');
+    const [photoUploading, setPhotoUploading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -40,11 +46,11 @@ const SystemSettings: React.FC = () => {
     const [smsNotif, setSmsNotif] = useState(false);
     const [apptReminders, setApptReminders] = useState(true);
 
-    // PATCH /users/{id} — update profile
     const saveProfile = async (e: React.FormEvent) => {
         e.preventDefault(); setSaving(true); setSaveError(null);
         try {
-            await api.patch(`/users/${user?.id}`, { fullName, email, phoneNumber: phone });
+            const res = await api.patch(`/users/${user?.id}`, { fullName, email, phoneNumber: phone });
+            dispatch(updateCurrentUser(res.data?.data || { fullName, email, phoneNumber: phone }));
             setSaveSuccess(true);
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err: unknown) {
@@ -52,7 +58,53 @@ const SystemSettings: React.FC = () => {
         } finally { setSaving(false); }
     };
 
-    // PATCH /users/{id}/change-password
+    const uploadProfilePicture = async (file: File) => {
+        if (!user?.id) return;
+        if (!file.type.startsWith('image/')) {
+            setSaveError('Please choose a valid image file.');
+            return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+            setSaveError('Profile picture must be 2 MB or smaller.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        setPhotoUploading(true);
+        setSaveError(null);
+        try {
+            const res = await api.post(`/users/${user.id}/profile-picture`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            const nextUrl = res.data?.data?.profilePictureUrl || '';
+            setProfilePictureUrl(nextUrl);
+            dispatch(updateCurrentUser({ profilePictureUrl: nextUrl }));
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+        } catch (err: unknown) {
+            setSaveError(getApiErrorMessage(err, 'Failed to upload profile picture.'));
+        } finally {
+            setPhotoUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const removeProfilePicture = async () => {
+        if (!user?.id) return;
+        setPhotoUploading(true);
+        setSaveError(null);
+        try {
+            await api.patch(`/users/${user.id}`, { profilePictureUrl: '' });
+            setProfilePictureUrl('');
+            dispatch(updateCurrentUser({ profilePictureUrl: '' }));
+        } catch (err: unknown) {
+            setSaveError(getApiErrorMessage(err, 'Failed to remove profile picture.'));
+        } finally {
+            setPhotoUploading(false);
+        }
+    };
+
     const changePassword = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newPwd !== confirmPwd) { setPwdMsg({ type: 'error', text: 'New passwords do not match.' }); return; }
@@ -73,6 +125,7 @@ const SystemSettings: React.FC = () => {
         { id: 'notifications', label: 'Notifications', icon: Bell },
         ...(isAdmin ? [{ id: 'system' as Tab, label: 'System', icon: Shield }] : []),
     ];
+    const profileImage = getProfileImageUrl(profilePictureUrl);
 
     return (
         <div className="max-w-3xl mx-auto space-y-6 animate-fadeIn">
@@ -100,22 +153,91 @@ const SystemSettings: React.FC = () => {
             {/* ── Profile Tab ── */}
             {tab === 'profile' && (
                 <Card className="border-[var(--border-color)] shadow-sm animate-fadeIn">
-                    <CardContent className="p-6">
-                        <div className="flex items-center gap-4 mb-6 pb-6 border-b border-[var(--border-color)]">
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold shadow-lg">
-                                {(user?.fullName || user?.username || 'U').charAt(0).toUpperCase()}
+                    <CardContent className="p-0">
+                        <div className="border-b border-[var(--border-color)] p-5 sm:p-6">
+                            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="relative shrink-0">
+                                        {profileImage ? (
+                                            <img
+                                                src={profileImage}
+                                                alt=""
+                                                className="h-20 w-20 rounded-xl border border-[var(--border-color)] object-cover shadow-sm"
+                                            />
+                                        ) : (
+                                            <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-teal-500 text-2xl font-bold text-white shadow-sm">
+                                                {(user?.fullName || user?.username || 'U').charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] shadow-sm transition-colors hover:border-blue-400"
+                                            title="Change profile picture"
+                                            aria-label="Change profile picture"
+                                        >
+                                            <Camera className="h-4 w-4 text-blue-600" />
+                                        </button>
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="truncate text-lg font-bold" style={{ color: 'var(--text-color)' }}>{user?.fullName || user?.username}</p>
+                                        <p className="truncate text-sm" style={{ color: 'var(--text-muted)' }}>{user?.email}</p>
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">{user?.role}</span>
+                                            <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Active</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/png,image/jpeg,image/webp"
+                                        className="hidden"
+                                        onChange={e => {
+                                            const file = e.target.files?.[0];
+                                            if (file) uploadProfilePicture(file);
+                                        }}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="gap-2"
+                                        isLoading={photoUploading}
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
+                                        <Upload className="h-4 w-4" />
+                                        Upload Photo
+                                    </Button>
+                                    {profilePictureUrl && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="gap-2 border-red-200 text-red-600 hover:bg-red-50"
+                                            disabled={photoUploading}
+                                            onClick={removeProfilePicture}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                            Remove
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-lg font-bold" style={{ color: 'var(--text-color)' }}>{user?.fullName || user?.username}</p>
-                                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{user?.email}</p>
-                                <span className="mt-1 inline-block px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 border border-blue-200">{user?.role}</span>
-                            </div>
+                            <p className="mt-4 text-xs" style={{ color: 'var(--text-muted)' }}>
+                                JPG, PNG, or WEBP image. Keep it under 2 MB for faster loading.
+                            </p>
                         </div>
 
-                        <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-color)' }}>
-                            Edit Profile <span className="text-xs text-blue-400 font-mono ml-2">PUT /users/{'{id}'}</span>
-                        </h2>
-                        <form onSubmit={saveProfile} className="space-y-4">
+                        <form onSubmit={saveProfile} className="space-y-4 p-5 sm:p-6">
+                            <div>
+                                <h2 className="text-base font-semibold" style={{ color: 'var(--text-color)' }}>
+                                    Personal Details
+                                </h2>
+                                <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
+                                    Keep your contact information accurate for appointments and hospital updates.
+                                </p>
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-color)' }}>Full Name</label>
@@ -159,7 +281,7 @@ const SystemSettings: React.FC = () => {
                 <Card className="border-[var(--border-color)] shadow-sm animate-fadeIn">
                     <CardContent className="p-6">
                         <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-color)' }}>
-                            Change Password <span className="text-xs text-blue-400 font-mono ml-2">PATCH /users/{'{id}'}/change-password</span>
+                            Change Password
                         </h2>
                         <form onSubmit={changePassword} className="space-y-4 max-w-md">
                             {[

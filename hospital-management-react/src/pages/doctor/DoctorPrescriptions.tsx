@@ -96,7 +96,7 @@ const DoctorPrescriptions: React.FC = () => {
     return (
         <div className="max-w-5xl mx-auto space-y-6 animate-fadeIn">
             <div className="flex items-center justify-between">
-                <div><h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--text-color)' }}><Pill className="h-6 w-6 text-purple-600" /> Prescriptions</h1><p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Create and manage patient prescriptions using REST APIs.</p></div>
+                <div><h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--text-color)' }}><Pill className="h-6 w-6 text-purple-600" /> Prescriptions</h1><p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Create medication plans and keep patient prescriptions organized.</p></div>
                 <Button onClick={() => setShowForm(!showForm)} className="bg-purple-600 hover:bg-purple-700 text-white gap-2"><Plus className="h-4 w-4" /> New Prescription</Button>
             </div>
 
@@ -104,7 +104,7 @@ const DoctorPrescriptions: React.FC = () => {
             {showForm && (
                 <Card className="border-purple-200 shadow-md animate-fadeIn">
                     <CardContent className="p-6">
-                        <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-color)' }}>Create Prescription <span className="text-xs text-purple-500 font-mono ml-2">POST /prescriptions</span></h2>
+                        <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-color)' }}>Create Prescription</h2>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
@@ -133,7 +133,7 @@ const DoctorPrescriptions: React.FC = () => {
                                 </div>
                                 <div className="space-y-2">
                                     {items.map((item, i) => (
-                                        <div key={i} className="grid grid-cols-4 gap-2 items-center p-3 rounded-lg border border-[var(--border-color)] bg-gray-50/50 dark:bg-slate-800/30">
+                                        <div key={i} className="grid grid-cols-1 gap-2 rounded-lg border border-[var(--border-color)] bg-gray-50/50 p-3 dark:bg-slate-800/30 sm:grid-cols-2 lg:grid-cols-4">
                                             <Input placeholder="Medicine name" value={item.medicineName} onChange={e => updateItem(i, 'medicineName', e.target.value)} className="text-sm" />
                                             <Input placeholder="Dosage (e.g. 500mg)" value={item.dosage} onChange={e => updateItem(i, 'dosage', e.target.value)} className="text-sm" />
                                             <Input placeholder="Frequency" value={item.frequency} onChange={e => updateItem(i, 'frequency', e.target.value)} className="text-sm" />

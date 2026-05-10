@@ -5,7 +5,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
+import org.springframework.cache.annotation.EnableCaching;
+
 @SpringBootApplication
+@EnableCaching
 @EntityScan(basePackages = "com.hospital.model")
 @EnableJpaRepositories(basePackages = "com.hospital.repository.mysql")
 public class HospitalManagementApplication {

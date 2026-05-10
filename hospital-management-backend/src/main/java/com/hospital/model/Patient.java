@@ -4,8 +4,11 @@ import jakarta.persistence.*;
 
 import java.time.LocalDate;
 
+import org.hibernate.envers.Audited;
+
 @Entity
 @Table(name = "patients")
+@Audited
 @PrimaryKeyJoinColumn(name = "user_id")
 public class Patient extends User {
 

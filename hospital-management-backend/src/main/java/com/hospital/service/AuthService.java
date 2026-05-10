@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
 /**
  * Authentication Service
  * Handles user login, registration, and account verification
- * 
+ *
  * Features:
  * - Input validation and sanitization
  * - Secure password verification
@@ -83,7 +83,7 @@ public class AuthService {
 
     /**
      * Authenticate user with username, password, and role
-     * 
+     *
      * @param request Login credentials and role
      * @return AuthResponse with JWT token and user details
      * @throws IllegalArgumentException if input validation fails
@@ -143,6 +143,7 @@ public class AuthService {
                     user.getRole(),
                     user.getId(),
                     user.getFullName(),
+                    user.getProfilePictureUrl(),
                     "Login successful");
 
         } catch (Exception e) {
@@ -153,7 +154,7 @@ public class AuthService {
 
     /**
      * Register new user with validation
-     * 
+     *
      * @param request Registration details
      * @return AuthResponse with OTP verification message
      * @throws IllegalArgumentException if validation fails
@@ -204,6 +205,7 @@ public class AuthService {
                     user.getRole(),
                     user.getId(),
                     user.getFullName(),
+                    user.getProfilePictureUrl(),
                     message);
 
         } catch (Exception e) {
@@ -244,6 +246,7 @@ public class AuthService {
                 user.getRole(),
                 user.getId(),
                 user.getFullName(),
+                user.getProfilePictureUrl(),
                 "Firebase login successful");
     }
 
@@ -277,7 +280,7 @@ public class AuthService {
 
     /**
      * Verify OTP and activate user account
-     * 
+     *
      * @param email User email address
      * @param otp   OTP code
      * @return AuthResponse with JWT token
@@ -310,6 +313,7 @@ public class AuthService {
                 user.getRole(),
                 user.getId(),
                 user.getFullName(),
+                user.getProfilePictureUrl(),
                 "Verification successful");
     }
 
@@ -419,7 +423,7 @@ public class AuthService {
 
     /**
      * Validate login request input
-     * 
+     *
      * @param request LoginRequest to validate
      * @throws IllegalArgumentException if validation fails
      */
@@ -458,7 +462,7 @@ public class AuthService {
 
     /**
      * Validate registration request input
-     * 
+     *
      * @param request RegisterRequest to validate
      * @throws IllegalArgumentException if validation fails
      */
@@ -511,7 +515,7 @@ public class AuthService {
 
     /**
      * Create user instance based on role
-     * 
+     *
      * @param request Registration request
      * @return User instance (Patient, Doctor, or generic User)
      */

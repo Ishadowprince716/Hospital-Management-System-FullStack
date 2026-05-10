@@ -4,9 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import type { RootState } from '../../store';
 import api, { getApiErrorMessage } from '../../api';
 import { Calendar, FileText, CheckCircle, AlertCircle, Stethoscope, ChevronRight } from 'lucide-react';
-import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { formatDoctorName } from '../../utils/displayNames';
+import {
+    PatientAlert,
+    PatientPageFrame,
+    PatientPageHeader,
+    patientCardClass,
+} from '../../components/patient/PatientPanel';
 
 interface Doctor {
     id: number;
@@ -86,51 +92,50 @@ const BookAppointment: React.FC = () => {
 
     if (success) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 animate-fadeIn">
-                <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-emerald-100">
-                    <CheckCircle className="h-10 w-10 text-emerald-600" />
+            <PatientPageFrame size="md">
+                <div className={`${patientCardClass} flex flex-col items-center justify-center px-6 py-16 text-center`}>
+                    <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-lg bg-emerald-100 shadow-lg shadow-emerald-100 dark:bg-emerald-950/40 dark:shadow-none">
+                        <CheckCircle className="h-10 w-10 text-emerald-600 dark:text-emerald-300" />
+                    </div>
+                    <h2 className="mb-2 text-3xl font-bold text-[var(--text-color)]">Appointment Confirmed</h2>
+                    <p className="max-w-md text-lg text-[var(--text-muted)]">
+                        Your appointment with {formatDoctorName(selectedDoctor?.fullName)} has been scheduled for {new Date(date).toLocaleDateString()} at {time}.
+                    </p>
+                    <div className="mt-8 flex gap-4">
+                        <Button onClick={() => navigate('/patient/appointments')} className="bg-[var(--primary)] text-white">
+                            View My Appointments
+                        </Button>
+                    </div>
                 </div>
-                <h2 className="text-3xl font-bold text-[var(--text-color)] mb-2">Appointment Confirmed!</h2>
-                <p className="text-[var(--text-muted)] text-lg text-center max-w-md">
-                    Your appointment with Dr. {selectedDoctor?.fullName} has been scheduled for {new Date(date).toLocaleDateString()} at {time}.
-                </p>
-                <div className="mt-8 flex gap-4">
-                    <Button onClick={() => navigate('/patient/appointments')} className="bg-[var(--primary)] text-white">
-                        View My Appointments
-                    </Button>
-                </div>
-            </div>
+            </PatientPageFrame>
         );
     }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-[var(--text-color)]">Book Appointment</h1>
-                    <p className="text-[var(--text-muted)] mt-1">Schedule a consultation with our specialists</p>
-                </div>
-                
-                {/* Stepper */}
-                <div className="hidden sm:flex items-center gap-2">
-                    <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold ${step >= 1 ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-500'}`}>1</div>
-                    <div className={`w-12 h-1 ${step >= 2 ? 'bg-[var(--primary)]' : 'bg-gray-200'}`} />
-                    <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold ${step >= 2 ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-500'}`}>2</div>
-                    <div className={`w-12 h-1 ${step >= 3 ? 'bg-[var(--primary)]' : 'bg-gray-200'}`} />
-                    <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold ${step >= 3 ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-500'}`}>3</div>
-                </div>
-            </div>
+        <PatientPageFrame size="lg">
+            <PatientPageHeader
+                title="Book Appointment"
+                description="Pick a specialist, choose a convenient slot, and share the reason for your visit."
+                icon={Calendar}
+                tone="blue"
+                action={
+                    <div className="hidden items-center gap-2 sm:flex">
+                        {[1, 2, 3].map((n, idx) => (
+                            <React.Fragment key={n}>
+                                <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${step >= n ? 'bg-[var(--primary)] text-white' : 'bg-gray-200 text-gray-500 dark:bg-slate-800 dark:text-slate-400'}`}>{n}</div>
+                                {idx < 2 && <div className={`h-1 w-12 rounded-full ${step > n ? 'bg-[var(--primary)]' : 'bg-gray-200 dark:bg-slate-800'}`} />}
+                            </React.Fragment>
+                        ))}
+                    </div>
+                }
+            />
 
             {error && (
-                <div className="flex items-center gap-3 p-4 rounded-xl text-red-600 bg-red-50 border border-red-200 animate-fadeIn">
-                    <AlertCircle className="h-5 w-5 shrink-0" />
-                    <p className="text-sm font-medium">{error}</p>
-                </div>
+                <PatientAlert icon={AlertCircle} tone="rose">{error}</PatientAlert>
             )}
 
-            <Card className="border-[var(--border-color)] shadow-sm">
-                <CardContent className="p-0">
-                    
+            <div className={`${patientCardClass} overflow-hidden`}>
+
                     {/* Step 1: Select Doctor */}
                     {step === 1 && (
                         <div className="p-6 animate-fadeIn">
@@ -138,7 +143,7 @@ const BookAppointment: React.FC = () => {
                                 <Stethoscope className="h-5 w-5 text-[var(--primary)]" />
                                 Select a Specialist
                             </h2>
-                            
+
                             {loadingDoctors ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {[1, 2, 3, 4].map(i => (
@@ -152,7 +157,7 @@ const BookAppointment: React.FC = () => {
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2">
                                     {doctors.map(doctor => (
-                                        <div 
+                                        <div
                                             key={doctor.id}
                                             onClick={() => { setSelectedDoctor(doctor); setStep(2); }}
                                             className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedDoctor?.id === doctor.id ? 'border-[var(--primary)] bg-blue-50/50 dark:bg-blue-900/10' : 'border-[var(--border-color)] hover:border-blue-300'}`}
@@ -162,7 +167,7 @@ const BookAppointment: React.FC = () => {
                                                     {doctor.fullName.charAt(0)}
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-bold text-[var(--text-color)]">Dr. {doctor.fullName}</h3>
+                                                    <h3 className="font-bold text-[var(--text-color)]">{formatDoctorName(doctor.fullName)}</h3>
                                                     <p className="text-sm font-medium text-[var(--primary)]">{doctor.specialization || 'General Physician'}</p>
                                                     <div className="mt-2 text-xs text-[var(--text-muted)] space-y-1">
                                                         <p>Fee: ₹{doctor.consultationFee || 500}</p>
@@ -184,12 +189,12 @@ const BookAppointment: React.FC = () => {
                                 <Calendar className="h-5 w-5 text-[var(--primary)]" />
                                 Choose Date & Time
                             </h2>
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-4">
                                     <label className="block text-sm font-medium text-[var(--text-color)]">Select Date</label>
-                                    <Input 
-                                        type="date" 
+                                    <Input
+                                        type="date"
                                         min={today}
                                         value={date}
                                         onChange={(e) => setDate(e.target.value)}
@@ -202,11 +207,11 @@ const BookAppointment: React.FC = () => {
                                         </p>
                                     )}
                                 </div>
-                                
+
                                 <div className="space-y-4">
                                     <label className="block text-sm font-medium text-[var(--text-color)]">Select Time</label>
-                                    <Input 
-                                        type="time" 
+                                    <Input
+                                        type="time"
                                         value={time}
                                         onChange={(e) => setTime(e.target.value)}
                                         className="w-full h-12 text-lg"
@@ -220,8 +225,8 @@ const BookAppointment: React.FC = () => {
 
                             <div className="mt-8 flex justify-between">
                                 <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-                                <Button 
-                                    onClick={() => setStep(3)} 
+                                <Button
+                                    onClick={() => setStep(3)}
                                     disabled={!date || !time}
                                     className="bg-[var(--primary)] text-white"
                                 >
@@ -244,7 +249,7 @@ const BookAppointment: React.FC = () => {
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                     <div>
                                         <span className="text-[var(--text-muted)] block">Doctor</span>
-                                        <span className="font-medium text-[var(--text-color)]">Dr. {selectedDoctor?.fullName}</span>
+                                        <span className="font-medium text-[var(--text-color)]">{formatDoctorName(selectedDoctor?.fullName)}</span>
                                     </div>
                                     <div>
                                         <span className="text-[var(--text-muted)] block">Specialty</span>
@@ -263,7 +268,7 @@ const BookAppointment: React.FC = () => {
 
                             <div className="space-y-2 mb-8">
                                 <label className="block text-sm font-medium text-[var(--text-color)]">Reason for visit</label>
-                                <textarea 
+                                <textarea
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}
                                     className="w-full min-h-[100px] p-3 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] text-[var(--text-color)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
@@ -274,8 +279,8 @@ const BookAppointment: React.FC = () => {
 
                             <div className="flex justify-between">
                                 <Button type="button" variant="outline" onClick={() => setStep(2)}>Back</Button>
-                                <Button 
-                                    type="submit" 
+                                <Button
+                                    type="submit"
                                     className="bg-emerald-600 hover:bg-emerald-700 text-white px-8"
                                     isLoading={submitting}
                                 >
@@ -285,9 +290,8 @@ const BookAppointment: React.FC = () => {
                         </form>
                     )}
 
-                </CardContent>
-            </Card>
-        </div>
+            </div>
+        </PatientPageFrame>
     );
 };
 

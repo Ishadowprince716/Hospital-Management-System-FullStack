@@ -14,6 +14,7 @@ interface Patient {
     email?: string;
     phoneNumber?: string;
     dateOfBirth?: string;
+    patientAge?: number;
     bloodGroup?: string;
     gender?: string;
     address?: string;
@@ -22,6 +23,10 @@ interface Patient {
 }
 interface PatientAppointment {
     patient?: Patient;
+    patientId?: number;
+    patientName?: string;
+    patientAge?: number;
+    patientGender?: string;
     appointmentDate?: string;
 }
 
@@ -37,26 +42,38 @@ const DoctorMyPatients: React.FC = () => {
         const fetchPatients = async () => {
             setLoading(true);
             try {
-                // GET patients who have appointments with this doctor
-                const res = await api.get(`/doctors/${user?.id}/patients?size=200`);
-                const data = res.data?.data?.content || res.data?.data || [];
-                setPatients(data);
-            } catch {
-                // Fallback: get appointments and extract unique patients
-                try {
-                    const apptRes = await api.get(`/appointments/doctor/${user?.id}?size=200`);
-                    const appts: PatientAppointment[] = apptRes.data?.data?.content || apptRes.data?.data || [];
-                    const seen = new Set<number>();
-                    const uniquePatients: Patient[] = [];
-                    for (const a of appts) {
-                        if (a.patient && !seen.has(a.patient.id)) {
-                            seen.add(a.patient.id);
-                            const count = appts.filter(x => x.patient?.id === a.patient?.id).length;
-                            uniquePatients.push({ ...a.patient, appointmentCount: count, lastVisit: a.appointmentDate });
-                        }
+                const apptRes = await api.get('/appointments/my?size=200&sort=appointmentDate,desc');
+                const appts: PatientAppointment[] = apptRes.data?.data?.content || apptRes.data?.data || [];
+                const seen = new Map<number, Patient>();
+
+                for (const appointment of appts) {
+                    const id = appointment.patient?.id || appointment.patientId;
+                    const fullName = appointment.patient?.fullName || appointment.patientName;
+                    if (!id || !fullName) continue;
+
+                    const existing = seen.get(id);
+                    if (existing) {
+                        existing.appointmentCount = (existing.appointmentCount || 0) + 1;
+                        continue;
                     }
-                    setPatients(uniquePatients);
-                } catch { setPatients([]); }
+
+                    seen.set(id, {
+                        id,
+                        fullName,
+                        email: appointment.patient?.email,
+                        phoneNumber: appointment.patient?.phoneNumber,
+                        patientAge: appointment.patient?.patientAge || appointment.patientAge,
+                        bloodGroup: appointment.patient?.bloodGroup,
+                        gender: appointment.patient?.gender || appointment.patientGender,
+                        address: appointment.patient?.address,
+                        lastVisit: appointment.appointmentDate,
+                        appointmentCount: 1,
+                    });
+                }
+
+                setPatients(Array.from(seen.values()));
+            } catch {
+                setPatients([]);
             } finally { setLoading(false); }
         };
         if (user?.id) fetchPatients();
@@ -73,6 +90,8 @@ const DoctorMyPatients: React.FC = () => {
         const diff = Date.now() - new Date(dob).getTime();
         return Math.floor(diff / (365.25 * 24 * 3600 * 1000));
     };
+
+    const displayAge = (patient: Patient) => patient.patientAge ?? calcAge(patient.dateOfBirth);
 
     const bloodColors: Record<string, string> = {
         'A+': 'bg-red-100 text-red-700 border-red-200',
@@ -113,14 +132,14 @@ const DoctorMyPatients: React.FC = () => {
                 <div className="w-px bg-[var(--border-color)]" />
                 <div className="text-center">
                     <p className="text-2xl font-bold text-blue-600">
-                        {patients.filter(p => calcAge(p.dateOfBirth) !== null && calcAge(p.dateOfBirth)! < 18).length}
+                        {patients.filter(p => displayAge(p) !== null && displayAge(p)! < 18).length}
                     </p>
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Under 18</p>
                 </div>
                 <div className="w-px bg-[var(--border-color)]" />
                 <div className="text-center">
                     <p className="text-2xl font-bold text-purple-600">
-                        {patients.filter(p => calcAge(p.dateOfBirth) !== null && calcAge(p.dateOfBirth)! >= 60).length}
+                        {patients.filter(p => displayAge(p) !== null && displayAge(p)! >= 60).length}
                     </p>
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Senior (60+)</p>
                 </div>
@@ -146,7 +165,7 @@ const DoctorMyPatients: React.FC = () => {
                     ) : (
                         <div className="divide-y divide-[var(--border-color)]">
                             {filtered.map(patient => {
-                                const age = calcAge(patient.dateOfBirth);
+                                const age = displayAge(patient);
                                 const bloodCls = bloodColors[patient.bloodGroup || ''] || 'bg-gray-100 text-gray-600 border-gray-200';
                                 return (
                                     <div key={patient.id}
@@ -247,7 +266,7 @@ const DoctorMyPatients: React.FC = () => {
                                 { l: 'Email',       v: selected.email },
                                 { l: 'Phone',       v: selected.phoneNumber },
                                 { l: 'Gender',      v: selected.gender },
-                                { l: 'Age',         v: calcAge(selected.dateOfBirth) ? `${calcAge(selected.dateOfBirth)} years` : null },
+                                { l: 'Age',         v: displayAge(selected) ? `${displayAge(selected)} years` : null },
                                 { l: 'Address',     v: selected.address },
                                 { l: 'Total Visits', v: selected.appointmentCount?.toString() },
                                 { l: 'Last Visit',  v: selected.lastVisit ? new Date(selected.lastVisit).toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' }) : null },
