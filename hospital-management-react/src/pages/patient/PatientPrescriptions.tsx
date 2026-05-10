@@ -1,9 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Pill, Loader2, AlertCircle } from 'lucide-react';
+import { Pill, AlertCircle, CheckCircle2, ClipboardList } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import api from '../../api';
-import { Card, CardContent } from '../../components/ui/Card';
+import { formatDoctorName } from '../../utils/displayNames';
+import {
+    PatientAlert,
+    PatientEmptyState,
+    PatientLoader,
+    PatientPageFrame,
+    PatientPageHeader,
+    PatientStatCard,
+    patientCardClass,
+} from '../../components/patient/PatientPanel';
 
 interface PrescriptionItem {
     medicineName: string;
@@ -44,38 +53,43 @@ const PatientPrescriptions: React.FC = () => {
         if (user?.id) fetchPrescriptions();
     }, [user?.id]);
 
-    if (loading) {
-        return (
-            <div className="flex justify-center p-8">
-                <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
-            </div>
-        );
-    }
+    const activeCount = prescriptions.filter(p => (p.status || '').toUpperCase() === 'ACTIVE').length;
+    const medicationCount = prescriptions.reduce((sum, p) => sum + (p.items?.length || 0), 0);
 
     return (
-        <div className="space-y-6 animate-fadeIn">
-            <div>
-                <h1 className="text-2xl font-bold text-[var(--text-color)]">My Prescriptions</h1>
-                <p className="text-[var(--text-muted)]">View your current and past prescriptions</p>
-            </div>
+        <PatientPageFrame size="lg">
+            <PatientPageHeader
+                title="Prescriptions"
+                description="Review current and past medication plans, dosage instructions, and doctor notes."
+                icon={Pill}
+                tone="purple"
+            />
 
-            {error && (
-                <div className="bg-red-50 text-red-600 p-4 rounded-xl flex items-center gap-3">
-                    <AlertCircle className="w-5 h-5 shrink-0" />
-                    <p>Failed to load prescriptions.</p>
+            {!loading && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <PatientStatCard label="Prescriptions" value={prescriptions.length} icon={ClipboardList} tone="purple" />
+                    <PatientStatCard label="Active" value={activeCount} icon={CheckCircle2} tone="emerald" />
+                    <PatientStatCard label="Medicines Listed" value={medicationCount} icon={Pill} tone="blue" />
                 </div>
             )}
 
-            {!error && prescriptions.length === 0 ? (
-                <div className="card p-12 text-center text-[var(--text-muted)]">
-                    <Pill className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No prescriptions found.</p>
-                </div>
-            ) : (
-                <div className="space-y-4">
-                    {prescriptions.map(p => (
-                        <Card key={p.id} className="overflow-hidden border-l-4 border-l-[var(--primary)]">
-                            <CardContent className="p-6">
+            {loading && <PatientLoader label="Loading prescriptions" />}
+
+            {error && (
+                <PatientAlert icon={AlertCircle} tone="rose">Failed to load prescriptions.</PatientAlert>
+            )}
+
+            {!loading && !error && (
+                prescriptions.length === 0 ? (
+                    <PatientEmptyState
+                        icon={Pill}
+                        title="No prescriptions found"
+                        description="Prescriptions will appear here after a doctor issues medication instructions."
+                    />
+                ) : (
+                    <div className="space-y-4">
+                        {prescriptions.map(p => (
+                            <div key={p.id} className={`${patientCardClass} overflow-hidden border-l-4 border-l-[var(--primary)] p-6`}>
                                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4 pb-4 border-b border-[var(--border-color)]">
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">
@@ -88,7 +102,7 @@ const PatientPrescriptions: React.FC = () => {
                                             <strong>Diagnosis:</strong> {p.diagnosis}
                                         </p>
                                         <p className="text-sm text-[var(--text-muted)]">
-                                            <strong>Prescribed by:</strong> Dr. {p.doctor?.fullName || 'N/A'}
+                                            <strong>Prescribed by:</strong> {formatDoctorName(p.doctor?.fullName)}
                                         </p>
                                     </div>
                                     <div className="text-sm text-[var(--text-muted)] md:text-right">
@@ -125,12 +139,12 @@ const PatientPrescriptions: React.FC = () => {
                                         <p className="text-sm text-[var(--text-muted)]">{p.notes}</p>
                                     </div>
                                 )}
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
+                            </div>
+                        ))}
+                    </div>
+                )
             )}
-        </div>
+        </PatientPageFrame>
     );
 };
 

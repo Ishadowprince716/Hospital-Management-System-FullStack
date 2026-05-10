@@ -55,9 +55,12 @@ public class AIController {
             }
 
             String aiMessage = aiService.getChatResponse(
-                request.getMessage(), 
-                request.getRole(), 
-                request.getConversationHistory()
+                request.getMessage(),
+                request.getRole(),
+                request.getConversationHistory(),
+                request.getUserId(),
+                request.getClientTime(),
+                request.getClientTimeZone()
             );
 
             Map<String, String> response = new HashMap<>();
@@ -100,6 +103,23 @@ public class AIController {
     }
 
     /**
+     * AI Diagnosis Support - For Doctors
+     * Generates potential differential diagnoses based on symptoms and history
+     */
+    @PostMapping("/diagnosis")
+    public ResponseEntity<ApiResponse<Map<String, String>>> getDiagnosis(@RequestBody DiagnosisRequest request) {
+        try {
+            String diagnosis = aiService.getDifferentialDiagnosis(request.getSymptoms(), request.getMedicalHistory());
+            Map<String, String> response = new HashMap<>();
+            response.put("diagnosis", diagnosis);
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(ApiResponse.error("Error generating diagnosis: " + e.getMessage()));
+        }
+    }
+
+    /**
      * Health check endpoint
      */
     @GetMapping("/health")
@@ -117,13 +137,32 @@ public class AIController {
     public static class ChatRequest {
         private String message;
         private String role;
+        private Long userId;
+        private String clientTime;
+        private String clientTimeZone;
         private List<Map<String, String>> conversationHistory;
 
         public String getMessage() { return message; }
         public void setMessage(String message) { this.message = message; }
         public String getRole() { return role != null ? role : "PATIENT"; }
         public void setRole(String role) { this.role = role; }
+        public Long getUserId() { return userId; }
+        public void setUserId(Long userId) { this.userId = userId; }
+        public String getClientTime() { return clientTime; }
+        public void setClientTime(String clientTime) { this.clientTime = clientTime; }
+        public String getClientTimeZone() { return clientTimeZone; }
+        public void setClientTimeZone(String clientTimeZone) { this.clientTimeZone = clientTimeZone; }
         public List<Map<String, String>> getConversationHistory() { return conversationHistory; }
         public void setConversationHistory(List<Map<String, String>> conversationHistory) { this.conversationHistory = conversationHistory; }
+    }
+
+    public static class DiagnosisRequest {
+        private String symptoms;
+        private String medicalHistory;
+
+        public String getSymptoms() { return symptoms; }
+        public void setSymptoms(String symptoms) { this.symptoms = symptoms; }
+        public String getMedicalHistory() { return medicalHistory; }
+        public void setMedicalHistory(String medicalHistory) { this.medicalHistory = medicalHistory; }
     }
 }

@@ -7,10 +7,18 @@ import { Button } from '../../components/ui/Button';
 
 interface Patient { id: number; fullName: string; phoneNumber?: string; bloodGroup?: string; }
 interface Appointment {
-    id: number; patient: Patient; appointmentDate: string;
+    id: number; patient?: Patient; patientId?: number; patientName?: string; patientAge?: number; patientGender?: string; appointmentDate: string;
     appointmentTime: string; status: string; reason: string;
     appointmentType: string; consultationFee?: number;
 }
+
+const getPatientName = (appointment: Appointment) =>
+    appointment.patient?.fullName || appointment.patientName || 'Unknown Patient';
+
+const getPatientInitial = (appointment: Appointment) =>
+    getPatientName(appointment).charAt(0).toUpperCase() || 'P';
+
+const getStatus = (appointment: Appointment) => (appointment.status || '').toUpperCase();
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     const map: Record<string, string> = {
@@ -56,8 +64,12 @@ const DoctorAppointments: React.FC = () => {
         finally { setUpdatingId(null); }
     };
 
-    const filtered = filter === 'ALL' ? appointments : appointments.filter(a => a.status === filter);
-    const stats = { total: appointments.length, scheduled: appointments.filter(a => ['SCHEDULED','PENDING','CONFIRMED'].includes(a.status)).length, completed: appointments.filter(a => a.status === 'COMPLETED').length };
+    const filtered = filter === 'ALL' ? appointments : appointments.filter(a => getStatus(a) === filter);
+    const stats = {
+        total: appointments.length,
+        scheduled: appointments.filter(a => ['SCHEDULED', 'PENDING', 'CONFIRMED'].includes(getStatus(a))).length,
+        completed: appointments.filter(a => getStatus(a) === 'COMPLETED').length,
+    };
 
     return (
         <div className="max-w-6xl mx-auto space-y-6 animate-fadeIn">
@@ -92,8 +104,8 @@ const DoctorAppointments: React.FC = () => {
                                         <tr key={appt.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-700 font-bold text-sm flex items-center justify-center">{appt.patient?.fullName?.charAt(0) || 'P'}</div>
-                                                    <div><p className="font-medium" style={{ color: 'var(--text-color)' }}>{appt.patient?.fullName || 'Unknown'}</p><p className="text-xs" style={{ color: 'var(--text-muted)' }}>{appt.appointmentType || 'General'}</p></div>
+                                                    <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-700 font-bold text-sm flex items-center justify-center">{getPatientInitial(appt)}</div>
+                                                    <div><p className="font-medium" style={{ color: 'var(--text-color)' }}>{getPatientName(appt)}</p><p className="text-xs" style={{ color: 'var(--text-muted)' }}>{appt.appointmentType || 'General'}</p></div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
@@ -104,9 +116,9 @@ const DoctorAppointments: React.FC = () => {
                                             <td className="px-6 py-4"><StatusBadge status={appt.status} /></td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    {['SCHEDULED', 'CONFIRMED', 'PENDING'].includes(appt.status) && (
-                                                        <Button 
-                                                            size="sm" 
+                                                    {['SCHEDULED', 'CONFIRMED', 'PENDING'].includes(getStatus(appt)) && (
+                                                        <Button
+                                                            size="sm"
                                                             className="bg-teal-600 text-white hover:bg-teal-700 px-3 py-1.5 h-auto flex items-center gap-1.5 text-xs font-medium rounded-lg"
                                                             onClick={() => navigate(`/telehealth/${appt.id}`)}
                                                         >
@@ -141,13 +153,13 @@ const DoctorAppointments: React.FC = () => {
                     <div className="w-full max-w-md rounded-2xl shadow-2xl p-6 animate-fadeIn" style={{ background: 'var(--card-bg)' }} onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between mb-4"><h3 className="text-lg font-bold" style={{ color: 'var(--text-color)' }}>Appointment Details</h3><button onClick={() => setSelected(null)} className="p-1 rounded-lg hover:bg-gray-100"><XCircle className="h-5 w-5 text-gray-400" /></button></div>
                         <div className="space-y-2">
-                            {[{ label: 'Patient', value: selected.patient?.fullName }, { label: 'Phone', value: selected.patient?.phoneNumber || '—' }, { label: 'Blood Group', value: selected.patient?.bloodGroup || '—' }, { label: 'Date', value: new Date(selected.appointmentDate).toLocaleDateString() }, { label: 'Time', value: selected.appointmentTime }, { label: 'Type', value: selected.appointmentType || 'General' }, { label: 'Reason', value: selected.reason || '—' }, { label: 'Fee', value: selected.consultationFee ? `₹${selected.consultationFee}` : '—' }].map(r => (
+                            {[{ label: 'Patient', value: getPatientName(selected) }, { label: 'Phone', value: selected.patient?.phoneNumber || '—' }, { label: 'Blood Group', value: selected.patient?.bloodGroup || '—' }, { label: 'Date', value: selected.appointmentDate ? new Date(selected.appointmentDate).toLocaleDateString() : '—' }, { label: 'Time', value: selected.appointmentTime || '—' }, { label: 'Type', value: selected.appointmentType || 'General' }, { label: 'Reason', value: selected.reason || '—' }, { label: 'Fee', value: selected.consultationFee ? `₹${selected.consultationFee}` : '—' }].map(r => (
                                 <div key={r.label} className="flex justify-between py-2 border-b border-[var(--border-color)]"><span className="text-sm" style={{ color: 'var(--text-muted)' }}>{r.label}</span><span className="text-sm font-semibold" style={{ color: 'var(--text-color)' }}>{r.value}</span></div>
                             ))}
                             <div className="flex justify-between py-2"><span className="text-sm" style={{ color: 'var(--text-muted)' }}>Status</span><StatusBadge status={selected.status} /></div>
                         </div>
                         <div className="mt-5 flex gap-2">
-                            {selected.status !== 'COMPLETED' && <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { handleStatusChange(selected.id, 'COMPLETED'); setSelected(null); }}><CheckCircle2 className="h-4 w-4 mr-1" /> Mark Complete</Button>}
+                            {getStatus(selected) !== 'COMPLETED' && <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { handleStatusChange(selected.id, 'COMPLETED'); setSelected(null); }}><CheckCircle2 className="h-4 w-4 mr-1" /> Mark Complete</Button>}
                             <Button variant="outline" className="flex-1" onClick={() => setSelected(null)}>Close</Button>
                         </div>
                     </div>

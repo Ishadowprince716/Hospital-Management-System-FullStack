@@ -7,7 +7,19 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 
-interface Appointment { id: number; patient?: { id: number; fullName: string }; appointmentDate: string; appointmentTime: string; reason: string; status: string; }
+interface Appointment {
+    id: number;
+    patient?: { id: number; fullName: string };
+    patientId?: number;
+    patientName?: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    reason: string;
+    status: string;
+}
+
+const getPatientName = (appointment: Appointment) =>
+    appointment.patient?.fullName || appointment.patientName || 'Unknown Patient';
 
 const DoctorMedicalRecords: React.FC = () => {
     const { user } = useSelector((state: RootState) => state.auth);
@@ -81,7 +93,6 @@ const DoctorMedicalRecords: React.FC = () => {
                         <div className="flex items-center justify-between mb-5">
                             <h2 className="text-base font-semibold" style={{ color: 'var(--text-color)' }}>
                                 Write Medical Record
-                                <span className="text-xs text-teal-500 font-mono ml-2">POST /medical-records</span>
                             </h2>
                             <button onClick={() => setShowForm(false)}><X className="h-5 w-5 text-gray-400 hover:text-gray-600" /></button>
                         </div>
@@ -100,7 +111,7 @@ const DoctorMedicalRecords: React.FC = () => {
                                         <option value="">Choose appointment...</option>
                                         {completedAppts.map(a => (
                                             <option key={a.id} value={a.id}>
-                                                {a.patient?.fullName} — {a.appointmentDate ? new Date(a.appointmentDate).toLocaleDateString() : ''} ({a.status})
+                                                {getPatientName(a)} — {a.appointmentDate ? new Date(a.appointmentDate).toLocaleDateString() : ''} ({a.status})
                                             </option>
                                         ))}
                                     </select>
@@ -166,10 +177,10 @@ const DoctorMedicalRecords: React.FC = () => {
                             <div className="flex items-center justify-between p-5 cursor-pointer" onClick={() => setExpanded(expanded === appt.id ? null : appt.id)}>
                                 <div className="flex items-center gap-4">
                                     <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center text-teal-700 font-bold shrink-0">
-                                        {appt.patient?.fullName?.charAt(0) || 'P'}
+                                        {getPatientName(appt).charAt(0).toUpperCase() || 'P'}
                                     </div>
                                     <div>
-                                        <p className="font-semibold" style={{ color: 'var(--text-color)' }}>{appt.patient?.fullName || 'Unknown Patient'}</p>
+                                        <p className="font-semibold" style={{ color: 'var(--text-color)' }}>{getPatientName(appt)}</p>
                                         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                                             {appt.appointmentDate ? new Date(appt.appointmentDate).toLocaleDateString() : ''} · {appt.reason || 'No reason specified'}
                                         </p>

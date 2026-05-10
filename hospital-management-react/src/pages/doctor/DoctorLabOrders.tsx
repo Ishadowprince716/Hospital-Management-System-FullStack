@@ -151,7 +151,7 @@ const DoctorLabOrders: React.FC = () => {
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-base font-semibold" style={{ color: 'var(--text-color)' }}>
-                                New Lab Order <span className="text-xs text-violet-500 font-mono ml-2">POST /lab-orders</span>
+                                New Lab Order
                             </h2>
                             <button onClick={() => setShowForm(false)}><X className="h-5 w-5 text-gray-400" /></button>
                         </div>
@@ -238,15 +238,15 @@ const DoctorLabOrders: React.FC = () => {
                                     {orders.map(order => (
                                         <tr key={order.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
                                             <td className="px-5 py-4 font-medium" style={{ color: 'var(--text-color)' }}>{order.patient?.fullName || '—'}</td>
-                                            <td className="px-5 py-4" style={{ color: 'var(--text-color)' }}>{order.testName}</td>
-                                            <td className="px-5 py-4 text-xs" style={{ color: 'var(--text-muted)' }}>{order.testType}</td>
+                                            <td className="px-5 py-4" style={{ color: 'var(--text-color)' }}>{order.testName || '—'}</td>
+                                            <td className="px-5 py-4 text-xs" style={{ color: 'var(--text-muted)' }}>{order.testType || '—'}</td>
                                             <td className="px-5 py-4">
-                                                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold border ${priorityColor[order.priority] || ''}`}>{order.priority}</span>
+                                                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold border ${priorityColor[order.priority] || 'text-gray-600 bg-gray-50 border-gray-200'}`}>{order.priority || 'ROUTINE'}</span>
                                             </td>
                                             <td className="px-5 py-4">
-                                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${statusColor[order.status] || ''}`}>
+                                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${statusColor[order.status] || 'text-gray-600 bg-gray-50 border-gray-200'}`}>
                                                     {order.status === 'COMPLETED' ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                                                    {order.status.replace('_', ' ')}
+                                                    {(order.status || 'PENDING').replace('_', ' ')}
                                                 </span>
                                             </td>
                                             <td className="px-5 py-4 text-xs" style={{ color: 'var(--text-muted)' }}>

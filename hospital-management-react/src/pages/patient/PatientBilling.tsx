@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { CreditCard, CheckCircle2, Clock, XCircle, AlertCircle, Loader2, Receipt, X } from 'lucide-react';
+import { CreditCard, CheckCircle2, Clock, XCircle, AlertCircle, Receipt, X } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import api, { getApiErrorMessage } from '../../api';
-import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import {
+    PatientAlert,
+    PatientEmptyState,
+    PatientLoader,
+    PatientPageFrame,
+    PatientPageHeader,
+    PatientStatCard,
+    patientCardClass,
+} from '../../components/patient/PatientPanel';
 
 interface BillItem { description: string; quantity: number; amount: number; }
 interface Bill {
@@ -74,50 +82,35 @@ const PatientBilling: React.FC = () => {
     const totalPaid = bills.reduce((s, b) => s + (b.paidAmount || 0), 0);
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6 animate-fadeIn">
-            <div>
-                <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--text-color)' }}>
-                    <CreditCard className="h-6 w-6 text-amber-600" /> Billing & Payments
-                </h1>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>View your invoices and make payments online.</p>
-            </div>
+        <PatientPageFrame size="lg">
+            <PatientPageHeader
+                title="Billing & Payments"
+                description="Review invoices, payment history, outstanding balances, and bill line items."
+                icon={CreditCard}
+                tone="amber"
+            />
 
             {/* Summary cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {[
-                    { label: 'Total Bills', value: bills.length, color: 'text-blue-600', bg: 'bg-blue-50' },
-                    { label: 'Amount Due', value: `₹${totalOwed.toFixed(0)}`, color: 'text-amber-600', bg: 'bg-amber-50' },
-                    { label: 'Total Paid', value: `₹${totalPaid.toFixed(0)}`, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                ].map(s => (
-                    <div key={s.label} className={`stat-card flex items-center gap-4`}>
-                        <div className={`w-12 h-12 rounded-xl ${s.bg} flex items-center justify-center shrink-0`}>
-                            <CreditCard className={`h-6 w-6 ${s.color}`} />
-                        </div>
-                        <div>
-                            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
-                        </div>
-                    </div>
-                ))}
+                <PatientStatCard label="Total Bills" value={bills.length} icon={Receipt} tone="blue" />
+                <PatientStatCard label="Amount Due" value={`₹${totalOwed.toFixed(0)}`} icon={Clock} tone="amber" />
+                <PatientStatCard label="Total Paid" value={`₹${totalPaid.toFixed(0)}`} icon={CheckCircle2} tone="emerald" />
             </div>
 
             {error && (
-                <div className="flex items-center gap-2 p-4 rounded-xl text-amber-600 bg-amber-50 border border-amber-200">
-                    <AlertCircle className="h-5 w-5 shrink-0" /> {error}
-                </div>
+                <PatientAlert icon={AlertCircle} tone="amber">{error}</PatientAlert>
             )}
 
-            <Card className="border-[var(--border-color)] shadow-sm">
-                <CardContent className="p-0">
-                    {loading ? (
-                        <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-amber-600" /></div>
-                    ) : bills.length === 0 ? (
-                        <div className="text-center py-16">
-                            <Receipt className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                            <h3 className="text-lg font-medium" style={{ color: 'var(--text-color)' }}>No Bills Found</h3>
-                            <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>You have no billing records yet.</p>
-                        </div>
-                    ) : (
+            {loading ? (
+                <PatientLoader label="Loading bills" />
+            ) : bills.length === 0 ? (
+                <PatientEmptyState
+                    icon={Receipt}
+                    title="No bills found"
+                    description="You have no billing records yet."
+                />
+            ) : (
+                <div className={`${patientCardClass} overflow-hidden`}>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead className="text-xs uppercase bg-gray-50 dark:bg-slate-800/50 border-b border-[var(--border-color)]" style={{ color: 'var(--text-muted)' }}>
@@ -151,9 +144,8 @@ const PatientBilling: React.FC = () => {
                                 </tbody>
                             </table>
                         </div>
-                    )}
-                </CardContent>
-            </Card>
+                </div>
+            )}
 
             {/* Bill Details Modal */}
             {selectedBill && (
@@ -225,7 +217,7 @@ const PatientBilling: React.FC = () => {
                     </div>
                 </div>
             )}
-        </div>
+        </PatientPageFrame>
     );
 };
 

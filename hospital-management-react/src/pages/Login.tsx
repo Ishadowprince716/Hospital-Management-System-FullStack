@@ -6,7 +6,7 @@ import type { RootState } from '../store';
 import api, { getApiErrorMessage } from '../api';
 
 type ApiResponse<T> = { success: boolean; message: string; data: T };
-type AuthResponse = { token: string; username: string; role: string; userId: number; fullName: string };
+type AuthResponse = { token: string; username: string; role: string; userId: number; fullName: string; profilePictureUrl?: string };
 type Role = 'PATIENT' | 'DOCTOR' | 'ADMIN';
 
 const ROLES: { id: Role; label: string }[] = [
@@ -61,9 +61,9 @@ const Login: React.FC = () => {
   const { loading, error } = useSelector((s: RootState) => s.auth);
   const [apiStatus, setApiStatus] = useState<string | null>(null);
 
-  useEffect(() => { 
-    setTimeout(() => setMounted(true), 60); 
-    
+  useEffect(() => {
+    setTimeout(() => setMounted(true), 60);
+
     // API Health Check
     api.get('/health')
       .then(() => setApiStatus('🟢 API Server is Online'))
@@ -79,7 +79,7 @@ const Login: React.FC = () => {
       if (d?.token) {
         localStorage.setItem('token', d.token);
         const r = d.role ?? role;
-        dispatch(loginSuccess({ user: { id: d.userId ?? 0, username: d.username ?? username, email: '', role: r, fullName: d.fullName ?? username }, token: d.token }));
+        dispatch(loginSuccess({ user: { id: d.userId ?? 0, username: d.username ?? username, email: '', role: r, fullName: d.fullName ?? username, profilePictureUrl: d.profilePictureUrl }, token: d.token }));
         navigate(r === 'ADMIN' ? '/admin' : r === 'DOCTOR' ? '/doctor' : '/patient');
       }
     } catch (err: unknown) {

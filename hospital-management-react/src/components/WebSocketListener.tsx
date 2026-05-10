@@ -11,11 +11,14 @@ const WebSocketListener: React.FC = () => {
     useEffect(() => {
         if (!isAuthenticated || !user) return;
 
+        let isActive = true;
         const socket = new SockJS('http://localhost:8080/ws');
         const stompClient = Stomp.over(socket);
         stompClient.debug = () => {}; // Disable logging for production feel
 
         stompClient.connect({}, () => {
+            if (!isActive) return;
+
             // Subscribe to Global Notifications
             stompClient.subscribe('/topic/notifications', (message) => {
                 const data = JSON.parse(message.body);
@@ -34,15 +37,20 @@ const WebSocketListener: React.FC = () => {
                 });
             });
         }, (error) => {
-            console.error('WebSocket connection error:', error);
+            if (isActive) {
+                console.warn('Live notifications are temporarily unavailable:', error);
+            }
         });
 
         return () => {
+            isActive = false;
             if (stompClient.connected) {
                 stompClient.disconnect(() => {});
+            } else {
+                socket.close();
             }
         };
-    }, [isAuthenticated, user]);
+    }, [isAuthenticated, user?.username]);
 
     return null; // This component doesn't render anything, it just listens
 };

@@ -1,9 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { FileText, AlertCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { FileText, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import api from '../../api';
-import { Card, CardContent } from '../../components/ui/Card';
+import { formatDoctorName } from '../../utils/displayNames';
+import {
+    PatientAlert,
+    PatientEmptyState,
+    PatientLoader,
+    PatientPageFrame,
+    PatientPageHeader,
+    PatientStatCard,
+    patientCardClass,
+} from '../../components/patient/PatientPanel';
 
 interface MedicalRecord {
     id: number;
@@ -56,40 +65,38 @@ const MedicalRecords: React.FC = () => {
     }, [user?.id]);
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn">
-            <div>
-                <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--text-color)' }}>
-                    <FileText className="h-6 w-6 text-blue-600" /> Medical Records
-                </h1>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-                    Your complete health history — diagnoses, treatments, and prescriptions.
-                </p>
-            </div>
+        <PatientPageFrame size="lg">
+            <PatientPageHeader
+                title="Medical Records"
+                description="Your complete health history, including diagnoses, visit notes, treatment plans, and uploaded clinical documents."
+                icon={FileText}
+                tone="teal"
+            />
 
-            {error && (
-                <div className="flex items-center gap-2 p-4 rounded-xl text-blue-600 bg-blue-50 border border-blue-200">
-                    <AlertCircle className="h-5 w-5 shrink-0" /> {error}
+            {!loading && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <PatientStatCard label="Clinical Records" value={records.length} icon={FileText} tone="teal" />
+                    <PatientStatCard label="Documents" value={documents.length} icon={FileText} tone="blue" />
+                    <PatientStatCard label="Expanded View" value={expanded ? 'Open' : 'Ready'} icon={expanded ? ChevronUp : ChevronDown} tone="slate" />
                 </div>
             )}
 
+            {error && (
+                <PatientAlert icon={AlertCircle} tone="blue">{error}</PatientAlert>
+            )}
+
             {loading ? (
-                <div className="flex justify-center py-16">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                </div>
+                <PatientLoader label="Loading medical records" />
             ) : records.length === 0 ? (
-                <Card className="border-[var(--border-color)]">
-                    <CardContent className="py-16 text-center">
-                        <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                        <h3 className="text-lg font-medium" style={{ color: 'var(--text-color)' }}>No Records Found</h3>
-                        <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-                            Medical records will appear here after your appointments are completed.
-                        </p>
-                    </CardContent>
-                </Card>
+                <PatientEmptyState
+                    icon={FileText}
+                    title="No records found"
+                    description="Medical records will appear here after your appointments are completed."
+                />
             ) : (
                 <div className="space-y-3">
                     {records.map((rec) => (
-                        <div key={rec.id} className="card overflow-hidden">
+                        <div key={rec.id} className={`${patientCardClass} overflow-hidden`}>
                             {/* Record Header - always visible */}
                             <button
                                 className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors"
@@ -110,7 +117,7 @@ const MedicalRecords: React.FC = () => {
                                             {rec.appointment?.doctor?.fullName && (
                                                 <>
                                                     <span>•</span>
-                                                    <span>Dr. {rec.appointment.doctor.fullName}</span>
+                                                    <span>{formatDoctorName(rec.appointment.doctor.fullName)}</span>
                                                 </>
                                             )}
                                             {rec.appointment?.doctor?.specialization && (
@@ -176,7 +183,7 @@ const MedicalRecords: React.FC = () => {
 
             {/* Documents Section */}
             {documents.length > 0 && (
-                <div className="card p-6 mt-8">
+                <div className={`${patientCardClass} mt-8 p-6`}>
                     <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-color)' }}>Uploaded Documents</h2>
                     <div className="grid gap-3">
                         {documents.map((doc) => (
@@ -196,7 +203,7 @@ const MedicalRecords: React.FC = () => {
                     </div>
                 </div>
             )}
-        </div>
+        </PatientPageFrame>
     );
 };
 

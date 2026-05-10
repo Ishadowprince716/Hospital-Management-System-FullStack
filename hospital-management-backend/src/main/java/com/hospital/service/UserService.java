@@ -23,10 +23,10 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
 
         String fileName = fileStorageService.storeFile(file);
-        
+
         // In this implementation, we store the filename or a relative path
         // The controller or a configuration should handle serving these files
-        String fileUrl = "/api/uploads/" + fileName; 
+        String fileUrl = "/uploads/" + fileName;
         user.setProfilePictureUrl(fileUrl);
         userRepository.save(user);
 
@@ -53,6 +53,7 @@ public class UserService {
         if (updates.containsKey("fullName"))    user.setFullName(updates.get("fullName"));
         if (updates.containsKey("email"))       user.setEmail(updates.get("email"));
         if (updates.containsKey("phoneNumber")) user.setPhoneNumber(updates.get("phoneNumber"));
+        if (updates.containsKey("profilePictureUrl")) user.setProfilePictureUrl(updates.get("profilePictureUrl"));
         return userRepository.save(user);
     }
 

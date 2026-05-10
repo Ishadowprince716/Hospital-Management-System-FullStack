@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Menu, Bell, Moon, Sun } from 'lucide-react';
 import type { RootState } from '../../store';
 import { useTheme } from '../../hooks/useTheme';
 import api from '../../api';
+import { getProfileImageUrl } from '../../utils/profileImage';
 
 interface NavbarProps {
     mobileMenuOpen: boolean;
@@ -33,11 +34,37 @@ function useUnreadCount(userId?: number) {
     return count;
 }
 
+const pageMeta: Record<string, { title: string; subtitle: string }> = {
+    '/patient': { title: 'Patient Overview', subtitle: 'Your care timeline, appointments, and health shortcuts.' },
+    '/patient/appointments': { title: 'My Appointments', subtitle: 'Track visits, cancellations, and video consultations.' },
+    '/patient/book-appointment': { title: 'Book Appointment', subtitle: 'Choose a doctor, date, time, and visit reason.' },
+    '/patient/medical-records': { title: 'Medical Records', subtitle: 'Diagnoses, treatment notes, and visit history.' },
+    '/patient/medical-reports': { title: 'Medical Reports', subtitle: 'Lab files, report downloads, and AI-assisted insights.' },
+    '/patient/prescriptions': { title: 'Prescriptions', subtitle: 'Medication plans and doctor instructions.' },
+    '/patient/billing': { title: 'Billing & Payments', subtitle: 'Invoices, balances, and payment status.' },
+    '/patient/messages': { title: 'Messages & Alerts', subtitle: 'Notifications and care updates from the portal.' },
+    '/patient/settings': { title: 'Settings', subtitle: 'Profile, security, and portal preferences.' },
+    '/doctor': { title: 'Doctor Overview', subtitle: 'Today\'s schedule, patient activity, and clinical shortcuts.' },
+    '/doctor/appointments': { title: 'My Appointments', subtitle: 'Review visits, update statuses, and start consultations.' },
+    '/doctor/patients': { title: 'My Patients', subtitle: 'Patients connected through your appointment history.' },
+    '/doctor/prescriptions': { title: 'Prescriptions', subtitle: 'Create medication plans and track active prescriptions.' },
+    '/doctor/medical-records': { title: 'Medical Records', subtitle: 'Write visit notes, diagnoses, and treatment plans.' },
+    '/doctor/lab-orders': { title: 'Lab Orders', subtitle: 'Order tests and monitor pending results.' },
+    '/doctor/availability': { title: 'Availability', subtitle: 'Manage weekly working hours and booking windows.' },
+    '/doctor/messages': { title: 'Messages & Alerts', subtitle: 'Notifications and patient care updates.' },
+    '/doctor/settings': { title: 'Settings', subtitle: 'Profile, security, and portal preferences.' },
+};
+
 const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen, setMobileMenuOpen }) => {
     const { user } = useSelector((state: RootState) => state.auth);
     const { theme, toggleTheme } = useTheme();
     const unreadCount = useUnreadCount(user?.id);
     const navigate = useNavigate();
+    const location = useLocation();
+    const meta = pageMeta[location.pathname] || {
+        title: 'MediCare HMS',
+        subtitle: `${(user?.role || 'User').toLowerCase()} portal`,
+    };
 
     const roleColor: Record<string, string> = {
         ADMIN:   'from-purple-500 to-purple-700',
@@ -45,6 +72,7 @@ const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen, setMobileMenuOpen }) =>
         PATIENT: 'from-blue-500 to-blue-700',
     };
     const gradient = roleColor[user?.role || 'PATIENT'] || roleColor.PATIENT;
+    const profileImage = getProfileImageUrl(user?.profilePictureUrl);
 
     const notifPath: Record<string, string> = {
         ADMIN:   '/admin/notifications',
@@ -59,24 +87,32 @@ const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen, setMobileMenuOpen }) =>
     };
 
     return (
-        <header className="fixed top-0 right-0 left-0 md:left-64 z-40 bg-[var(--card-bg)] border-b border-[var(--border-color)] h-16 transition-all duration-300">
+        <header className="fixed top-0 right-0 left-0 md:left-64 z-40 h-16 border-b border-[var(--border-color)] bg-[var(--card-bg)]/95 backdrop-blur transition-all duration-300">
             <div className="px-4 h-full flex items-center justify-between">
 
                 {/* Left: Mobile toggle + page title */}
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center gap-3">
                     <button
                         type="button"
-                        className="md:hidden p-2 text-gray-500 hover:text-gray-700 focus:outline-none rounded-lg"
+                        className="md:hidden rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none dark:hover:bg-slate-800"
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        aria-label="Open sidebar"
                     >
                         <Menu className="h-6 w-6" />
                     </button>
-                    <div className="hidden sm:flex items-center gap-2">
-                        <span className="text-lg font-bold" style={{ color: 'var(--text-color)' }}>MediCare</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold capitalize"
-                            style={{ background: 'rgba(37,99,235,0.1)', color: 'var(--primary)' }}>
-                            {(user?.role || '').toLowerCase()}
-                        </span>
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                            <h1 className="truncate text-base font-bold leading-tight sm:text-lg" style={{ color: 'var(--text-color)' }}>
+                                {meta.title}
+                            </h1>
+                            <span className="hidden rounded-full px-2 py-0.5 text-xs font-semibold capitalize sm:inline-flex"
+                                style={{ background: 'rgba(37,99,235,0.1)', color: 'var(--primary)' }}>
+                                {(user?.role || '').toLowerCase()}
+                            </span>
+                        </div>
+                        <p className="hidden truncate text-xs lg:block" style={{ color: 'var(--text-muted)' }}>
+                            {meta.subtitle}
+                        </p>
                     </div>
                 </div>
 
@@ -86,8 +122,9 @@ const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen, setMobileMenuOpen }) =>
                     {/* 🔔 Live Notification Bell */}
                     <button
                         onClick={() => navigate(notifPath[user?.role || 'PATIENT'] || '/patient/messages')}
-                        className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                        className="relative rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                         title={unreadCount > 0 ? `${unreadCount} unread notifications` : 'Notifications'}
+                        aria-label="Notifications"
                     >
                         <Bell className="h-5 w-5" style={{ color: 'var(--text-color)' }} />
                         {unreadCount > 0 && (
@@ -100,8 +137,9 @@ const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen, setMobileMenuOpen }) =>
                     {/* 🌙/☀️ Dark Mode Toggle */}
                     <button
                         onClick={toggleTheme}
-                        className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200"
+                        className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200"
                         title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                        aria-label={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                     >
                         {theme === 'dark'
                             ? <Sun className="h-5 w-5 text-amber-400" />
@@ -123,9 +161,17 @@ const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen, setMobileMenuOpen }) =>
                                 {(user?.role || '').toLowerCase()}
                             </p>
                         </div>
-                        <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-sm font-bold shadow-md`}>
-                            {(user?.fullName?.[0] || user?.username?.[0] || 'U').toUpperCase()}
-                        </div>
+                        {profileImage ? (
+                            <img
+                                src={profileImage}
+                                alt=""
+                                className="h-9 w-9 rounded-lg border border-[var(--border-color)] object-cover shadow-md"
+                            />
+                        ) : (
+                            <div className={`h-9 w-9 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-sm font-bold shadow-md`}>
+                                {(user?.fullName?.[0] || user?.username?.[0] || 'U').toUpperCase()}
+                            </div>
+                        )}
                     </button>
                 </div>
             </div>

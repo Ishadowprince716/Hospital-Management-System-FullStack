@@ -6,6 +6,7 @@ import type { RootState } from './store';
 import { Loader2 } from 'lucide-react';
 
 // ─── Eagerly Loaded ───
+import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -87,6 +88,7 @@ function App() {
                 <Suspense fallback={<PageLoader />}>
                     <Routes>
                         {/* ── Public ── */}
+                        <Route path="/"         element={!isAuthenticated ? <LandingPage /> : <Navigate to={getHomeRedirect()} />} />
                         <Route path="/login"    element={!isAuthenticated ? <Login />    : <Navigate to={getHomeRedirect()} />} />
                         <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to={getHomeRedirect()} />} />
 
@@ -158,7 +160,7 @@ function App() {
                             </ProtectedRoute>
                             } />
 
-                            {/* ── Root + 404 ── */}                        <Route path="/"  element={<Navigate to={isAuthenticated ? getHomeRedirect() : '/login'} replace />} />
+                            {/* ── Root + 404 ── */}
                         <Route path="*"  element={<Navigate to="/" replace />} />
                     </Routes>
                 </Suspense>

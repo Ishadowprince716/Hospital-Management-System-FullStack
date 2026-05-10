@@ -3,23 +3,34 @@ version: "3.9"
 services:
   mysql:
     image: mysql:8.0
+    container_name: hms-mysql
     environment:
       MYSQL_DATABASE: hospital_management
-      MYSQL_USER: hospital_user
-      MYSQL_PASSWORD: hospital123
       MYSQL_ROOT_PASSWORD: root
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prowroot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  mongodb:
-    image: mongo:6.0
+  hms-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hms-application
     ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hospital_management?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+    depends_on:
+      mysql:
+        condition: service_healthy
 
 volumes:
   mysql_data:
-  mongodb_data:

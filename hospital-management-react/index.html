@@ -8,11 +8,14 @@
     <title>MediCare HMS – Hospital Management System</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="root"></div>
     <script>
+      // Polyfill 'global' for sockjs-client in Vite
+      window.global = window;
+
       window.addEventListener('error', function(e) {
         document.body.innerHTML += '<div style="position:fixed;top:0;left:0;background:red;color:white;padding:20px;z-index:9999;width:100%">' + e.message + '<br/><pre>' + (e.error ? e.error.stack : '') + '</pre></div>';
       });

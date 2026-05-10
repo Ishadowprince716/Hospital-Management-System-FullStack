@@ -46,9 +46,11 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Public authentication endpoints
-                        .requestMatchers("/api/auth/**", "/auth/**", "/login/**", "/oauth2/**", "/api/health").permitAll()
+                        .requestMatchers("/api/auth/**", "/auth/**", "/login/**", "/oauth2/**", "/api/health", "/health", "/ready").permitAll()
                         // Public doctor listing endpoint
                         .requestMatchers("/api/doctors/**", "/doctors/**").permitAll()
+                        // Public SockJS/STOMP handshake endpoint; subscriptions are scoped client-side.
+                        .requestMatchers("/ws/**").permitAll()
                         // H2 console (dev only)
                         .requestMatchers("/h2-console/**").permitAll()
                         // All other requests require authentication (for production)

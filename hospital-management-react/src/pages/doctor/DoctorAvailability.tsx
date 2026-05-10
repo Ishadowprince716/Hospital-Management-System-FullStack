@@ -57,6 +57,11 @@ const DoctorAvailability: React.FC = () => {
     // POST — set availability for a day
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault(); setSubmitting(true); setError(null);
+        if (endTime <= startTime) {
+            setSubmitting(false);
+            setError('End time must be later than start time.');
+            return;
+        }
         try {
             await api.post(`/doctors/${user?.id}/availability`, {
                 dayOfWeek: day, startTime, endTime, slotDuration,
@@ -96,7 +101,7 @@ const DoctorAvailability: React.FC = () => {
             </div>
 
             {/* Weekly calendar grid */}
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
                 {DAYS.map(d => {
                     const daySlots = slotsByDay[d] || [];
                     return (
@@ -122,7 +127,6 @@ const DoctorAvailability: React.FC = () => {
                 <CardContent className="p-5">
                     <h2 className="text-base font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-color)' }}>
                         <Plus className="h-4 w-4 text-teal-600" /> Add Working Hours
-                        <span className="text-xs text-teal-500 font-mono ml-1">POST /doctors/{'{id}'}/availability</span>
                     </h2>
 
                     {success && (
@@ -146,7 +150,7 @@ const DoctorAvailability: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                             <div>
                                 <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-color)' }}>Start Time</label>
                                 <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)}

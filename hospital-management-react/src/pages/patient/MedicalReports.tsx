@@ -1,9 +1,17 @@
 import React from 'react';
-import { FileText, Download, Loader2, AlertCircle } from 'lucide-react';
+import { FileText, Download, AlertCircle, Brain } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { useGetPatientMedicalReportsQuery } from '../../store/api/patientApiSlice';
-import { Card, CardContent } from '../../components/ui/Card';
+import { formatDoctorName } from '../../utils/displayNames';
+import {
+    PatientAlert,
+    PatientEmptyState,
+    PatientLoader,
+    PatientPageFrame,
+    PatientPageHeader,
+    patientCardClass,
+} from '../../components/patient/PatientPanel';
 
 interface MedicalReport {
     id: number;
@@ -14,6 +22,8 @@ interface MedicalReport {
     uploadDate: string;
     uploader?: { fullName: string };
 }
+
+import SmartDiagnosticLab from '../../components/dashboard/SmartDiagnosticLab';
 
 const MedicalReports: React.FC = () => {
     const { user } = useSelector((state: RootState) => state.auth);
@@ -44,36 +54,53 @@ const MedicalReports: React.FC = () => {
 
     if (isLoading) {
         return (
-            <div className="flex justify-center p-8">
-                <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
-            </div>
+            <PatientPageFrame>
+                <PatientLoader label="Loading medical reports" />
+            </PatientPageFrame>
         );
     }
 
     return (
-        <div className="space-y-6 animate-fadeIn">
-            <div>
-                <h1 className="text-2xl font-bold text-[var(--text-color)]">Medical Reports</h1>
-                <p className="text-[var(--text-muted)]">View and download your lab results and medical reports</p>
+        <PatientPageFrame>
+            <PatientPageHeader
+                title="Medical Reports"
+                description="View lab reports, imaging documents, and AI-assisted summaries in one organized workspace."
+                icon={FileText}
+                tone="purple"
+            />
+
+            <section className={`${patientCardClass} p-5`}>
+                <div className="mb-5 flex items-center gap-3">
+                    <div className="grid h-10 w-10 place-items-center rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-300">
+                        <Brain className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-semibold text-[var(--text-color)]">Smart Diagnostic Lab</h2>
+                        <p className="text-sm text-[var(--text-muted)]">Recent sample insights and report review workspace.</p>
+                    </div>
+                </div>
+                <SmartDiagnosticLab />
+            </section>
+
+            <div className="flex flex-col gap-1 border-t border-gray-100 pt-6 dark:border-slate-800">
+                <h2 className="text-xl font-bold text-[var(--text-color)]">Document Repository</h2>
+                <p className="text-sm text-[var(--text-muted)]">Secure storage for your medical documents and legacy records.</p>
             </div>
 
             {error && (
-                <div className="bg-red-50 text-red-600 p-4 rounded-xl flex items-center gap-3">
-                    <AlertCircle className="w-5 h-5 shrink-0" />
-                    <p>Failed to load medical reports.</p>
-                </div>
+                <PatientAlert icon={AlertCircle} tone="rose">Failed to load medical reports.</PatientAlert>
             )}
 
             {!error && reports.length === 0 ? (
-                <div className="card p-12 text-center text-[var(--text-muted)]">
-                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No medical reports found.</p>
-                </div>
+                <PatientEmptyState
+                    icon={FileText}
+                    title="No medical reports found"
+                    description="Uploaded reports and lab documents will appear here."
+                />
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {reports.map(report => (
-                        <Card key={report.id} className="hover:border-[var(--primary)] transition-colors">
-                            <CardContent className="p-5 flex flex-col h-full">
+                        <div key={report.id} className={`${patientCardClass} flex h-full flex-col p-5 transition-colors hover:border-[var(--primary)]`}>
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="p-3 bg-[var(--bg-secondary)] rounded-xl text-[var(--primary)]">
                                         <FileText className="w-6 h-6" />
@@ -82,14 +109,14 @@ const MedicalReports: React.FC = () => {
                                         {report.reportType}
                                     </span>
                                 </div>
-                                
+
                                 <h3 className="font-semibold text-lg text-[var(--text-color)] mb-1 line-clamp-2">
                                     {report.reportTitle}
                                 </h3>
-                                
+
                                 <div className="mt-auto pt-4 text-sm text-[var(--text-muted)] space-y-1">
                                     <p><strong>Uploaded:</strong> {new Date(report.uploadDate).toLocaleDateString()}</p>
-                                    <p><strong>By:</strong> Dr. {report.uploader?.fullName || 'N/A'}</p>
+                                    <p><strong>By:</strong> {formatDoctorName(report.uploader?.fullName)}</p>
                                 </div>
 
                                 <button
@@ -99,12 +126,11 @@ const MedicalReports: React.FC = () => {
                                     <Download className="w-4 h-4" />
                                     Download
                                 </button>
-                            </CardContent>
-                        </Card>
+                        </div>
                     ))}
                 </div>
             )}
-        </div>
+        </PatientPageFrame>
     );
 };
 
