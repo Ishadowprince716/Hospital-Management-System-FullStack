@@ -1,5 +1,8 @@
 package com.hospital.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.hospital.dto.AppointmentDTO;
 import com.hospital.mapper.AppointmentMapper;
 import com.hospital.model.Appointment;
@@ -9,37 +12,35 @@ import com.hospital.service.AppointmentService;
 import com.hospital.config.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@ExtendWith(MockitoExtension.class)
 public class AppointmentControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @Mock
     private AppointmentService appointmentService;
 
-    @MockBean
+    @Mock
     private AppointmentMapper appointmentMapper;
 
-    @MockBean
+    @Mock
     private JwtUtil jwtUtil;
 
     private Appointment mockAppointment;
@@ -47,6 +48,18 @@ public class AppointmentControllerTest {
 
     @BeforeEach
     void setUp() {
+        ObjectMapper objectMapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        mockMvc = MockMvcBuilders.standaloneSetup(new AppointmentController(
+                appointmentService,
+                appointmentMapper,
+                jwtUtil))
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
+                .build();
+
         Patient patient = new Patient();
         patient.setId(1L);
         patient.setFullName("John Patient");
@@ -75,7 +88,6 @@ public class AppointmentControllerTest {
     }
 
     @Test
-    @WithMockUser
     public void testBookAppointment() throws Exception {
         when(appointmentService.bookAppointment(anyLong(), anyLong(), any(), any(), anyString(), anyString()))
                 .thenReturn(mockAppointment);
@@ -102,7 +114,6 @@ public class AppointmentControllerTest {
     }
 
     @Test
-    @WithMockUser
     public void testGetAppointmentById() throws Exception {
         when(appointmentService.getAppointmentById(1L)).thenReturn(mockAppointment);
         when(appointmentMapper.toDTO(mockAppointment)).thenReturn(mockAppointmentDTO);
@@ -114,7 +125,6 @@ public class AppointmentControllerTest {
     }
 
     @Test
-    @WithMockUser
     public void testGetPatientAppointments() throws Exception {
         java.util.List<Appointment> list = new java.util.ArrayList<>();
         list.add(mockAppointment);
@@ -129,7 +139,6 @@ public class AppointmentControllerTest {
     }
 
     @Test
-    @WithMockUser
     public void testCancelAppointment() throws Exception {
         mockAppointment.setStatus("CANCELLED");
         mockAppointmentDTO.setStatus("CANCELLED");
@@ -144,7 +153,6 @@ public class AppointmentControllerTest {
     }
 
     @Test
-    @WithMockUser
     public void testUpdateAppointmentStatus() throws Exception {
         mockAppointment.setStatus("COMPLETED");
         mockAppointmentDTO.setStatus("COMPLETED");

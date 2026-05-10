@@ -5,9 +5,33 @@ import { useGetTelehealthSessionQuery } from '../../store/api/telehealthApiSlice
 import type { RootState } from '../../store';
 import { Loader2, VideoOff, PhoneOff } from 'lucide-react';
 
+interface JitsiMeetExternalApi {
+    addEventListeners: (listeners: Record<string, () => void>) => void;
+    dispose: () => void;
+}
+
+interface JitsiMeetOptions {
+    roomName: string;
+    width: string;
+    height: string;
+    parentNode: HTMLElement;
+    userInfo: {
+        displayName: string;
+        email: string;
+    };
+    interfaceConfigOverwrite: {
+        TOOLBAR_BUTTONS: string[];
+    };
+}
+
+type JitsiMeetExternalApiConstructor = new (
+    domain: string,
+    options: JitsiMeetOptions
+) => JitsiMeetExternalApi;
+
 declare global {
     interface Window {
-        JitsiMeetExternalAPI: any;
+        JitsiMeetExternalAPI?: JitsiMeetExternalApiConstructor;
     }
 }
 
@@ -16,7 +40,8 @@ const VideoCall: React.FC = () => {
     const navigate = useNavigate();
     const { user } = useSelector((state: RootState) => state.auth);
     const jitsiContainerRef = useRef<HTMLDivElement>(null);
-    const [jitsiApi, setJitsiClient] = useState<any>(null);
+    const jitsiApiRef = useRef<JitsiMeetExternalApi | null>(null);
+    const [jitsiApi, setJitsiClient] = useState<JitsiMeetExternalApi | null>(null);
     const [scriptLoaded, setScriptLoaded] = useState(false);
 
     const { data: sessionData, isLoading, error } = useGetTelehealthSessionQuery(Number(appointmentId));
@@ -31,15 +56,21 @@ const VideoCall: React.FC = () => {
 
         return () => {
             document.body.removeChild(script);
-            if (jitsiApi) jitsiApi.dispose();
+            jitsiApiRef.current?.dispose();
+            jitsiApiRef.current = null;
         };
     }, []);
 
     useEffect(() => {
-        if (scriptLoaded && sessionData?.data && jitsiContainerRef.current && !jitsiApi) {
+        if (scriptLoaded && sessionData?.data && jitsiContainerRef.current && !jitsiApiRef.current && window.JitsiMeetExternalAPI) {
+            const roomName = sessionData.data.roomName;
+            if (!roomName) {
+                return;
+            }
+
             const domain = 'meet.jit.si';
-            const options = {
-                roomName: sessionData.data.roomName,
+            const options: JitsiMeetOptions = {
+                roomName,
                 width: '100%',
                 height: '100%',
                 parentNode: jitsiContainerRef.current,
@@ -59,7 +90,7 @@ const VideoCall: React.FC = () => {
                 }
             };
             const api = new window.JitsiMeetExternalAPI(domain, options);
-            
+
             api.addEventListeners({
                 readyToClose: () => {
                     navigate(-1);
@@ -69,9 +100,10 @@ const VideoCall: React.FC = () => {
                 }
             });
 
+            jitsiApiRef.current = api;
             setJitsiClient(api);
         }
-    }, [scriptLoaded, sessionData, user]);
+    }, [navigate, scriptLoaded, sessionData, user?.email, user?.fullName]);
 
     if (isLoading) {
         return (
@@ -114,7 +146,8 @@ const VideoCall: React.FC = () => {
             <div className="absolute top-4 right-4 z-[10001]">
                 <button 
                     onClick={() => {
-                        if(jitsiApi) jitsiApi.dispose();
+                        jitsiApi?.dispose();
+                        jitsiApiRef.current = null;
                         navigate(-1);
                     }}
                     className="p-3 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-colors"

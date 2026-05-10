@@ -5,7 +5,8 @@ import api from '../../api';
 import {
     Users, CalendarCheck, Activity, CreditCard,
     TrendingUp, Stethoscope, FileText,
-    AlertCircle, Loader2, CalendarPlus
+    AlertCircle, Loader2, CalendarPlus,
+    type LucideIcon
 } from 'lucide-react';
 import { formatDoctorName } from '../../utils/displayNames';
 import { PatientPageHeader, PatientStatCard } from '../../components/patient/PatientPanel';
@@ -52,7 +53,7 @@ interface DoctorStats {
 interface StatCard {
     label: string;
     value: string | number;
-    icon: any;
+    icon: LucideIcon;
     color: string;
     bg: string;
     change?: string;
@@ -68,10 +69,13 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     }
 };
 
-const unwrapList = <T,>(payload: any): T[] => {
-    const data = payload?.data ?? payload;
-    if (Array.isArray(data?.content)) return data.content;
-    if (Array.isArray(data)) return data;
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null;
+
+const unwrapList = <T,>(payload: unknown): T[] => {
+    const data = isRecord(payload) && 'data' in payload ? payload.data : payload;
+    if (isRecord(data) && Array.isArray(data.content)) return data.content as T[];
+    if (Array.isArray(data)) return data as T[];
     return [];
 };
 

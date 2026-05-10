@@ -1,9 +1,12 @@
 # Java
 *.class
 target/
+**/target/
 *.jar
 *.war
 *.ear
+.m2repo/
+**/.m2repo/
 
 # Logs
 *.log
@@ -14,8 +17,16 @@ build_log.txt
 compile_*.txt
 final_compile.txt
 full_compile.txt
+*.tmp
+*.dump
+*.dumpstream
+
+# Generated local automation/tooling traces
+.github/java-upgrade/
 
 # Local generated search indexes
+lucene/
+**/lucene/
 hospital-management-backend/Doctor/
 hospital-management-backend/Patient/
 hospital-management-backend/User/

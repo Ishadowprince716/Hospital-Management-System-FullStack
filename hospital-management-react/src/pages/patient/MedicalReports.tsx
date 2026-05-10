@@ -25,13 +25,24 @@ interface MedicalReport {
 
 import SmartDiagnosticLab from '../../components/dashboard/SmartDiagnosticLab';
 
+const getMedicalReports = (payload: unknown): MedicalReport[] => {
+    if (Array.isArray(payload)) {
+        return payload as MedicalReport[];
+    }
+    if (payload && typeof payload === 'object') {
+        const content = (payload as { content?: unknown }).content;
+        return Array.isArray(content) ? content as MedicalReport[] : [];
+    }
+    return [];
+};
+
 const MedicalReports: React.FC = () => {
     const { user } = useSelector((state: RootState) => state.auth);
     const { data, error, isLoading } = useGetPatientMedicalReportsQuery(user?.id as number, {
         skip: !user?.id,
     });
 
-    const reports: MedicalReport[] = data?.data?.content || data?.data || [];
+    const reports = getMedicalReports(data?.data);
 
     const handleDownload = (report: MedicalReport) => {
         const token = localStorage.getItem('token');

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FlaskConical, Plus, Trash2, Loader2, AlertCircle, CheckCircle2, Clock, X, ChevronDown } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
@@ -53,21 +53,27 @@ const DoctorLabOrders: React.FC = () => {
     const [testType, setTestType] = useState('BLOOD');
     const [priority, setPriority] = useState('ROUTINE');
     const [notes, setNotes] = useState('');
+    const doctorId = user?.id;
 
-    const fetchOrders = async () => {
+    const fetchOrders = useCallback(async () => {
+        if (!doctorId) {
+            setOrders([]);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
-            const res = await api.get(`/lab-orders/doctor/${user?.id}?size=100`);
+            const res = await api.get(`/lab-orders/doctor/${doctorId}?size=100`);
             setOrders(res.data?.data?.content || res.data?.data || []);
         } catch { setOrders([]); } finally { setLoading(false); }
-    };
+    }, [doctorId]);
 
     useEffect(() => {
         fetchOrders();
         api.get('/patients?size=200')
             .then(r => setPatients(r.data?.data?.content || r.data?.data || []))
             .catch(() => { });
-    }, [user?.id]);
+    }, [fetchOrders]);
 
     // POST — create lab order
     const handleSubmit = async (e: React.FormEvent) => {
@@ -75,7 +81,7 @@ const DoctorLabOrders: React.FC = () => {
         try {
             await api.post('/lab-orders', {
                 patient: { id: Number(patientId) },
-                doctor:  { id: user?.id },
+                doctor:  { id: doctorId },
                 testName, testType, priority, notes, status: 'PENDING',
             });
             setSuccess(true);
