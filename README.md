@@ -144,7 +144,7 @@ Use these credentials to test different user roles:
 |------|----------|----------|
 | **Admin** | `whoami` | `iamgroot` |
 | **Doctor** | `doctor1` | `doctor123` |
-| **Patient** | `patient1` | `patient123` |
+| **Patient** | `patient2` | `doctor123` |
 
 ⚠️ **Note**: Change these credentials in production!
 
