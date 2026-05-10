@@ -63,5 +63,12 @@ public class SecurityIntegrationTest {
     public void publicEndpointsShouldBePermitted() throws Exception {
         mockMvc.perform(get("/api/doctors"))
                 .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ok"));
+
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk());
     }
 }
