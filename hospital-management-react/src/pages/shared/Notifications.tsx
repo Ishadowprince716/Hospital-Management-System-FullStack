@@ -48,7 +48,7 @@ const Notifications: React.FC = () => {
         finally { setLoading(false); }
     }, [user?.id]);
 
-    useEffect(() => { if (user?.id) fetchNotifications(); }, [fetchNotifications]);
+    useEffect(() => { if (user?.id) fetchNotifications(); }, [fetchNotifications, user?.id]);
 
     // PATCH — mark single as read
     const markRead = async (id: number) => {

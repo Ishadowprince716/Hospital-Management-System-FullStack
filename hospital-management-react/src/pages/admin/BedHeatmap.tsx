@@ -41,7 +41,7 @@ const BedHeatmap: React.FC = () => {
         try {
             const res = await api.get('/orchestration/demand-forecast');
             setForecast(res.data?.data || 'No forecast data available.');
-        } catch (error) {
+        } catch {
             setForecast('Failed to generate AI prediction.');
         } finally {
             setPredicting(false);

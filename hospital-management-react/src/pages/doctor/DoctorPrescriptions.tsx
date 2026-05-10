@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Pill, Plus, Trash2, AlertCircle, Loader2, CheckCircle2, X } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
@@ -26,24 +26,30 @@ const DoctorPrescriptions: React.FC = () => {
     const [diagnosis, setDiagnosis] = useState('');
     const [notes, setNotes] = useState('');
     const [items, setItems] = useState<PrescriptionItem[]>([{ medicineName: '', dosage: '', frequency: '', duration: '' }]);
+    const doctorId = user?.id;
 
-    const fetchPrescriptions = async () => {
+    const fetchPrescriptions = useCallback(async () => {
+        if (!doctorId) {
+            setPrescriptions([]);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
-            const res = await api.get(`/prescriptions/doctor/${user?.id}?size=50`);
+            const res = await api.get(`/prescriptions/doctor/${doctorId}?size=50`);
             setPrescriptions(res.data?.data?.content || []);
         } catch { setPrescriptions([]); }
         finally { setLoading(false); }
-    };
+    }, [doctorId]);
 
-    const fetchPatients = async () => {
+    const fetchPatients = useCallback(async () => {
         try {
             const res = await api.get('/patients?size=100');
             setPatients(res.data?.data?.content || res.data?.data || []);
         } catch { setPatients([]); }
-    };
+    }, []);
 
-    useEffect(() => { fetchPrescriptions(); fetchPatients(); }, []);
+    useEffect(() => { fetchPrescriptions(); fetchPatients(); }, [fetchPrescriptions, fetchPatients]);
 
     const addItem = () => setItems([...items, { medicineName: '', dosage: '', frequency: '', duration: '' }]);
     const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
@@ -58,7 +64,7 @@ const DoctorPrescriptions: React.FC = () => {
         try {
             await api.post('/prescriptions', {
                 patient: { id: Number(patientId) },
-                doctor: { id: user?.id },
+                doctor: { id: doctorId },
                 diagnosis, notes,
                 items: items.filter(it => it.medicineName),
                 status: 'ACTIVE',

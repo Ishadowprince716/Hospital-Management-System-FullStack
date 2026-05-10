@@ -22,7 +22,7 @@ const userStr = localStorage.getItem('user');
 let initialUser = null;
 try {
     if (userStr) initialUser = JSON.parse(userStr);
-} catch (e) {
+} catch {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
 }

@@ -7,9 +7,10 @@ import { toast } from 'react-hot-toast';
 
 const WebSocketListener: React.FC = () => {
     const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
+    const username = user?.username;
 
     useEffect(() => {
-        if (!isAuthenticated || !user) return;
+        if (!isAuthenticated || !username) return;
 
         let isActive = true;
         const socket = new SockJS('http://localhost:8080/ws');
@@ -29,7 +30,7 @@ const WebSocketListener: React.FC = () => {
             });
 
             // Subscribe to Private User Notifications
-            stompClient.subscribe(`/user/${user.username}/queue/notifications`, (message) => {
+            stompClient.subscribe(`/user/${username}/queue/notifications`, (message) => {
                 const data = JSON.parse(message.body);
                 toast.success(data.message, {
                     icon: '🚀',
@@ -50,7 +51,7 @@ const WebSocketListener: React.FC = () => {
                 socket.close();
             }
         };
-    }, [isAuthenticated, user?.username]);
+    }, [isAuthenticated, username]);
 
     return null; // This component doesn't render anything, it just listens
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Plus, Trash2, Loader2, CheckCircle2, AlertCircle, Calendar } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
@@ -43,16 +43,22 @@ const DoctorAvailability: React.FC = () => {
     const [startTime, setStartTime] = useState('09:00');
     const [endTime, setEndTime] = useState('17:00');
     const [slotDuration, setSlotDuration] = useState(30);
+    const doctorId = user?.id;
 
-    const fetchSlots = async () => {
+    const fetchSlots = useCallback(async () => {
+        if (!doctorId) {
+            setSlots([]);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
-            const res = await api.get(`/doctors/${user?.id}/availability`);
+            const res = await api.get(`/doctors/${doctorId}/availability`);
             setSlots(res.data?.data || []);
         } catch { setSlots([]); } finally { setLoading(false); }
-    };
+    }, [doctorId]);
 
-    useEffect(() => { if (user?.id) fetchSlots(); }, [user?.id]);
+    useEffect(() => { fetchSlots(); }, [fetchSlots]);
 
     // POST — set availability for a day
     const handleSubmit = async (e: React.FormEvent) => {
@@ -63,7 +69,7 @@ const DoctorAvailability: React.FC = () => {
             return;
         }
         try {
-            await api.post(`/doctors/${user?.id}/availability`, {
+            await api.post(`/doctors/${doctorId}/availability`, {
                 dayOfWeek: day, startTime, endTime, slotDuration,
             });
             setSuccess(true);
