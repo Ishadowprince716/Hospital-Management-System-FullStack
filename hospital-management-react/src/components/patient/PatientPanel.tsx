@@ -52,7 +52,7 @@ const toneStyles: Record<Tone, { icon: string; soft: string; border: string; tex
 const cx = (...classes: Array<string | false | undefined>) => classes.filter(Boolean).join(' ');
 
 export const patientCardClass =
-    'rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-900/[0.03] dark:border-slate-800 dark:bg-slate-950';
+    'rounded-lg border border-[var(--border-color)] bg-[var(--card-elevated)] shadow-[var(--shadow-sm)] backdrop-blur dark:bg-slate-950';
 
 export const PatientPageFrame: React.FC<{
     children: React.ReactNode;
@@ -79,10 +79,10 @@ export const PatientPageHeader: React.FC<{
     const toneClass = toneStyles[tone];
 
     return (
-        <div className={cx(patientCardClass, 'overflow-hidden')}>
+        <div className={cx(patientCardClass, 'overflow-hidden transition-all hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-md)]')}>
             <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-start gap-4">
-                    <div className={cx('grid h-12 w-12 shrink-0 place-items-center rounded-lg', toneClass.icon)}>
+                    <div className={cx('grid h-12 w-12 shrink-0 place-items-center rounded-lg shadow-sm ring-1 ring-white/60 dark:ring-white/5', toneClass.icon)}>
                         <Icon className="h-6 w-6" />
                     </div>
                     <div className="min-w-0">
@@ -113,14 +113,14 @@ export const PatientStatCard: React.FC<{
     const toneClass = toneStyles[tone];
 
     return (
-        <div className={cx(patientCardClass, 'p-4 transition-all hover:-translate-y-0.5 hover:shadow-md')}>
+        <div className={cx(patientCardClass, 'p-4 transition-all hover:-translate-y-0.5 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-md)]')}>
             <div className="flex items-start justify-between gap-3">
                 <div>
                     <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
                     <div className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">{value}</div>
                     {helper && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{helper}</p>}
                 </div>
-                <div className={cx('grid h-10 w-10 shrink-0 place-items-center rounded-lg', toneClass.icon)}>
+                <div className={cx('grid h-10 w-10 shrink-0 place-items-center rounded-lg shadow-sm ring-1 ring-white/70 dark:ring-white/5', toneClass.icon)}>
                     <Icon className="h-5 w-5" />
                 </div>
             </div>
@@ -136,7 +136,7 @@ export const PatientAlert: React.FC<{
     const toneClass = toneStyles[tone];
 
     return (
-        <div className={cx('flex items-start gap-3 rounded-lg border p-4 text-sm', toneClass.soft, toneClass.border)}>
+        <div className={cx('flex items-start gap-3 rounded-lg border p-4 text-sm shadow-[var(--shadow-sm)]', toneClass.soft, toneClass.border)}>
             <Icon className="mt-0.5 h-5 w-5 shrink-0" />
             <div className="font-medium leading-6">{children}</div>
         </div>

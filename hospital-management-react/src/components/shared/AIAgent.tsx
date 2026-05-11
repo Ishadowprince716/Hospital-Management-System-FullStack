@@ -52,8 +52,6 @@ type SpeechRecognitionWindow = Window & typeof globalThis & {
     webkitSpeechRecognition?: SpeechRecognitionConstructor;
 };
 
-const MEDIMATE_CHARACTER_IMAGE = '/assets/medimate-character.jpg';
-
 const buildLocalSupportMessage = (role?: string) => {
     if (role?.toUpperCase() === 'DOCTOR') {
         return "MediMate is running in local clinical support mode right now. Gemini is unavailable, but I can still help structure a quick clinical note, symptom summary, assessment checklist, or HMS workflow. Share the patient's age, complaint, duration, vitals, history, medicines, allergies, and any red flags.";
@@ -78,23 +76,6 @@ const MediMateCharacter = ({
         lg: 'h-[66px] w-[66px]',
         xl: 'h-[92px] w-[92px]',
     }[size];
-    const [imageFailed, setImageFailed] = useState(false);
-
-    if (!imageFailed) {
-        return (
-            <img
-                aria-hidden="true"
-                src={MEDIMATE_CHARACTER_IMAGE}
-                alt=""
-                draggable={false}
-                onError={() => setImageFailed(true)}
-                className={`${sizeClass} bg-transparent ${
-                    variant === 'full' ? 'rounded-lg object-contain object-center' : 'rounded-lg object-cover object-top'
-                } ${className}`}
-            />
-        );
-    }
-
     if (variant === 'avatar') {
         return (
             <svg

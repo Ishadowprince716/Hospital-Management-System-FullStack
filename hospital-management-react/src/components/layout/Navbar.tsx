@@ -87,8 +87,8 @@ const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen, setMobileMenuOpen }) =>
     };
 
     return (
-        <header className="fixed top-0 right-0 left-0 md:left-64 z-40 h-16 border-b border-[var(--border-color)] bg-[var(--card-bg)]/95 backdrop-blur transition-all duration-300">
-            <div className="px-4 h-full flex items-center justify-between">
+        <header className="fixed top-0 right-0 left-0 md:left-64 z-40 h-16 border-b border-[var(--border-color)] bg-[var(--card-elevated)]/95 shadow-[0_1px_0_rgba(15,23,42,0.03)] backdrop-blur-xl transition-all duration-300">
+            <div className="h-full px-4 sm:px-6 flex items-center justify-between">
 
                 {/* Left: Mobile toggle + page title */}
                 <div className="flex min-w-0 items-center gap-3">
@@ -102,11 +102,11 @@ const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen, setMobileMenuOpen }) =>
                     </button>
                     <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                            <h1 className="truncate text-base font-bold leading-tight sm:text-lg" style={{ color: 'var(--text-color)' }}>
+                            <h1 className="truncate text-base font-black leading-tight tracking-tight sm:text-lg" style={{ color: 'var(--text-color)' }}>
                                 {meta.title}
                             </h1>
-                            <span className="hidden rounded-full px-2 py-0.5 text-xs font-semibold capitalize sm:inline-flex"
-                                style={{ background: 'rgba(37,99,235,0.1)', color: 'var(--primary)' }}>
+                            <span className="hidden rounded-full border px-2 py-0.5 text-xs font-bold capitalize sm:inline-flex"
+                                style={{ background: 'var(--primary-soft)', borderColor: 'var(--ring)', color: 'var(--primary)' }}>
                                 {(user?.role || '').toLowerCase()}
                             </span>
                         </div>
@@ -122,7 +122,7 @@ const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen, setMobileMenuOpen }) =>
                     {/* 🔔 Live Notification Bell */}
                     <button
                         onClick={() => navigate(notifPath[user?.role || 'PATIENT'] || '/patient/messages')}
-                        className="relative rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                        className="relative rounded-lg border border-transparent p-2 transition-all hover:border-[var(--border-color)] hover:bg-slate-100 dark:hover:bg-slate-800"
                         title={unreadCount > 0 ? `${unreadCount} unread notifications` : 'Notifications'}
                         aria-label="Notifications"
                     >
@@ -137,7 +137,7 @@ const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen, setMobileMenuOpen }) =>
                     {/* 🌙/☀️ Dark Mode Toggle */}
                     <button
                         onClick={toggleTheme}
-                        className="rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all duration-200"
+                        className="rounded-lg border border-transparent p-2 transition-all duration-200 hover:border-[var(--border-color)] hover:bg-slate-100 dark:hover:bg-slate-800"
                         title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                         aria-label={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                     >
@@ -150,7 +150,7 @@ const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen, setMobileMenuOpen }) =>
                     {/* User profile chip */}
                     <button
                         onClick={() => navigate(settingsPath[user?.role || 'PATIENT'] || '/patient/settings')}
-                        className="flex items-center gap-2.5 pl-3 border-l border-[var(--border-color)] hover:opacity-80 transition-opacity"
+                        className="flex items-center gap-2.5 rounded-lg border border-transparent py-1.5 pl-3 pr-1.5 transition-all hover:border-[var(--border-color)] hover:bg-slate-100 dark:hover:bg-slate-800"
                         title="Settings"
                     >
                         <div className="hidden sm:block text-right">

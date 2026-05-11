@@ -12,7 +12,7 @@ export const Card: React.FC<CardProps> = ({ className, children, ...props }) => 
     return (
         <div
             className={cn(
-                'rounded-xl border border-gray-200 bg-white text-gray-900 shadow-sm backdrop-blur-sm bg-opacity-90',
+                'rounded-lg border border-[var(--border-color)] bg-[var(--card-elevated)] text-[var(--text-color)] shadow-[var(--shadow-sm)] backdrop-blur transition-all duration-200 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-md)]',
                 className
             )}
             {...props}
@@ -25,7 +25,7 @@ export const Card: React.FC<CardProps> = ({ className, children, ...props }) => 
 export const CardHeader: React.FC<CardProps> = ({ className, children, ...props }) => {
     return (
         <div
-            className={cn('flex flex-col space-y-1.5 p-6', className)}
+            className={cn('flex flex-col space-y-1.5 p-5 sm:p-6', className)}
             {...props}
         >
             {children}
@@ -40,7 +40,7 @@ export const CardTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({
 }) => {
     return (
         <h3
-            className={cn('font-semibold leading-none tracking-tight text-xl', className)}
+            className={cn('text-lg font-bold leading-tight tracking-normal text-[var(--text-color)] sm:text-xl', className)}
             {...props}
         >
             {children}
@@ -50,7 +50,7 @@ export const CardTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({
 
 export const CardContent: React.FC<CardProps> = ({ className, children, ...props }) => {
     return (
-        <div className={cn('p-6 pt-0', className)} {...props}>
+        <div className={cn('p-5 pt-0 sm:p-6 sm:pt-0', className)} {...props}>
             {children}
         </div>
     );
@@ -59,7 +59,7 @@ export const CardContent: React.FC<CardProps> = ({ className, children, ...props
 export const CardFooter: React.FC<CardProps> = ({ className, children, ...props }) => {
     return (
         <div
-            className={cn('flex items-center p-6 pt-0', className)}
+            className={cn('flex items-center p-5 pt-0 sm:p-6 sm:pt-0', className)}
             {...props}
         >
             {children}
