@@ -240,17 +240,21 @@ const Login: React.FC = () => {
             })}
           </div>
 
-          <GoogleAuthButton
-            label={googleLoading ? 'Connecting to Google...' : `Continue with Google${role !== 'ADMIN' ? ` as ${role.charAt(0) + role.slice(1).toLowerCase()}` : ''}`}
-            disabled={loading || googleLoading}
-            onClick={handleGoogleSignIn}
-          />
+          {role !== 'ADMIN' && (
+            <>
+              <GoogleAuthButton
+                label={googleLoading ? 'Connecting to Google...' : `Continue with Google as ${role.charAt(0) + role.slice(1).toLowerCase()}`}
+                disabled={loading || googleLoading}
+                onClick={handleGoogleSignIn}
+              />
 
-          <div style={S.divider}>
-            <span style={S.dividerLine} />
-            <span style={S.dividerText}>or use username</span>
-            <span style={S.dividerLine} />
-          </div>
+              <div style={S.divider}>
+                <span style={S.dividerLine} />
+                <span style={S.dividerText}>or use username</span>
+                <span style={S.dividerLine} />
+              </div>
+            </>
+          )}
 
           {/* Form */}
           <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
