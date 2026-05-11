@@ -3,8 +3,52 @@ import { useNavigate } from 'react-router-dom';
 import {
     Activity, Bot, Video, Shield,
     ArrowRight, CheckCircle,
-    Smartphone, Zap, Globe, Stethoscope
+    Smartphone, Zap, Globe, Stethoscope,
+    Github, Linkedin, Instagram, Facebook, Mail, MessageCircle, Code2, Palette
 } from 'lucide-react';
+
+const developerLinks = [
+    {
+        label: 'GitHub',
+        href: 'https://github.com/Ishadowprince716',
+        icon: Github,
+    },
+    {
+        label: 'LinkedIn',
+        href: 'https://www.linkedin.com/in/rahul-singh-kushwah-233b36283',
+        icon: Linkedin,
+    },
+    {
+        label: 'GeeksforGeeks',
+        href: 'https://www.geeksforgeeks.org/profile/patelmrrahul',
+        icon: Code2,
+    },
+    {
+        label: 'Instagram',
+        href: 'https://www.instagram.com/rahulsingh482004?igsh=MTRubnZrZjVpZ3RqYg==',
+        icon: Instagram,
+    },
+    {
+        label: 'Facebook',
+        href: 'https://www.facebook.com/share/1BS3ohzYZz/',
+        icon: Facebook,
+    },
+];
+
+const contactLinks = [
+    {
+        label: 'Gmail',
+        value: 'patelmrrahul199@gmail.com',
+        href: 'mailto:patelmrrahul199@gmail.com',
+        icon: Mail,
+    },
+    {
+        label: 'WhatsApp',
+        value: '+91 75819 82880',
+        href: 'https://wa.me/917581982880',
+        icon: MessageCircle,
+    },
+];
 
 const LandingPage: React.FC = () => {
     const navigate = useNavigate();
@@ -237,16 +281,90 @@ const LandingPage: React.FC = () => {
             </section>
 
             {/* ─── Footer ─── */}
-            <footer className="py-20 px-4 border-t border-gray-100 dark:border-slate-900">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
-                    <div className="flex items-center gap-2">
-                        <Activity className="h-6 w-6 text-teal-600" />
-                        <span className="text-xl font-bold tracking-tight dark:text-white">MediCare HMS</span>
+            <footer className="relative overflow-hidden border-t border-slate-200 bg-slate-950 px-4 py-16 text-white dark:border-slate-900">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.22),transparent_32rem),radial-gradient(circle_at_bottom_right,rgba(37,99,235,0.18),transparent_28rem)]" />
+                <div className="relative mx-auto max-w-7xl">
+                    <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+                        <div>
+                            <div className="flex items-center gap-3">
+                                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-teal-500 text-white shadow-xl shadow-teal-500/20">
+                                    <Activity className="h-6 w-6" />
+                                </div>
+                                <div>
+                                    <p className="text-xl font-black tracking-tight">MediCare HMS</p>
+                                    <p className="text-sm font-semibold text-slate-400">Hospital Management System</p>
+                                </div>
+                            </div>
+
+                            <div className="mt-8 max-w-2xl rounded-[28px] border border-white/10 bg-white/[0.06] p-6 shadow-2xl shadow-black/20 backdrop-blur">
+                                <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+                                    <img
+                                        src="/rahul.jpg"
+                                        alt="Rahul Singh Kushwah"
+                                        className="h-20 w-20 rounded-2xl border-2 border-white/20 object-cover shadow-xl"
+                                    />
+                                    <div>
+                                        <p className="text-xs font-black uppercase tracking-[0.25em] text-teal-300">Designed & Developed by</p>
+                                        <h3 className="mt-2 text-2xl font-black tracking-tight">Rahul Singh Kushwah</h3>
+                                        <p className="mt-1 flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-300">
+                                            <span className="inline-flex items-center gap-1.5"><Code2 className="h-4 w-4 text-teal-300" /> Full Stack Developer</span>
+                                            <span className="hidden text-slate-600 sm:inline">/</span>
+                                            <span className="inline-flex items-center gap-1.5"><Palette className="h-4 w-4 text-blue-300" /> UI/UX Designer</span>
+                                        </p>
+                                    </div>
+                                </div>
+                                <p className="mt-5 max-w-xl text-sm leading-7 text-slate-400">
+                                    Building clean, scalable, and user-focused digital products with polished interfaces, reliable engineering, and thoughtful healthcare workflows.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid gap-4 content-start">
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                {contactLinks.map((link) => (
+                                    <a
+                                        key={link.label}
+                                        href={link.href}
+                                        target={link.href.startsWith('http') ? '_blank' : undefined}
+                                        rel={link.href.startsWith('http') ? 'noreferrer' : undefined}
+                                        className="group rounded-2xl border border-white/10 bg-white/[0.06] p-4 transition-all hover:-translate-y-0.5 hover:border-teal-300/40 hover:bg-white/[0.1]"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="grid h-10 w-10 place-items-center rounded-xl bg-teal-400/10 text-teal-300">
+                                                <link.icon className="h-5 w-5" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-black uppercase tracking-widest text-slate-500">{link.label}</p>
+                                                <p className="truncate text-sm font-bold text-slate-100 group-hover:text-teal-200">{link.value}</p>
+                                            </div>
+                                        </div>
+                                    </a>
+                                ))}
+                            </div>
+
+                            <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-5 backdrop-blur">
+                                <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-500">Connect</p>
+                                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                    {developerLinks.map((link) => (
+                                        <a
+                                            key={link.label}
+                                            href={link.href}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="group flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-900/60 px-3 py-3 text-sm font-bold text-slate-300 transition-all hover:-translate-y-0.5 hover:border-teal-300/50 hover:bg-teal-400/10 hover:text-white"
+                                        >
+                                            <link.icon className="h-4 w-4 text-teal-300 transition-transform group-hover:scale-110" />
+                                            <span className="truncate">{link.label}</span>
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <p className="text-sm text-gray-400">© 2026 MediCare Health Systems. Built for the modern age.</p>
-                    <div className="flex items-center gap-6">
-                        <a href="#" className="text-gray-400 hover:text-teal-600 transition-colors"><Smartphone className="h-5 w-5" /></a>
-                        <a href="#" className="text-gray-400 hover:text-teal-600 transition-colors"><Globe className="h-5 w-5" /></a>
+
+                    <div className="mt-12 flex flex-col gap-4 border-t border-white/10 pt-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+                        <p>© 2026 MediCare HMS. All rights reserved.</p>
+                        <p className="font-semibold text-slate-400">Crafted with professional full-stack engineering and UI/UX design.</p>
                     </div>
                 </div>
             </footer>
