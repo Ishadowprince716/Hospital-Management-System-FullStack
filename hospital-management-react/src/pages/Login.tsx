@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { clearAuthError, loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice';
 import type { RootState } from '../store';
 import api, { getApiErrorMessage } from '../api';
 import GoogleAuthButton from '../components/auth/GoogleAuthButton';
-import { signInWithGoogleAccount } from '../utils/firebaseGoogleAuth';
+import { completeGoogleRedirectSignIn, getFirebaseAuthErrorMessage, signInWithGoogleAccount } from '../utils/firebaseGoogleAuth';
 
 type ApiResponse<T> = { success: boolean; message: string; data: T };
 type AuthResponse = { token: string; username: string; role: string; userId: number; fullName: string; profilePictureUrl?: string };
@@ -86,7 +86,7 @@ const Login: React.FC = () => {
     };
   }, [dispatch]);
 
-  const finishAuth = (d: AuthResponse, email = '') => {
+  const finishAuth = useCallback((d: AuthResponse, email = '') => {
     if (!d?.token) return;
     localStorage.setItem('token', d.token);
     const r = d.role ?? role;
@@ -102,7 +102,30 @@ const Login: React.FC = () => {
       token: d.token,
     }));
     navigate(r === 'ADMIN' ? '/admin' : r === 'DOCTOR' ? '/doctor' : '/patient');
-  };
+  }, [dispatch, navigate, role]);
+
+  useEffect(() => {
+    let active = true;
+
+    const finishGoogleRedirect = async () => {
+      setGoogleLoading(true);
+      try {
+        const result = await completeGoogleRedirectSignIn(role === 'ADMIN' ? 'PATIENT' : role);
+        if (result && active) {
+          finishAuth(result.auth, result.email);
+        }
+      } catch (err: unknown) {
+        if (active) dispatch(loginFailure(getFirebaseAuthErrorMessage(err)));
+      } finally {
+        if (active) setGoogleLoading(false);
+      }
+    };
+
+    finishGoogleRedirect();
+    return () => {
+      active = false;
+    };
+  }, [dispatch, finishAuth, role]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,11 +150,9 @@ const Login: React.FC = () => {
     dispatch(loginStart());
     setGoogleLoading(true);
     try {
-      const result = await signInWithGoogleAccount(role);
-      finishAuth(result.auth, result.email);
+      await signInWithGoogleAccount(role);
     } catch (err: unknown) {
-      dispatch(loginFailure(getApiErrorMessage(err, 'Google sign-in failed. Please try again.')));
-    } finally {
+      dispatch(loginFailure(getApiErrorMessage(err, getFirebaseAuthErrorMessage(err))));
       setGoogleLoading(false);
     }
   };

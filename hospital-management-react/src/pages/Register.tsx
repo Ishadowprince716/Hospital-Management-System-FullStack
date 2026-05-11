@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import axios from 'axios';
 import { API_BASE } from '../api';
 import { loginSuccess } from '../store/slices/authSlice';
 import GoogleAuthButton from '../components/auth/GoogleAuthButton';
-import { signInWithGoogleAccount } from '../utils/firebaseGoogleAuth';
+import { completeGoogleRedirectSignIn, getFirebaseAuthErrorMessage, signInWithGoogleAccount } from '../utils/firebaseGoogleAuth';
 
 type ApiResponse = { success: boolean; message: string; data?: unknown };
 type AuthResponse = { token: string; username: string; role: string; userId: number; fullName: string; profilePictureUrl?: string };
@@ -84,7 +84,7 @@ const Register: React.FC = () => {
     } finally { setLoading(false); }
   };
 
-  const completeGoogleAuth = (auth: AuthResponse, email = '') => {
+  const completeGoogleAuth = useCallback((auth: AuthResponse, email = '') => {
     if (!auth?.token) return;
     localStorage.setItem('token', auth.token);
     dispatch(loginSuccess({
@@ -99,21 +99,43 @@ const Register: React.FC = () => {
       token: auth.token,
     }));
     navigate(auth.role === 'DOCTOR' ? '/doctor' : '/patient');
-  };
+  }, [dispatch, navigate]);
+
+  useEffect(() => {
+    let active = true;
+
+    const finishGoogleRedirect = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await completeGoogleRedirectSignIn(form.role);
+        if (result && active) {
+          setSuccess('Google account connected. Redirecting...');
+          completeGoogleAuth(result.auth, result.email);
+        }
+      } catch (err: unknown) {
+        if (active) setError(getFirebaseAuthErrorMessage(err));
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    finishGoogleRedirect();
+    return () => {
+      active = false;
+    };
+  }, [completeGoogleAuth, form.role]);
 
   const handleGoogleRegister = async () => {
     setLoading(true);
     setError(null);
     setSuccess(null);
     try {
-      const result = await signInWithGoogleAccount(form.role);
-      setSuccess('Google account connected. Redirecting...');
-      completeGoogleAuth(result.auth, result.email);
+      await signInWithGoogleAccount(form.role);
     } catch (err: unknown) {
       let msg = 'Google sign-in failed. Please try again.';
       if (axios.isAxiosError<ApiResponse>(err)) msg = err.response?.data?.message || msg;
-      setError(msg);
-    } finally {
+      setError(getFirebaseAuthErrorMessage(err) || msg);
       setLoading(false);
     }
   };
