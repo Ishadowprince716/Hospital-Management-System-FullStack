@@ -43,8 +43,12 @@ const VideoCall: React.FC = () => {
     const jitsiApiRef = useRef<JitsiMeetExternalApi | null>(null);
     const [jitsiApi, setJitsiClient] = useState<JitsiMeetExternalApi | null>(null);
     const [scriptLoaded, setScriptLoaded] = useState(false);
+    const parsedAppointmentId = Number(appointmentId);
+    const hasValidAppointmentId = Number.isInteger(parsedAppointmentId) && parsedAppointmentId > 0;
 
-    const { data: sessionData, isLoading, error } = useGetTelehealthSessionQuery(Number(appointmentId));
+    const { data: sessionData, isLoading, error } = useGetTelehealthSessionQuery(parsedAppointmentId, {
+        skip: !hasValidAppointmentId,
+    });
 
     useEffect(() => {
         // Load Jitsi script
@@ -62,7 +66,7 @@ const VideoCall: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (scriptLoaded && sessionData?.data && jitsiContainerRef.current && !jitsiApiRef.current && window.JitsiMeetExternalAPI) {
+        if (hasValidAppointmentId && scriptLoaded && sessionData?.data && jitsiContainerRef.current && !jitsiApiRef.current && window.JitsiMeetExternalAPI) {
             const roomName = sessionData.data.roomName;
             if (!roomName) {
                 return;
@@ -103,7 +107,23 @@ const VideoCall: React.FC = () => {
             jitsiApiRef.current = api;
             setJitsiClient(api);
         }
-    }, [navigate, scriptLoaded, sessionData, user?.email, user?.fullName]);
+    }, [hasValidAppointmentId, navigate, scriptLoaded, sessionData, user?.email, user?.fullName]);
+
+    if (!hasValidAppointmentId) {
+        return (
+            <div className="flex h-screen flex-col items-center justify-center bg-gray-900 p-6 text-center text-white">
+                <VideoOff className="mb-4 h-16 w-16 text-amber-400" />
+                <h1 className="mb-2 text-2xl font-bold">Appointment Required</h1>
+                <p className="max-w-md text-gray-400">Open Telehealth from a scheduled appointment so we can connect you to the correct room.</p>
+                <button
+                    onClick={() => navigate('/telehealth')}
+                    className="mt-6 rounded-lg bg-[var(--primary)] px-6 py-2 font-medium text-white"
+                >
+                    Telehealth Help
+                </button>
+            </div>
+        );
+    }
 
     if (isLoading) {
         return (

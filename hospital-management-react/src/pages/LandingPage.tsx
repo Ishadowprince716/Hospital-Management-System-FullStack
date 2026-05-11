@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     Activity, Bot, Video, Shield,
     ArrowRight, CheckCircle,
-    Smartphone, Zap, Globe
+    Smartphone, Zap, Globe, Stethoscope
 } from 'lucide-react';
 
 const LandingPage: React.FC = () => {
@@ -186,6 +186,52 @@ const LandingPage: React.FC = () => {
                                 </li>
                             ))}
                         </ul>
+                    </div>
+                </div>
+            </section>
+
+            {/* ─── Telehealth ─── */}
+            <section id="telehealth" className="py-24 px-4 bg-slate-50 dark:bg-slate-900/30">
+                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-14 items-center">
+                    <div>
+                        <div className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-black uppercase tracking-widest text-teal-700 dark:border-teal-900/60 dark:bg-teal-950/30 dark:text-teal-300">
+                            <Video className="h-4 w-4" /> Secure Virtual Clinic
+                        </div>
+                        <h2 className="mt-6 text-4xl font-black leading-tight text-slate-950 dark:text-white">
+                            Start video consultations directly from appointments
+                        </h2>
+                        <p className="mt-5 max-w-xl text-base font-medium leading-8 text-slate-600 dark:text-slate-400">
+                            Telehealth sessions are created for scheduled appointments, so patients and doctors join the same secure room with the right context.
+                        </p>
+                        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                            <button onClick={() => navigate('/login')} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-teal-600 px-7 py-3.5 text-sm font-bold text-white shadow-xl shadow-teal-600/20 transition-all hover:bg-teal-700 active:scale-[0.99]">
+                                Open My Appointments <ArrowRight className="h-4 w-4" />
+                            </button>
+                            <button onClick={() => navigate('/register')} className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-7 py-3.5 text-sm font-bold text-slate-700 transition-all hover:border-teal-300 hover:text-teal-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200">
+                                Create Account
+                            </button>
+                        </div>
+                    </div>
+                    <div className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-900/10 dark:border-slate-800 dark:bg-slate-950">
+                        <div className="aspect-video overflow-hidden rounded-3xl bg-slate-950">
+                            <div className="grid h-full grid-cols-2 gap-1 p-1">
+                                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-500 to-blue-600">
+                                    <div className="absolute left-4 top-4 rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white backdrop-blur">Doctor</div>
+                                    <Stethoscope className="absolute bottom-8 left-1/2 h-20 w-20 -translate-x-1/2 text-white/80" />
+                                </div>
+                                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600">
+                                    <div className="absolute left-4 top-4 rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white backdrop-blur">Patient</div>
+                                    <Smartphone className="absolute bottom-8 left-1/2 h-20 w-20 -translate-x-1/2 text-white/80" />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mt-4 grid grid-cols-3 gap-3">
+                            {['HD Video', 'Private Room', 'Appointment Linked'].map((item) => (
+                                <div key={item} className="rounded-2xl border border-slate-100 bg-slate-50 px-3 py-3 text-center text-xs font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+                                    {item}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </section>

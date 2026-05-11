@@ -49,7 +49,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api", "/api/", "/api/health", "/health", "/ready",
                                 "/", "/index.html", "/favicon.ico", "/rahul.jpg", "/vite.svg", "/assets/**",
-                                "/login", "/register", "/patient/**", "/doctor/**", "/admin/**", "/telehealth/**",
+                                "/login", "/register", "/patient/**", "/doctor/**", "/admin/**", "/telehealth", "/telehealth/**",
                                 "/api/auth/**", "/auth/**", "/login/**", "/oauth2/**",
                                 "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**")
                         .permitAll()

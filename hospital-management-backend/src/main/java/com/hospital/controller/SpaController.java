@@ -15,6 +15,7 @@ public class SpaController {
             "/doctor/**",
             "/admin",
             "/admin/**",
+            "/telehealth",
             "/telehealth/**"
     })
     public String forwardSpaRoutes() {

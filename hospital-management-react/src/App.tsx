@@ -45,6 +45,7 @@ const BedHeatmap = lazy(() => import('./pages/admin/BedHeatmap'));
 // Shared
 const Notifications = lazy(() => import('./pages/shared/Notifications'));
 const SystemSettings = lazy(() => import('./pages/shared/SystemSettings'));
+const TelehealthStart = lazy(() => import('./pages/shared/TelehealthStart'));
 const VideoCall = lazy(() => import('./pages/shared/VideoCall'));
 
 // ─── Loading Fallback ───
@@ -154,6 +155,11 @@ function App() {
                             </Route>
 
                             {/* ── Telehealth ── */}
+                            <Route path="/telehealth" element={
+                            <ProtectedRoute>
+                                <TelehealthStart />
+                            </ProtectedRoute>
+                            } />
                             <Route path="/telehealth/:appointmentId" element={
                             <ProtectedRoute>
                                 <VideoCall />
