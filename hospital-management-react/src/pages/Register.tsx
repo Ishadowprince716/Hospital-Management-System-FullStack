@@ -6,6 +6,7 @@ import { API_BASE } from '../api';
 import { loginSuccess } from '../store/slices/authSlice';
 import GoogleAuthButton from '../components/auth/GoogleAuthButton';
 import { completeGoogleRedirectSignIn, getFirebaseAuthErrorMessage, signInWithGoogleAccount } from '../utils/firebaseGoogleAuth';
+import { AtSign, Phone, ShieldCheck, UserRound } from 'lucide-react';
 
 type ApiResponse = { success: boolean; message: string; data?: unknown };
 type AuthResponse = { token: string; username: string; role: string; userId: number; fullName: string; profilePictureUrl?: string };
@@ -67,8 +68,10 @@ const Register: React.FC = () => {
 
   useEffect(() => { setTimeout(() => setMounted(true), 60); }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setForm(f => ({ ...f, [name]: name === 'phoneNumber' ? value.replace(/\D/g, '').slice(0, 10) : value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,7 +143,12 @@ const Register: React.FC = () => {
     }
   };
 
-  const step1OK = !!(form.fullName && form.username && form.email && form.phoneNumber);
+  const step1OK = !!(
+    form.fullName.trim().length >= 2 &&
+    form.username.trim().length >= 3 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) &&
+    /^\d{10}$/.test(form.phoneNumber)
+  );
   const score = pwdStrength(form.password);
   const sl = strengthLabel(score);
 
@@ -149,7 +157,7 @@ const Register: React.FC = () => {
     height: 48,
     border: `1.5px solid ${focused === name ? '#14b8a6' : '#d7e0ec'}`,
     borderRadius: 14,
-    padding: '0 18px',
+    padding: '0 18px 0 44px',
     fontSize: 14,
     fontWeight: 650,
     color: '#0f172a',
@@ -158,6 +166,42 @@ const Register: React.FC = () => {
     boxShadow: focused === name ? '0 0 0 4px rgba(20,184,166,0.14), 0 8px 18px rgba(15,23,42,0.06)' : '0 2px 8px rgba(15,23,42,0.03)',
     transition: 'border-color .2s, box-shadow .2s, background .2s',
   });
+
+  const Field = ({
+    name,
+    label,
+    placeholder,
+    type = 'text',
+    icon: Icon,
+  }: {
+    name: keyof typeof form;
+    label: string;
+    placeholder: string;
+    type?: string;
+    icon: React.ElementType;
+  }) => (
+    <label style={S.field}>
+      <span style={S.fieldLabel}>{label}</span>
+      <span style={S.inputWrap}>
+        <Icon size={17} strokeWidth={2.1} style={S.inputIcon} />
+        <input
+          name={name}
+          placeholder={placeholder}
+          type={type}
+          value={form[name]}
+          onChange={handleChange}
+          onFocus={() => setFocused(name)}
+          onBlur={() => setFocused(null)}
+          required
+          autoComplete={name === 'email' ? 'email' : name === 'fullName' ? 'name' : name === 'username' ? 'username' : 'tel'}
+          inputMode={name === 'phoneNumber' ? 'numeric' : undefined}
+          pattern={name === 'phoneNumber' ? '\\d{10}' : undefined}
+          title={name === 'phoneNumber' ? 'Enter a 10 digit phone number' : undefined}
+          style={inputStyle(name)}
+        />
+      </span>
+    </label>
+  );
 
   return (
     <div className="auth-page" style={S.page}>
@@ -209,10 +253,14 @@ const Register: React.FC = () => {
 
       {/* ── RIGHT PANEL ─────────────────────────── */}
       <div className="auth-right" style={{ ...S.right, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1) .1s' }}>
-        <div style={S.card}>
-          <div style={S.cardHeaderMark}>MediCare access</div>
+        <div className="register-card" style={S.card}>
+          <div className="register-mark" style={S.cardHeaderMark}>MediCare access</div>
           <h2 style={S.cardTitle}>Create Account</h2>
           <p style={S.cardSub}>Join thousands of patients and doctors</p>
+          <div className="register-trust" style={S.trustStrip}>
+            <ShieldCheck size={16} strokeWidth={2.3} />
+            <span>Secure account setup with encrypted health records</span>
+          </div>
 
           {/* Role tabs */}
           <div style={S.tabs}>
@@ -263,12 +311,12 @@ const Register: React.FC = () => {
           {/* Step 1 */}
           {step === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, animation: 'slideIn .3s ease' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <input name="fullName"    placeholder="Full Name"    value={form.fullName}    onChange={handleChange} onFocus={() => setFocused('fullName')}    onBlur={() => setFocused(null)} required style={inputStyle('fullName')}/>
-                <input name="username"    placeholder="Username"     value={form.username}    onChange={handleChange} onFocus={() => setFocused('username')}    onBlur={() => setFocused(null)} required style={inputStyle('username')}/>
+              <div className="register-field-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <Field name="fullName" label="Full name" placeholder="Rahul Singh" icon={UserRound} />
+                <Field name="username" label="Username" placeholder="rahul716" icon={UserRound} />
               </div>
-              <input name="email"         placeholder="Email Address" type="email" value={form.email}  onChange={handleChange} onFocus={() => setFocused('email')}  onBlur={() => setFocused(null)} required style={inputStyle('email')}/>
-              <input name="phoneNumber"   placeholder="Phone Number (10 digits)" value={form.phoneNumber} onChange={handleChange} onFocus={() => setFocused('phone')} onBlur={() => setFocused(null)} required pattern="\d{10}" title="10 digits" style={inputStyle('phone')}/>
+              <Field name="email" label="Email address" placeholder="name@example.com" type="email" icon={AtSign} />
+              <Field name="phoneNumber" label="Phone number" placeholder="10 digit mobile number" icon={Phone} />
 
               <button type="button" onClick={() => step1OK && setStep(2)} style={{ height: 50, borderRadius: 14, border: 'none', background: step1OK ? 'linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%)' : '#eef3f8', color: step1OK ? '#fff' : '#8fa0b7', fontSize: 15, fontWeight: 850, cursor: step1OK ? 'pointer' : 'not-allowed', boxShadow: step1OK ? '0 12px 28px rgba(20,184,166,0.26)' : 'inset 0 0 0 1px #e3eaf2', transition: 'all .25s', marginTop: 4 }} className={step1OK ? 'login-btn' : ''}>
                 Continue →
@@ -338,7 +386,7 @@ const CSS = `
   body { font-family: 'Manrope', system-ui, sans-serif; font-synthesis: none; }
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
-  input::placeholder { color: #95a6bb; font-size: 14px; font-weight: 650; }
+  input::placeholder { color: #a9b7c9; font-size: 13px; font-weight: 650; }
   input:-webkit-autofill { -webkit-box-shadow: 0 0 0 100px #fff inset !important; -webkit-text-fill-color: #0f172a !important; }
   .login-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.05); box-shadow: 0 16px 32px rgba(20,184,166,0.30) !important; }
   .role-tab { transition: all .25s cubic-bezier(.34,1.56,.64,1); outline: none; cursor: pointer; }
@@ -347,9 +395,18 @@ const CSS = `
   .dev-credit:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.32); transform: translateY(-1px); }
   @media (max-width: 900px) {
     .auth-page { flex-direction: column; overflow-y: auto !important; }
-    .auth-left { flex: none !important; min-height: auto; padding: 32px 24px !important; gap: 28px; }
-    .auth-right { padding: 28px 20px !important; }
+    .auth-left { display: none !important; }
+    .auth-right { min-height: 100vh; padding: 16px 20px !important; }
+    .register-card { max-width: 468px !important; padding: 18px 28px 20px !important; border-radius: 20px !important; }
+    .register-mark { display: none !important; }
+    .register-trust { margin: -2px 0 12px !important; padding: 7px 9px !important; font-size: 11px !important; }
+    .role-tab { min-height: 92px !important; padding: 12px 10px !important; }
+    .google-auth-btn { height: 46px !important; }
     .dev-credit { margin-top: 28px !important; }
+  }
+  @media (max-width: 560px) {
+    .auth-right { padding: 18px 14px !important; }
+    .register-field-grid { grid-template-columns: 1fr !important; }
   }
 `;
 
@@ -375,12 +432,17 @@ const S: Record<string, React.CSSProperties> = {
   cardHeaderMark: { width: 'fit-content', margin: '0 auto 8px', padding: '5px 10px', borderRadius: 999, background: '#ecfeff', color: '#0f766e', fontSize: 11, fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.08em' },
   cardTitle:   { fontSize: 26, fontWeight: 850, color: '#07111f', letterSpacing: '0', textAlign: 'center', margin: '0 0 6px', lineHeight: 1.12 },
   cardSub:     { fontSize: 14, color: '#63748a', textAlign: 'center', margin: '0 0 18px', fontWeight: 650 },
+  trustStrip:   { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '-6px 0 16px', padding: '8px 10px', borderRadius: 14, background: '#f0fdfa', color: '#0f766e', fontSize: 12, fontWeight: 800, border: '1px solid #ccfbf1' },
   tabs:        { display: 'flex', gap: 12, marginBottom: 16 },
   tab:         { minHeight: 104, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '14px 12px', borderRadius: 16 },
   stepper:     { display: 'flex', alignItems: 'center', gap: 12, margin: '0 0 16px' },
   divider:     { display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0 15px' },
   dividerLine: { flex: 1, height: 1, background: '#e2e8f0' },
   dividerText: { fontSize: 11, fontWeight: 850, color: '#8797ad', textTransform: 'uppercase', letterSpacing: '0.08em' },
+  field:       { display: 'flex', flexDirection: 'column', gap: 6 },
+  fieldLabel:  { fontSize: 11, fontWeight: 850, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' },
+  inputWrap:   { position: 'relative', display: 'block' },
+  inputIcon:   { position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#8aa0b8', pointerEvents: 'none', zIndex: 1 },
 };
 
 export default Register;
