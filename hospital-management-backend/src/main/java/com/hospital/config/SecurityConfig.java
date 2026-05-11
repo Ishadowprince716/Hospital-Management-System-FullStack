@@ -48,6 +48,8 @@ public class SecurityConfig {
                         // Public authentication endpoints
                         .requestMatchers(
                                 "/api", "/api/", "/api/health", "/health", "/ready",
+                                "/", "/index.html", "/favicon.ico", "/assets/**",
+                                "/login", "/register", "/patient/**", "/doctor/**", "/admin/**", "/telehealth/**",
                                 "/api/auth/**", "/auth/**", "/login/**", "/oauth2/**",
                                 "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**")
                         .permitAll()
