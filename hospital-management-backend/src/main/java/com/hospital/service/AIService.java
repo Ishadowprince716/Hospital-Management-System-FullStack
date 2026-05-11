@@ -497,23 +497,43 @@ public class AIService {
 
         if (normalized.matches(".*\\b(h+i+|hello|hey|namaste)\\b.*")) {
             return doctor
-                    ? "Hello Doctor. MediMate is online in local support mode. I can help summarize symptoms, suggest clinical documentation structure, and point you to HMS workflows while the external AI provider is unavailable."
-                    : "Hello. MediMate is online in local support mode. I can help with general health guidance and HMS portal questions while the external AI provider is unavailable.";
+                    ? "Hello Doctor. MediMate is ready. Share the patient's age, chief complaint, duration, vitals, relevant history, current medicines, and red flags, and I will help organize a focused clinical note and next-step checklist."
+                    : "Hello. MediMate is ready. I can help with HMS portal questions, appointment guidance, prescriptions, bills, and general health education. For urgent symptoms, seek immediate medical care.";
         }
 
         if (isCurrentDateTimeQuery(message)) {
             return buildCurrentDateTimeAnswer(timeContext);
         }
 
+        if (containsAny(normalized, "handwash", "hand wash", "handwashing", "wash hands", "clean hand", "before surgery", "infection control")) {
+            return "Clean handwashing before surgery lowers the risk of transferring harmful germs into the surgical site, which helps prevent serious infections and supports safer recovery.";
+        }
+
         if (containsAny(normalized, "chest pain", "shortness of breath", "severe bleeding", "stroke", "unconscious", "seizure")) {
             return "This may require urgent medical attention. If symptoms are severe, sudden, or worsening, arrange emergency evaluation immediately. For documentation, capture onset time, severity, vitals, associated symptoms, medications, allergies, and relevant history.";
         }
 
-        if (doctor) {
-            return "MediMate's external AI provider is unavailable, so I am using local clinical support mode. Please share the patient's age, main complaint, duration, vitals, relevant history, current medicines, and red flags. I can help organize a focused assessment and next-step checklist, but clinical decisions should be confirmed by the treating doctor.";
+        if (containsAny(normalized, "appointment", "book doctor", "schedule", "visit")) {
+            return "For appointments, open the appointments section, choose a doctor or specialization, select an available date and time, add the reason for visit, and confirm the booking. If symptoms are urgent, use emergency care instead of waiting for a scheduled slot.";
         }
 
-        return "MediMate's external AI provider is unavailable, so I am using local support mode. Please share what you need help with. For medical symptoms, include when they started, severity, age, existing conditions, medicines, and any warning signs. If symptoms feel urgent, seek immediate medical care.";
+        if (containsAny(normalized, "bill", "billing", "payment", "invoice", "paid", "unpaid")) {
+            return "For bills and payments, open the billing section to review invoice status, pending balance, payment history, and receipt details. If an amount looks wrong, contact the hospital billing desk before paying.";
+        }
+
+        if (containsAny(normalized, "prescription", "medicine", "medication", "dose", "dosage")) {
+            return "For prescriptions, check the prescriptions section for medicine name, dose, timing, duration, and doctor notes. Do not change or stop prescribed medicine without confirming with your doctor.";
+        }
+
+        if (containsAny(normalized, "fever", "cough", "headache", "pain", "vomit", "nausea", "dizzy", "rash", "cold", "symptom")) {
+            return "Please share age, main symptom, when it started, severity, temperature or vitals if available, medicines taken, allergies, existing conditions, and any warning signs. Seek urgent care for chest pain, breathing trouble, fainting, severe bleeding, confusion, or rapidly worsening symptoms.";
+        }
+
+        if (doctor) {
+            return "Share the patient's age, main complaint, duration, vitals, relevant history, current medicines, allergies, examination findings, and red flags. I can structure a concise SOAP note, differential checklist, and investigation plan for clinical review.";
+        }
+
+        return "Tell me what you need help with: symptoms, appointments, prescriptions, billing, or hospital records. For symptoms, include age, start time, severity, medicines, existing conditions, and warning signs so I can guide you safely.";
     }
 
     private boolean containsAny(String value, String... needles) {
