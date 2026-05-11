@@ -25,6 +25,7 @@ WORKDIR /app
 
 # Create a non-root user for security
 RUN addgroup -S hms && adduser -S hms -G hms
+RUN mkdir -p /app/uploads/medical-documents && chown -R hms:hms /app
 USER hms
 
 # Copy the built backend JAR
