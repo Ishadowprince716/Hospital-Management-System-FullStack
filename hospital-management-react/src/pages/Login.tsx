@@ -4,6 +4,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { clearAuthError, loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice';
 import type { RootState } from '../store';
 import api, { getApiErrorMessage } from '../api';
+import GoogleAuthButton from '../components/auth/GoogleAuthButton';
+import { signInWithGoogleAccount } from '../utils/firebaseGoogleAuth';
 
 type ApiResponse<T> = { success: boolean; message: string; data: T };
 type AuthResponse = { token: string; username: string; role: string; userId: number; fullName: string; profilePictureUrl?: string };
@@ -52,6 +54,7 @@ const Login: React.FC = () => {
   const [role,     setRole]     = useState<Role>('PATIENT');
   const [showPwd,  setShowPwd]  = useState(false);
   const [remember, setRemember] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [uFocus,   setUFocus]   = useState(false);
   const [pFocus,   setPFocus]   = useState(false);
   const [mounted,  setMounted]  = useState(false);
@@ -83,6 +86,24 @@ const Login: React.FC = () => {
     };
   }, [dispatch]);
 
+  const finishAuth = (d: AuthResponse, email = '') => {
+    if (!d?.token) return;
+    localStorage.setItem('token', d.token);
+    const r = d.role ?? role;
+    dispatch(loginSuccess({
+      user: {
+        id: d.userId ?? 0,
+        username: d.username ?? email,
+        email,
+        role: r,
+        fullName: d.fullName ?? d.username ?? email,
+        profilePictureUrl: d.profilePictureUrl,
+      },
+      token: d.token,
+    }));
+    navigate(r === 'ADMIN' ? '/admin' : r === 'DOCTOR' ? '/doctor' : '/patient');
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanUsername = username.trim();
@@ -91,14 +112,27 @@ const Login: React.FC = () => {
     try {
       const res = await api.post<ApiResponse<AuthResponse>>('/auth/login', { username: cleanUsername, password: cleanPassword, role });
       const d = res.data.data;
-      if (d?.token) {
-        localStorage.setItem('token', d.token);
-        const r = d.role ?? role;
-        dispatch(loginSuccess({ user: { id: d.userId ?? 0, username: d.username ?? cleanUsername, email: '', role: r, fullName: d.fullName ?? cleanUsername, profilePictureUrl: d.profilePictureUrl }, token: d.token }));
-        navigate(r === 'ADMIN' ? '/admin' : r === 'DOCTOR' ? '/doctor' : '/patient');
-      }
+      finishAuth(d);
     } catch (err: unknown) {
       dispatch(loginFailure(getApiErrorMessage(err, 'Invalid credentials. Please try again.')));
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (role === 'ADMIN') {
+      dispatch(loginFailure('Google sign-in is available for Patient and Doctor accounts only.'));
+      return;
+    }
+
+    dispatch(loginStart());
+    setGoogleLoading(true);
+    try {
+      const result = await signInWithGoogleAccount(role);
+      finishAuth(result.auth, result.email);
+    } catch (err: unknown) {
+      dispatch(loginFailure(getApiErrorMessage(err, 'Google sign-in failed. Please try again.')));
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -185,6 +219,18 @@ const Login: React.FC = () => {
             })}
           </div>
 
+          <GoogleAuthButton
+            label={googleLoading ? 'Connecting to Google...' : `Continue with Google${role !== 'ADMIN' ? ` as ${role.charAt(0) + role.slice(1).toLowerCase()}` : ''}`}
+            disabled={loading || googleLoading}
+            onClick={handleGoogleSignIn}
+          />
+
+          <div style={S.divider}>
+            <span style={S.dividerLine} />
+            <span style={S.dividerText}>or use username</span>
+            <span style={S.dividerLine} />
+          </div>
+
           {/* Form */}
           <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* Username */}
@@ -264,6 +310,7 @@ const CSS = `
   .login-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(13,207,186,0.55) !important; }
   .role-tab { transition: all .25s cubic-bezier(.34,1.56,.64,1); outline: none; cursor: pointer; }
   .role-tab:hover { transform: translateY(-2px); }
+  .google-auth-btn:hover:not(:disabled) { border-color: #cbd5e1 !important; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(15,23,42,0.10) !important; }
   .dev-credit:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.32); transform: translateY(-1px); }
   @media (max-width: 900px) {
     .auth-page { flex-direction: column; overflow-y: auto !important; }
@@ -369,6 +416,9 @@ const S: Record<string, React.CSSProperties> = {
     padding: '0 16px', fontSize: 14, fontWeight: 500, color: '#1e293b',
     background: '#f8fafc', outline: 'none', transition: 'border-color .2s, box-shadow .2s',
   },
+  divider: { display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0 14px' },
+  dividerLine: { flex: 1, height: 1, background: '#e2e8f0' },
+  dividerText: { fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' },
 };
 
 export default Login;

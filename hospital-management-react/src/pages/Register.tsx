@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import axios from 'axios';
 import { API_BASE } from '../api';
+import { loginSuccess } from '../store/slices/authSlice';
+import GoogleAuthButton from '../components/auth/GoogleAuthButton';
+import { signInWithGoogleAccount } from '../utils/firebaseGoogleAuth';
 
 type ApiResponse = { success: boolean; message: string; data?: unknown };
+type AuthResponse = { token: string; username: string; role: string; userId: number; fullName: string; profilePictureUrl?: string };
 type Role = 'PATIENT' | 'DOCTOR';
 
 const ROLE_META: Record<Role, { label: string; desc: string }> = {
@@ -50,6 +55,7 @@ const FEATURES = [
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [form, setForm] = useState({ username: '', email: '', password: '', fullName: '', phoneNumber: '', role: 'PATIENT' as Role });
   const [loading, setLoading]   = useState(false);
   const [error,   setError]     = useState<string | null>(null);
@@ -76,6 +82,40 @@ const Register: React.FC = () => {
       if (axios.isAxiosError<ApiResponse>(err)) msg = err.response?.data?.message || msg;
       setError(msg);
     } finally { setLoading(false); }
+  };
+
+  const completeGoogleAuth = (auth: AuthResponse, email = '') => {
+    if (!auth?.token) return;
+    localStorage.setItem('token', auth.token);
+    dispatch(loginSuccess({
+      user: {
+        id: auth.userId ?? 0,
+        username: auth.username ?? email,
+        email,
+        role: auth.role,
+        fullName: auth.fullName ?? auth.username ?? email,
+        profilePictureUrl: auth.profilePictureUrl,
+      },
+      token: auth.token,
+    }));
+    navigate(auth.role === 'DOCTOR' ? '/doctor' : '/patient');
+  };
+
+  const handleGoogleRegister = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const result = await signInWithGoogleAccount(form.role);
+      setSuccess('Google account connected. Redirecting...');
+      completeGoogleAuth(result.auth, result.email);
+    } catch (err: unknown) {
+      let msg = 'Google sign-in failed. Please try again.';
+      if (axios.isAxiosError<ApiResponse>(err)) msg = err.response?.data?.message || msg;
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const step1OK = !!(form.fullName && form.username && form.email && form.phoneNumber);
@@ -159,6 +199,18 @@ const Register: React.FC = () => {
                 </button>
               );
             })}
+          </div>
+
+          <GoogleAuthButton
+            label={loading ? 'Connecting to Google...' : `Continue with Google as ${ROLE_META[form.role].label}`}
+            disabled={loading}
+            onClick={handleGoogleRegister}
+          />
+
+          <div style={S.divider}>
+            <span style={S.dividerLine} />
+            <span style={S.dividerText}>or create with email</span>
+            <span style={S.dividerLine} />
           </div>
 
           {/* Step indicator */}
@@ -260,6 +312,7 @@ const CSS = `
   input:-webkit-autofill { -webkit-box-shadow: 0 0 0 100px #f8fafc inset !important; -webkit-text-fill-color: #1e293b !important; }
   .login-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.08); }
   .role-tab { transition: all .25s cubic-bezier(.34,1.56,.64,1); outline: none; cursor: pointer; }
+  .google-auth-btn:hover:not(:disabled) { border-color: #cbd5e1 !important; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(15,23,42,0.10) !important; }
   .dev-credit:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.32); transform: translateY(-1px); }
   @media (max-width: 900px) {
     .auth-page { flex-direction: column; overflow-y: auto !important; }
@@ -292,6 +345,9 @@ const S: Record<string, React.CSSProperties> = {
   cardSub:     { fontSize: 14, color: '#94a3b8', textAlign: 'center', margin: '0 0 20px', fontWeight: 500 },
   tabs:        { display: 'flex', gap: 10, marginBottom: 20 },
   tab:         { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 10px', borderRadius: 14 },
+  divider:     { display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0 18px' },
+  dividerLine: { flex: 1, height: 1, background: '#e2e8f0' },
+  dividerText: { fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' },
 };
 
 export default Register;
