@@ -276,6 +276,20 @@ const LandingPage: React.FC = () => {
                                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">MediMate AI Interface</span>
                             </div>
                             <div className="p-8 space-y-6">
+                                <div className="flex items-center gap-4 rounded-3xl border border-slate-800 bg-slate-950/70 p-4">
+                                    <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-white/5">
+                                        <img
+                                            src="/assets/medimate-ai-logo.png"
+                                            alt="MediMate AI"
+                                            className="h-20 w-20 object-contain"
+                                            draggable={false}
+                                        />
+                                    </div>
+                                    <div>
+                                        <p className="text-lg font-black text-white">MediMate AI</p>
+                                        <p className="mt-1 text-sm font-medium leading-6 text-slate-400">Friendly medical guidance, triage support, and HMS navigation in one assistant.</p>
+                                    </div>
+                                </div>
                                 <div className="flex justify-end">
                                     <div className="bg-teal-600 text-white p-4 rounded-2xl rounded-tr-none text-sm max-w-[80%] shadow-lg">
                                         "I have a persistent cough and mild fever. What should I do?"

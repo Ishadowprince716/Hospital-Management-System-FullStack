@@ -60,6 +60,8 @@ const buildLocalSupportMessage = (role?: string) => {
     return "MediMate is running in local support mode right now. I can still help with general health guidance and HMS portal questions. For symptoms, share when they started, severity, age, existing conditions, medicines, and any warning signs. For urgent symptoms, contact emergency care.";
 };
 
+const MEDIMATE_LOGO_SRC = '/assets/medimate-ai-logo.png';
+
 const MediMateCharacter = ({
     size = 'sm',
     variant = 'avatar',
@@ -76,6 +78,19 @@ const MediMateCharacter = ({
         lg: 'h-[66px] w-[66px]',
         xl: 'h-[92px] w-[92px]',
     }[size];
+
+    if (MEDIMATE_LOGO_SRC) {
+        return (
+            <img
+                src={MEDIMATE_LOGO_SRC}
+                alt=""
+                aria-hidden="true"
+                className={`${sizeClass} ${className} object-contain ${variant === 'avatar' ? 'rounded-full bg-teal-50 p-1 ring-1 ring-teal-100 dark:bg-slate-900 dark:ring-slate-800' : 'p-0'}`}
+                draggable={false}
+            />
+        );
+    }
+
     if (variant === 'avatar') {
         return (
             <svg
