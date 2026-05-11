@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE } from '../api';
 
 type ApiResponse = { success: boolean; message: string; data?: unknown };
 type Role = 'PATIENT' | 'DOCTOR';
@@ -67,7 +68,7 @@ const Register: React.FC = () => {
     e.preventDefault();
     setLoading(true); setError(null); setSuccess(null);
     try {
-      const res = await axios.post<ApiResponse>('http://localhost:8080/api/auth/register', form);
+      const res = await axios.post<ApiResponse>(`${API_BASE}/auth/register`, form);
       setSuccess(res.data.message || 'Account created! Redirecting…');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err: unknown) {

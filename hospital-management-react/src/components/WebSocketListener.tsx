@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import SockJS from 'sockjs-client';
-import Stomp from 'stompjs';
+import { Client, type IMessage } from '@stomp/stompjs';
 import type { RootState } from '../store';
 import { toast } from 'react-hot-toast';
+import { WS_BASE } from '../api';
 
 const WebSocketListener: React.FC = () => {
     const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
@@ -13,15 +14,17 @@ const WebSocketListener: React.FC = () => {
         if (!isAuthenticated || !username) return;
 
         let isActive = true;
-        const socket = new SockJS('http://localhost:8080/ws');
-        const stompClient = Stomp.over(socket);
-        stompClient.debug = () => {}; // Disable logging for production feel
+        const stompClient = new Client({
+            webSocketFactory: () => new SockJS(`${WS_BASE}/ws`),
+            reconnectDelay: 5000,
+            debug: () => {}, // Disable logging for production feel
+        });
 
-        stompClient.connect({}, () => {
+        stompClient.onConnect = () => {
             if (!isActive) return;
 
             // Subscribe to Global Notifications
-            stompClient.subscribe('/topic/notifications', (message) => {
+            stompClient.subscribe('/topic/notifications', (message: IMessage) => {
                 const data = JSON.parse(message.body);
                 toast(data.message, {
                     icon: data.type === 'SUCCESS' ? '✅' : '🔔',
@@ -30,26 +33,32 @@ const WebSocketListener: React.FC = () => {
             });
 
             // Subscribe to Private User Notifications
-            stompClient.subscribe(`/user/${username}/queue/notifications`, (message) => {
+            stompClient.subscribe(`/user/${username}/queue/notifications`, (message: IMessage) => {
                 const data = JSON.parse(message.body);
                 toast.success(data.message, {
                     icon: '🚀',
                     duration: 6000,
                 });
             });
-        }, (error) => {
+        };
+
+        stompClient.onStompError = (frame) => {
+            if (isActive) {
+                console.warn('Live notifications are temporarily unavailable:', frame.headers.message || frame.body);
+            }
+        };
+
+        stompClient.onWebSocketError = (error) => {
             if (isActive) {
                 console.warn('Live notifications are temporarily unavailable:', error);
             }
-        });
+        };
+
+        stompClient.activate();
 
         return () => {
             isActive = false;
-            if (stompClient.connected) {
-                stompClient.disconnect(() => {});
-            } else {
-                socket.close();
-            }
+            void stompClient.deactivate();
         };
     }, [isAuthenticated, username]);
 

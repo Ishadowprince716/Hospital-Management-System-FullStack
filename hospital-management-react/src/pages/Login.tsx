@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice';
+import { clearAuthError, loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice';
 import type { RootState } from '../store';
 import api, { getApiErrorMessage } from '../api';
 
@@ -64,27 +64,47 @@ const Login: React.FC = () => {
   useEffect(() => {
     setTimeout(() => setMounted(true), 60);
 
-    // API Health Check
-    api.get('/health')
-      .then(() => setApiStatus('🟢 API Server is Online'))
-      .catch(() => setApiStatus('🔴 API Server is Offline'));
-  }, []);
+    const checkApiStatus = () => {
+      api.get('/health')
+        .then(() => {
+          setApiStatus('🟢 API Server is Online');
+          dispatch(clearAuthError());
+        })
+        .catch(() => setApiStatus('🔴 API Server is Offline'));
+    };
+
+    checkApiStatus();
+    const intervalId = window.setInterval(checkApiStatus, 5000);
+    window.addEventListener('focus', checkApiStatus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', checkApiStatus);
+    };
+  }, [dispatch]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanUsername = username.trim();
+    const cleanPassword = password.trim();
     dispatch(loginStart());
     try {
-      const res = await api.post<ApiResponse<AuthResponse>>('/auth/login', { username, password, role });
+      const res = await api.post<ApiResponse<AuthResponse>>('/auth/login', { username: cleanUsername, password: cleanPassword, role });
       const d = res.data.data;
       if (d?.token) {
         localStorage.setItem('token', d.token);
         const r = d.role ?? role;
-        dispatch(loginSuccess({ user: { id: d.userId ?? 0, username: d.username ?? username, email: '', role: r, fullName: d.fullName ?? username, profilePictureUrl: d.profilePictureUrl }, token: d.token }));
+        dispatch(loginSuccess({ user: { id: d.userId ?? 0, username: d.username ?? cleanUsername, email: '', role: r, fullName: d.fullName ?? cleanUsername, profilePictureUrl: d.profilePictureUrl }, token: d.token }));
         navigate(r === 'ADMIN' ? '/admin' : r === 'DOCTOR' ? '/doctor' : '/patient');
       }
     } catch (err: unknown) {
       dispatch(loginFailure(getApiErrorMessage(err, 'Invalid credentials. Please try again.')));
     }
+  };
+
+  const updateRole = (nextRole: Role) => {
+    dispatch(clearAuthError());
+    setRole(nextRole);
   };
 
   return (
@@ -157,7 +177,7 @@ const Login: React.FC = () => {
             {ROLES.map(r => {
               const on = role === r.id;
               return (
-                <button key={r.id} type="button" onClick={() => setRole(r.id)} className="role-tab" style={{ ...S.tab, background: on ? '#0dcfba' : 'transparent', border: `1.5px solid ${on ? '#0dcfba' : '#e2e8f0'}`, boxShadow: on ? '0 4px 16px rgba(13,207,186,0.4)' : 'none', transform: on ? 'translateY(-1px)' : 'none' }}>
+                <button key={r.id} type="button" onClick={() => updateRole(r.id)} className="role-tab" style={{ ...S.tab, background: on ? '#0dcfba' : 'transparent', border: `1.5px solid ${on ? '#0dcfba' : '#e2e8f0'}`, boxShadow: on ? '0 4px 16px rgba(13,207,186,0.4)' : 'none', transform: on ? 'translateY(-1px)' : 'none' }}>
                   { r.id === 'PATIENT' ? <PatientIcon active={on}/> : r.id === 'DOCTOR' ? <DoctorIcon active={on}/> : <AdminIcon active={on}/> }
                   <span style={{ fontSize: 12, fontWeight: 600, color: on ? '#fff' : '#94a3b8', marginTop: 3 }}>{r.label}</span>
                 </button>
@@ -172,7 +192,7 @@ const Login: React.FC = () => {
               <input
                 placeholder="Enter your username"
                 value={username}
-                onChange={e => setUsername(e.target.value)}
+                onChange={e => { dispatch(clearAuthError()); setUsername(e.target.value.trimStart()); }}
                 onFocus={() => setUFocus(true)}
                 onBlur={() => setUFocus(false)}
                 required
@@ -187,7 +207,7 @@ const Login: React.FC = () => {
                 type={showPwd ? 'text' : 'password'}
                 placeholder="Enter your password"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={e => { dispatch(clearAuthError()); setPassword(e.target.value); }}
                 onFocus={() => setPFocus(true)}
                 onBlur={() => setPFocus(false)}
                 required

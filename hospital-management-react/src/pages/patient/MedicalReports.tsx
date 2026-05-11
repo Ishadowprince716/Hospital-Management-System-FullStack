@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { useGetPatientMedicalReportsQuery } from '../../store/api/patientApiSlice';
 import { formatDoctorName } from '../../utils/displayNames';
+import { API_BASE } from '../../api';
 import {
     PatientAlert,
     PatientEmptyState,
@@ -46,7 +47,7 @@ const MedicalReports: React.FC = () => {
 
     const handleDownload = (report: MedicalReport) => {
         const token = localStorage.getItem('token');
-        fetch(`http://localhost:8080/api/reports/${report.id}/download`, {
+        fetch(`${API_BASE}/reports/${report.id}/download`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }

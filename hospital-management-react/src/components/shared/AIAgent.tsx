@@ -54,6 +54,14 @@ type SpeechRecognitionWindow = Window & typeof globalThis & {
 
 const MEDIMATE_CHARACTER_IMAGE = '/assets/medimate-character.jpg';
 
+const buildLocalSupportMessage = (role?: string) => {
+    if (role?.toUpperCase() === 'DOCTOR') {
+        return "MediMate is running in local clinical support mode right now. Gemini is unavailable, but I can still help structure a quick clinical note, symptom summary, assessment checklist, or HMS workflow. Share the patient's age, complaint, duration, vitals, history, medicines, allergies, and any red flags.";
+    }
+
+    return "MediMate is running in local support mode right now. I can still help with general health guidance and HMS portal questions. For symptoms, share when they started, severity, age, existing conditions, medicines, and any warning signs. For urgent symptoms, contact emergency care.";
+};
+
 const MediMateCharacter = ({
     size = 'sm',
     variant = 'avatar',
@@ -302,7 +310,7 @@ const AIAgent: React.FC = () => {
             console.error('AI Error:', error);
             setHistory(prev => [...prev, {
                 role: 'assistant',
-                content: "I'm having trouble connecting to my brain right now. Please try again later.",
+                content: buildLocalSupportMessage(user?.role),
                 timestamp: new Date().toISOString()
             }]);
         } finally {
