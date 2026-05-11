@@ -108,11 +108,11 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div style={S.page}>
+    <div className="auth-page" style={S.page}>
       <style>{CSS}</style>
 
       {/* ── LEFT PANEL ─────────────────────────── */}
-      <div style={{ ...S.left, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(-24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1)' }}>
+      <div className="auth-left" style={{ ...S.left, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(-24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1)' }}>
         {/* Logo */}
         <div style={S.logoWrap}>
           <div style={S.logoBox}>
@@ -154,12 +154,12 @@ const Login: React.FC = () => {
           aria-label="Open Rahul Singh Kushwah LinkedIn profile"
         >
           <img src="/rahul.jpg" alt="Rahul Singh Kushwah" style={S.devAvatar} />
-          <div>
-            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', margin: '0 0 1px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Designed &amp; Developed by</p>
-            <p style={{ fontSize: 14, color: '#2dd4bf', fontWeight: 800, margin: 0 }}>Rahul Singh Kushwah</p>
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', margin: '1px 0 0' }}>Full Stack Developer &amp; UI/UX Designer</p>
+          <div style={S.devText}>
+            <p style={S.devEyebrow}>Designed &amp; Developed by</p>
+            <p style={S.devName}>Rahul Singh Kushwah</p>
+            <p style={S.devRole}>Full Stack Developer &amp; UI/UX Designer</p>
           </div>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ marginLeft: 'auto', opacity: 0.85, flexShrink: 0 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={S.devIcon}>
             <path d="M7 10v7M7 7.2v.1M11 17v-4.1c0-1.6 1.1-2.9 2.7-2.9s2.3 1 2.3 2.8V17" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             <rect x="3" y="3" width="18" height="18" rx="4" stroke="#fff" strokeWidth="1.8"/>
           </svg>
@@ -167,7 +167,7 @@ const Login: React.FC = () => {
       </div>
 
       {/* ── RIGHT PANEL (white card) ────────────── */}
-      <div style={{ ...S.right, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1) .1s' }}>
+      <div className="auth-right" style={{ ...S.right, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1) .1s' }}>
         <div style={S.card}>
           <h2 style={S.cardTitle}>Welcome Back!</h2>
           <p style={S.cardSub}>Please login to continue</p>
@@ -265,6 +265,12 @@ const CSS = `
   .role-tab { transition: all .25s cubic-bezier(.34,1.56,.64,1); outline: none; cursor: pointer; }
   .role-tab:hover { transform: translateY(-2px); }
   .dev-credit:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.32); transform: translateY(-1px); }
+  @media (max-width: 900px) {
+    .auth-page { flex-direction: column; overflow-y: auto !important; }
+    .auth-left { flex: none !important; min-height: auto; padding: 32px 24px !important; gap: 28px; }
+    .auth-right { padding: 28px 20px !important; }
+    .dev-credit { margin-top: 28px !important; }
+  }
 `;
 
 const S: Record<string, React.CSSProperties> = {
@@ -317,20 +323,30 @@ const S: Record<string, React.CSSProperties> = {
   featureDesc:  { fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: 0 },
   devCredit: {
     display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto',
+    width: '100%', maxWidth: 390, minHeight: 76,
     padding: '12px 14px', borderRadius: 14,
     background: 'rgba(255,255,255,0.08)',
     border: '1px solid rgba(255,255,255,0.18)',
     textDecoration: 'none',
     transition: 'all .2s ease',
+    overflow: 'hidden',
   },
   devAvatar: {
-    width: 40, height: 40, borderRadius: '50%',
-    objectFit: 'cover',
+    width: 52, height: 52, borderRadius: '50%',
+    objectFit: 'contain',
     objectPosition: 'center',
+    background: 'rgba(255,255,255,0.18)',
     border: '2px solid rgba(255,255,255,0.58)',
     boxShadow: '0 4px 16px rgba(15,23,42,0.18)',
     flexShrink: 0,
+    padding: 2,
+    display: 'block',
   },
+  devText: { minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 },
+  devEyebrow: { fontSize: 10, lineHeight: 1.2, color: 'rgba(255,255,255,0.62)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  devName: { fontSize: 14, lineHeight: 1.25, color: '#2dd4bf', fontWeight: 800, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  devRole: { fontSize: 11, lineHeight: 1.25, color: 'rgba(255,255,255,0.66)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  devIcon: { marginLeft: 'auto', opacity: 0.85, flexShrink: 0 },
   right: {
     flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: '40px 48px',
