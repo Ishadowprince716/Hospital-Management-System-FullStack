@@ -23,23 +23,23 @@ export const Button: React.FC<ButtonProps> = ({
     ...props
 }) => {
     const variants = {
-        primary: 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm',
-        secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200',
-        outline: 'border border-gray-300 bg-transparent hover:bg-gray-50 text-gray-700',
-        ghost: 'bg-transparent hover:bg-gray-100 text-gray-700',
-        danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm',
+        primary: 'bg-[var(--primary)] text-white shadow-[0_10px_24px_rgba(15,118,110,0.22)] hover:bg-[var(--primary-dark)]',
+        secondary: 'bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700',
+        outline: 'border border-[var(--border-color)] bg-[var(--card-bg)] text-[var(--text-color)] hover:border-[var(--border-strong)] hover:bg-slate-50 dark:hover:bg-slate-800',
+        ghost: 'bg-transparent text-[var(--text-muted)] hover:bg-slate-100 hover:text-[var(--text-color)] dark:hover:bg-slate-800',
+        danger: 'bg-red-600 text-white shadow-sm hover:bg-red-700',
     };
 
     const sizes = {
         sm: 'h-8 px-3 text-xs',
-        md: 'h-10 px-4 py-2',
-        lg: 'h-12 px-6 text-lg',
+        md: 'h-10 px-4 py-2 text-sm',
+        lg: 'h-12 px-6 text-base',
     };
 
     return (
         <button
             className={cn(
-                'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50',
+                'inline-flex items-center justify-center rounded-lg font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--ring)] disabled:pointer-events-none disabled:opacity-50 active:translate-y-px',
                 variants[variant],
                 sizes[size],
                 className

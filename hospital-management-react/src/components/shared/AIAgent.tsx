@@ -11,10 +11,56 @@ interface Message {
     content: string;
     timestamp: string;
     type?: 'text' | 'triage';
-    metadata?: any;
+    metadata?: TriageMetadata;
 }
 
-const MEDIMATE_CHARACTER_IMAGE = '/assets/medimate-character.jpg';
+interface TriageMetadata {
+    recommendedSpecialization?: string;
+    urgencyLevel?: string;
+    analysisSummary?: string;
+}
+
+interface SpeechRecognitionResultEventLike {
+    results: {
+        0: {
+            0: {
+                transcript: string;
+            };
+        };
+    };
+}
+
+interface SpeechRecognitionErrorEventLike {
+    error: string;
+}
+
+interface SpeechRecognitionLike {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    onresult: ((event: SpeechRecognitionResultEventLike) => void) | null;
+    onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+    onend: (() => void) | null;
+    start: () => void;
+    stop: () => void;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+type SpeechRecognitionWindow = Window & typeof globalThis & {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+};
+
+const buildLocalSupportMessage = (role?: string) => {
+    if (role?.toUpperCase() === 'DOCTOR') {
+        return "MediMate is running in local clinical support mode right now. Gemini is unavailable, but I can still help structure a quick clinical note, symptom summary, assessment checklist, or HMS workflow. Share the patient's age, complaint, duration, vitals, history, medicines, allergies, and any red flags.";
+    }
+
+    return "MediMate is running in local support mode right now. I can still help with general health guidance and HMS portal questions. For symptoms, share when they started, severity, age, existing conditions, medicines, and any warning signs. For urgent symptoms, contact emergency care.";
+};
+
+const MEDIMATE_LOGO_SRC = '/assets/medimate-ai-logo.png';
 
 const MediMateCharacter = ({
     size = 'sm',
@@ -32,19 +78,15 @@ const MediMateCharacter = ({
         lg: 'h-[66px] w-[66px]',
         xl: 'h-[92px] w-[92px]',
     }[size];
-    const [imageFailed, setImageFailed] = useState(false);
 
-    if (!imageFailed) {
+    if (MEDIMATE_LOGO_SRC) {
         return (
             <img
-                aria-hidden="true"
-                src={MEDIMATE_CHARACTER_IMAGE}
+                src={MEDIMATE_LOGO_SRC}
                 alt=""
+                aria-hidden="true"
+                className={`${sizeClass} ${className} object-contain ${variant === 'avatar' ? 'rounded-full bg-teal-50 p-1 ring-1 ring-teal-100 dark:bg-slate-900 dark:ring-slate-800' : 'p-0'}`}
                 draggable={false}
-                onError={() => setImageFailed(true)}
-                className={`${sizeClass} bg-transparent ${
-                    variant === 'full' ? 'rounded-lg object-contain object-center' : 'rounded-lg object-cover object-top'
-                } ${className}`}
             />
         );
     }
@@ -143,24 +185,25 @@ const AIAgent: React.FC = () => {
     const panelFont = "'DM Sans', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
     // Speech Recognition Setup
-    const recognitionRef = useRef<any>(null);
+    const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
     useEffect(() => {
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const browserWindow = window as SpeechRecognitionWindow;
+        const SpeechRecognition = browserWindow.SpeechRecognition || browserWindow.webkitSpeechRecognition;
         if (SpeechRecognition) {
             recognitionRef.current = new SpeechRecognition();
             recognitionRef.current.continuous = false;
             recognitionRef.current.interimResults = false;
             recognitionRef.current.lang = 'en-US';
 
-            recognitionRef.current.onresult = (event: any) => {
+            recognitionRef.current.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
                 setMessage(transcript);
                 setIsListening(false);
                 toast.success('Voice captured!');
             };
 
-            recognitionRef.current.onerror = (event: any) => {
+            recognitionRef.current.onerror = (event) => {
                 console.error('Speech Recognition Error:', event.error);
                 setIsListening(false);
                 toast.error('Voice recognition failed. Please try typing.');
@@ -207,7 +250,7 @@ const AIAgent: React.FC = () => {
                 timestamp: new Date().toISOString()
             }]);
         }
-    }, [user]);
+    }, [history.length, user?.fullName]);
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -227,12 +270,12 @@ const AIAgent: React.FC = () => {
         try {
             if (mode === 'triage') {
                 const res = await api.post('/ai/triage', { symptoms: currentMessage });
-                const triageData = res.data?.data;
+                const triageData = res.data?.data as TriageMetadata | undefined;
 
                 const aiMsg: Message = {
                     role: 'assistant',
                     type: 'triage',
-                    content: triageData.analysisSummary,
+                    content: triageData?.analysisSummary || 'Triage analysis is unavailable right now.',
                     metadata: triageData,
                     timestamp: new Date().toISOString()
                 };
@@ -263,7 +306,7 @@ const AIAgent: React.FC = () => {
             console.error('AI Error:', error);
             setHistory(prev => [...prev, {
                 role: 'assistant',
-                content: "I'm having trouble connecting to my brain right now. Please try again later.",
+                content: buildLocalSupportMessage(user?.role),
                 timestamp: new Date().toISOString()
             }]);
         } finally {
@@ -363,15 +406,15 @@ const AIAgent: React.FC = () => {
                                             <div className="mt-4 grid grid-cols-2 gap-2">
                                                 <div className="rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-950">
                                                     <span className="block text-[11px] text-slate-500 dark:text-slate-400">Specialization</span>
-                                                    <span className="text-xs font-semibold text-teal-700 dark:text-teal-300">{msg.metadata.recommendedSpecialization}</span>
+                                                    <span className="text-xs font-semibold text-teal-700 dark:text-teal-300">{msg.metadata?.recommendedSpecialization || 'General Practice'}</span>
                                                 </div>
                                                 <div className="rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-950">
                                                     <span className="block text-[11px] text-slate-500 dark:text-slate-400">Urgency</span>
                                                     <span className={`text-xs font-bold ${
-                                                        msg.metadata.urgencyLevel === 'HIGH' || msg.metadata.urgencyLevel === 'EMERGENCY'
+                                                        msg.metadata?.urgencyLevel === 'HIGH' || msg.metadata?.urgencyLevel === 'EMERGENCY'
                                                         ? 'text-red-500' : 'text-orange-500'
                                                     }`}>
-                                                        {msg.metadata.urgencyLevel}
+                                                        {msg.metadata?.urgencyLevel || 'MEDIUM'}
                                                     </span>
                                                 </div>
                                             </div>

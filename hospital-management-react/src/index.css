@@ -4,28 +4,43 @@
    CSS Variables / Design Tokens
    =========================== */
 :root {
-  --bg-color: #f0f4f8;
+  --bg-color: #f6f8fb;
   --card-bg: #ffffff;
-  --text-color: #1a202c;
+  --card-elevated: rgba(255, 255, 255, 0.92);
+  --text-color: #0f172a;
   --text-muted: #64748b;
-  --border-color: #e2e8f0;
+  --text-soft: #94a3b8;
+  --border-color: #e5eaf1;
+  --border-strong: #cbd5e1;
   --sidebar-bg: #ffffff;
-  --primary: #2563eb;
-  --primary-dark: #1e40af;
-  --accent: #06b6d4;
+  --primary: #0f766e;
+  --primary-dark: #115e59;
+  --primary-soft: #ccfbf1;
+  --accent: #2563eb;
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
+  --ring: rgba(15, 118, 110, 0.22);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 10px 30px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 24px 70px rgba(15, 23, 42, 0.12);
 }
 
 /* Dark Mode */
 .dark-mode {
-  --bg-color: #0f172a;
-  --card-bg: #1e293b;
-  --text-color: #f1f5f9;
+  --bg-color: #0b1220;
+  --card-bg: #111827;
+  --card-elevated: rgba(17, 24, 39, 0.9);
+  --text-color: #f8fafc;
   --text-muted: #94a3b8;
-  --border-color: #334155;
-  --sidebar-bg: #1e293b;
+  --text-soft: #64748b;
+  --border-color: #223047;
+  --border-strong: #334155;
+  --sidebar-bg: #0f172a;
+  --primary: #2dd4bf;
+  --primary-dark: #14b8a6;
+  --primary-soft: rgba(45, 212, 191, 0.12);
+  --ring: rgba(45, 212, 191, 0.24);
 }
 
 /* ===========================
@@ -37,15 +52,36 @@
 
 html {
   scroll-behavior: smooth;
+  background: var(--bg-color);
 }
 
 body {
-  background-color: var(--bg-color);
+  min-width: 320px;
+  background:
+    radial-gradient(circle at top left, rgba(45, 212, 191, 0.10), transparent 34rem),
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 30rem),
+    var(--bg-color);
   color: var(--text-color);
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
   margin: 0;
   padding: 0;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::selection {
+  background: var(--primary-soft);
+  color: var(--text-color);
+}
+
+:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
 }
 
 .patient-portal-bg {
@@ -80,29 +116,33 @@ body {
    Utility Classes
    =========================== */
 .card {
-  background-color: var(--card-bg);
+  background: var(--card-elevated);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-  transition: box-shadow 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(18px);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
 }
 
 /* Stat Cards */
 .stat-card {
-  background: var(--card-bg);
+  background: var(--card-elevated);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 1.5rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
 }
 
 /* Badge */
@@ -114,6 +154,41 @@ body {
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.025em;
+}
+
+.surface-panel {
+  background: var(--card-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(18px);
+}
+
+.app-page {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.data-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.data-table th {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.data-table tr {
+  transition: background-color 0.16s ease;
+}
+
+.data-table tbody tr:hover {
+  background: rgba(15, 118, 110, 0.045);
 }
 
 /* Animations */

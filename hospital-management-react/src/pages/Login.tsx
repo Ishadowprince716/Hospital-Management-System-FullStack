@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice';
+import { clearAuthError, loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice';
 import type { RootState } from '../store';
 import api, { getApiErrorMessage } from '../api';
+import GoogleAuthButton from '../components/auth/GoogleAuthButton';
+import { completeGoogleRedirectSignIn, getFirebaseAuthErrorMessage, signInWithGoogleAccount } from '../utils/firebaseGoogleAuth';
 
 type ApiResponse<T> = { success: boolean; message: string; data: T };
 type AuthResponse = { token: string; username: string; role: string; userId: number; fullName: string; profilePictureUrl?: string };
@@ -52,6 +54,7 @@ const Login: React.FC = () => {
   const [role,     setRole]     = useState<Role>('PATIENT');
   const [showPwd,  setShowPwd]  = useState(false);
   const [remember, setRemember] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [uFocus,   setUFocus]   = useState(false);
   const [pFocus,   setPFocus]   = useState(false);
   const [mounted,  setMounted]  = useState(false);
@@ -64,35 +67,107 @@ const Login: React.FC = () => {
   useEffect(() => {
     setTimeout(() => setMounted(true), 60);
 
-    // API Health Check
-    api.get('/health')
-      .then(() => setApiStatus('🟢 API Server is Online'))
-      .catch(() => setApiStatus('🔴 API Server is Offline'));
-  }, []);
+    const checkApiStatus = () => {
+      api.get('/health')
+        .then(() => {
+          setApiStatus('🟢 API Server is Online');
+          dispatch(clearAuthError());
+        })
+        .catch(() => setApiStatus('🔴 API Server is Offline'));
+    };
+
+    checkApiStatus();
+    const intervalId = window.setInterval(checkApiStatus, 5000);
+    window.addEventListener('focus', checkApiStatus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', checkApiStatus);
+    };
+  }, [dispatch]);
+
+  const finishAuth = useCallback((d: AuthResponse, email = '') => {
+    if (!d?.token) return;
+    localStorage.setItem('token', d.token);
+    const r = d.role ?? role;
+    dispatch(loginSuccess({
+      user: {
+        id: d.userId ?? 0,
+        username: d.username ?? email,
+        email,
+        role: r,
+        fullName: d.fullName ?? d.username ?? email,
+        profilePictureUrl: d.profilePictureUrl,
+      },
+      token: d.token,
+    }));
+    navigate(r === 'ADMIN' ? '/admin' : r === 'DOCTOR' ? '/doctor' : '/patient');
+  }, [dispatch, navigate, role]);
+
+  useEffect(() => {
+    let active = true;
+
+    const finishGoogleRedirect = async () => {
+      setGoogleLoading(true);
+      try {
+        const result = await completeGoogleRedirectSignIn(role === 'ADMIN' ? 'PATIENT' : role);
+        if (result && active) {
+          finishAuth(result.auth, result.email);
+        }
+      } catch (err: unknown) {
+        if (active) dispatch(loginFailure(getFirebaseAuthErrorMessage(err)));
+      } finally {
+        if (active) setGoogleLoading(false);
+      }
+    };
+
+    finishGoogleRedirect();
+    return () => {
+      active = false;
+    };
+  }, [dispatch, finishAuth, role]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanUsername = username.trim();
+    const cleanPassword = password.trim();
     dispatch(loginStart());
     try {
-      const res = await api.post<ApiResponse<AuthResponse>>('/auth/login', { username, password, role });
+      const res = await api.post<ApiResponse<AuthResponse>>('/auth/login', { username: cleanUsername, password: cleanPassword, role });
       const d = res.data.data;
-      if (d?.token) {
-        localStorage.setItem('token', d.token);
-        const r = d.role ?? role;
-        dispatch(loginSuccess({ user: { id: d.userId ?? 0, username: d.username ?? username, email: '', role: r, fullName: d.fullName ?? username, profilePictureUrl: d.profilePictureUrl }, token: d.token }));
-        navigate(r === 'ADMIN' ? '/admin' : r === 'DOCTOR' ? '/doctor' : '/patient');
-      }
+      finishAuth(d);
     } catch (err: unknown) {
       dispatch(loginFailure(getApiErrorMessage(err, 'Invalid credentials. Please try again.')));
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    if (role === 'ADMIN') {
+      dispatch(loginFailure('Google sign-in is available for Patient and Doctor accounts only.'));
+      return;
+    }
+
+    dispatch(loginStart());
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogleAccount(role);
+    } catch (err: unknown) {
+      dispatch(loginFailure(getApiErrorMessage(err, getFirebaseAuthErrorMessage(err))));
+      setGoogleLoading(false);
+    }
+  };
+
+  const updateRole = (nextRole: Role) => {
+    dispatch(clearAuthError());
+    setRole(nextRole);
+  };
+
   return (
-    <div style={S.page}>
+    <div className="auth-page" style={S.page}>
       <style>{CSS}</style>
 
       {/* ── LEFT PANEL ─────────────────────────── */}
-      <div style={{ ...S.left, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(-24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1)' }}>
+      <div className="auth-left" style={{ ...S.left, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(-24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1)' }}>
         {/* Logo */}
         <div style={S.logoWrap}>
           <div style={S.logoBox}>
@@ -134,12 +209,12 @@ const Login: React.FC = () => {
           aria-label="Open Rahul Singh Kushwah LinkedIn profile"
         >
           <img src="/rahul.jpg" alt="Rahul Singh Kushwah" style={S.devAvatar} />
-          <div>
-            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', margin: '0 0 1px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Designed &amp; Developed by</p>
-            <p style={{ fontSize: 14, color: '#2dd4bf', fontWeight: 800, margin: 0 }}>Rahul Singh Kushwah</p>
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', margin: '1px 0 0' }}>Full Stack Developer &amp; UI/UX Designer</p>
+          <div style={S.devText}>
+            <p style={S.devEyebrow}>Designed &amp; Developed by</p>
+            <p style={S.devName}>Rahul Singh Kushwah</p>
+            <p style={S.devRole}>Full Stack Developer &amp; UI/UX Designer</p>
           </div>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ marginLeft: 'auto', opacity: 0.85, flexShrink: 0 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={S.devIcon}>
             <path d="M7 10v7M7 7.2v.1M11 17v-4.1c0-1.6 1.1-2.9 2.7-2.9s2.3 1 2.3 2.8V17" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             <rect x="3" y="3" width="18" height="18" rx="4" stroke="#fff" strokeWidth="1.8"/>
           </svg>
@@ -147,7 +222,7 @@ const Login: React.FC = () => {
       </div>
 
       {/* ── RIGHT PANEL (white card) ────────────── */}
-      <div style={{ ...S.right, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1) .1s' }}>
+      <div className="auth-right" style={{ ...S.right, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1) .1s' }}>
         <div style={S.card}>
           <h2 style={S.cardTitle}>Welcome Back!</h2>
           <p style={S.cardSub}>Please login to continue</p>
@@ -157,13 +232,29 @@ const Login: React.FC = () => {
             {ROLES.map(r => {
               const on = role === r.id;
               return (
-                <button key={r.id} type="button" onClick={() => setRole(r.id)} className="role-tab" style={{ ...S.tab, background: on ? '#0dcfba' : 'transparent', border: `1.5px solid ${on ? '#0dcfba' : '#e2e8f0'}`, boxShadow: on ? '0 4px 16px rgba(13,207,186,0.4)' : 'none', transform: on ? 'translateY(-1px)' : 'none' }}>
+                <button key={r.id} type="button" onClick={() => updateRole(r.id)} className="role-tab" style={{ ...S.tab, background: on ? '#0dcfba' : 'transparent', border: `1.5px solid ${on ? '#0dcfba' : '#e2e8f0'}`, boxShadow: on ? '0 4px 16px rgba(13,207,186,0.4)' : 'none', transform: on ? 'translateY(-1px)' : 'none' }}>
                   { r.id === 'PATIENT' ? <PatientIcon active={on}/> : r.id === 'DOCTOR' ? <DoctorIcon active={on}/> : <AdminIcon active={on}/> }
                   <span style={{ fontSize: 12, fontWeight: 600, color: on ? '#fff' : '#94a3b8', marginTop: 3 }}>{r.label}</span>
                 </button>
               );
             })}
           </div>
+
+          {role !== 'ADMIN' && (
+            <>
+              <GoogleAuthButton
+                label={googleLoading ? 'Connecting to Google...' : `Continue with Google as ${role.charAt(0) + role.slice(1).toLowerCase()}`}
+                disabled={loading || googleLoading}
+                onClick={handleGoogleSignIn}
+              />
+
+              <div style={S.divider}>
+                <span style={S.dividerLine} />
+                <span style={S.dividerText}>or use username</span>
+                <span style={S.dividerLine} />
+              </div>
+            </>
+          )}
 
           {/* Form */}
           <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -172,7 +263,7 @@ const Login: React.FC = () => {
               <input
                 placeholder="Enter your username"
                 value={username}
-                onChange={e => setUsername(e.target.value)}
+                onChange={e => { dispatch(clearAuthError()); setUsername(e.target.value.trimStart()); }}
                 onFocus={() => setUFocus(true)}
                 onBlur={() => setUFocus(false)}
                 required
@@ -187,7 +278,7 @@ const Login: React.FC = () => {
                 type={showPwd ? 'text' : 'password'}
                 placeholder="Enter your password"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={e => { dispatch(clearAuthError()); setPassword(e.target.value); }}
                 onFocus={() => setPFocus(true)}
                 onBlur={() => setPFocus(false)}
                 required
@@ -244,7 +335,14 @@ const CSS = `
   .login-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(13,207,186,0.55) !important; }
   .role-tab { transition: all .25s cubic-bezier(.34,1.56,.64,1); outline: none; cursor: pointer; }
   .role-tab:hover { transform: translateY(-2px); }
+  .google-auth-btn:hover:not(:disabled) { border-color: #cbd5e1 !important; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(15,23,42,0.10) !important; }
   .dev-credit:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.32); transform: translateY(-1px); }
+  @media (max-width: 900px) {
+    .auth-page { flex-direction: column; overflow-y: auto !important; }
+    .auth-left { flex: none !important; min-height: auto; padding: 32px 24px !important; gap: 28px; }
+    .auth-right { padding: 28px 20px !important; }
+    .dev-credit { margin-top: 28px !important; }
+  }
 `;
 
 const S: Record<string, React.CSSProperties> = {
@@ -297,20 +395,30 @@ const S: Record<string, React.CSSProperties> = {
   featureDesc:  { fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: 0 },
   devCredit: {
     display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto',
+    width: '100%', maxWidth: 390, minHeight: 76,
     padding: '12px 14px', borderRadius: 14,
     background: 'rgba(255,255,255,0.08)',
     border: '1px solid rgba(255,255,255,0.18)',
     textDecoration: 'none',
     transition: 'all .2s ease',
+    overflow: 'hidden',
   },
   devAvatar: {
-    width: 40, height: 40, borderRadius: '50%',
-    objectFit: 'cover',
+    width: 52, height: 52, borderRadius: '50%',
+    objectFit: 'contain',
     objectPosition: 'center',
+    background: 'rgba(255,255,255,0.18)',
     border: '2px solid rgba(255,255,255,0.58)',
     boxShadow: '0 4px 16px rgba(15,23,42,0.18)',
     flexShrink: 0,
+    padding: 2,
+    display: 'block',
   },
+  devText: { minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 },
+  devEyebrow: { fontSize: 10, lineHeight: 1.2, color: 'rgba(255,255,255,0.62)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  devName: { fontSize: 14, lineHeight: 1.25, color: '#2dd4bf', fontWeight: 800, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  devRole: { fontSize: 11, lineHeight: 1.25, color: 'rgba(255,255,255,0.66)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  devIcon: { marginLeft: 'auto', opacity: 0.85, flexShrink: 0 },
   right: {
     flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: '40px 48px',
@@ -333,6 +441,9 @@ const S: Record<string, React.CSSProperties> = {
     padding: '0 16px', fontSize: 14, fontWeight: 500, color: '#1e293b',
     background: '#f8fafc', outline: 'none', transition: 'border-color .2s, box-shadow .2s',
   },
+  divider: { display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0 14px' },
+  dividerLine: { flex: 1, height: 1, background: '#e2e8f0' },
+  dividerText: { fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' },
 };
 
 export default Login;

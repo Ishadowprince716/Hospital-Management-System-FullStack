@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Pill, AlertCircle, CheckCircle2, ClipboardList } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
-import api from '../../api';
+import api, { getApiErrorMessage } from '../../api';
 import { formatDoctorName } from '../../utils/displayNames';
 import {
     PatientAlert,
@@ -43,8 +43,8 @@ const PatientPrescriptions: React.FC = () => {
             try {
                 const res = await api.get(`/prescriptions/patient/${user?.id}?size=50`);
                 setPrescriptions(res.data?.data?.content || res.data?.data || []);
-            } catch (err: any) {
-                setError(err.response?.data?.message || 'Failed to load prescriptions');
+            } catch (err) {
+                setError(getApiErrorMessage(err, 'Failed to load prescriptions'));
             } finally {
                 setLoading(false);
             }

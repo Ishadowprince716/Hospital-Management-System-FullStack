@@ -82,15 +82,15 @@ const getNavItems = (role: string): NavItem[] => {
 };
 
 const roleColors: Record<string, string> = {
-    ADMIN: 'bg-purple-600',
+    ADMIN: 'bg-violet-600',
     DOCTOR: 'bg-teal-600',
     PATIENT: 'bg-blue-600',
 };
 
 const roleSoftStyles: Record<string, string> = {
-    ADMIN: 'rgba(147,51,234,0.08)',
-    DOCTOR: 'rgba(13,148,136,0.08)',
-    PATIENT: 'rgba(37,99,235,0.08)',
+    ADMIN: 'linear-gradient(135deg, rgba(124,58,237,0.12), rgba(37,99,235,0.05))',
+    DOCTOR: 'linear-gradient(135deg, rgba(13,148,136,0.12), rgba(37,99,235,0.05))',
+    PATIENT: 'linear-gradient(135deg, rgba(37,99,235,0.12), rgba(20,184,166,0.05))',
 };
 
 const roleBorders: Record<string, string> = {
@@ -119,23 +119,23 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, mobileMenuOpen, setMobileMe
             ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
             md:translate-x-0
         `}
-            style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--border-color)' }}
+            style={{ background: 'linear-gradient(180deg, var(--sidebar-bg) 0%, color-mix(in srgb, var(--sidebar-bg) 92%, var(--primary) 8%) 100%)', borderRight: '1px solid var(--border-color)', boxShadow: '8px 0 30px rgba(15,23,42,0.04)' }}
         >
             <div className="flex flex-col h-full">
                 {/* Logo */}
-                <div className="flex items-center px-6 py-5 border-b" style={{ borderColor: 'var(--border-color)' }}>
-                    <div className={`flex items-center justify-center w-10 h-10 rounded-lg ${accentColor} shadow-lg mr-3`}>
+                <div className="flex items-center px-5 py-5 border-b" style={{ borderColor: 'var(--border-color)' }}>
+                    <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${accentColor} shadow-lg mr-3 ring-4 ring-white/40 dark:ring-white/5`}>
                         <Heart className="h-5 w-5 text-white fill-current" />
                     </div>
                     <div>
-                        <span className="text-base font-bold" style={{ color: 'var(--text-color)' }}>MediCare</span>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>HMS</p>
+                        <span className="text-base font-black tracking-tight" style={{ color: 'var(--text-color)' }}>MediCare</span>
+                        <p className="text-xs font-semibold tracking-wide" style={{ color: 'var(--text-muted)' }}>Hospital OS</p>
                     </div>
                 </div>
 
                 {/* User badge */}
                 <div
-                    className="mx-3 mt-3 rounded-lg px-4 py-3"
+                    className="mx-3 mt-3 rounded-lg px-3.5 py-3 shadow-[var(--shadow-sm)]"
                     style={{
                         background: roleSoftStyles[userRole] || roleSoftStyles.PATIENT,
                         border: `1px solid ${roleBorders[userRole] || roleBorders.PATIENT}`,
@@ -146,10 +146,10 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, mobileMenuOpen, setMobileMe
                             <img
                                 src={profileImage}
                                 alt=""
-                                className="h-8 w-8 rounded-full border border-[var(--border-color)] object-cover"
+                                className="h-9 w-9 rounded-full border-2 border-white object-cover shadow-sm dark:border-slate-800"
                             />
                         ) : (
-                            <div className={`w-8 h-8 rounded-full ${accentColor} flex items-center justify-center text-white text-sm font-bold`}>
+                            <div className={`w-9 h-9 rounded-full ${accentColor} flex items-center justify-center text-white text-sm font-bold shadow-sm`}>
                                 {(user?.fullName?.[0] || user?.username?.[0] || 'U').toUpperCase()}
                             </div>
                         )}
@@ -165,7 +165,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, mobileMenuOpen, setMobileMe
                 </div>
 
                 {/* Nav Links */}
-                <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 py-4">
+                <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
                     {navItems.map((item) => (
                         <NavLink
                             key={item.name}
@@ -173,10 +173,10 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, mobileMenuOpen, setMobileMe
                             end={item.exact}
                             onClick={() => setMobileMenuOpen(false)}
                             className={({ isActive }) =>
-                                `group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+                                `group relative flex items-center rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-150 ${
                                     isActive
-                                        ? `${accentColor} text-white shadow-md`
-                                        : 'hover:bg-gray-100 dark:hover:bg-slate-700'
+                                        ? `${accentColor} text-white shadow-md shadow-slate-900/10`
+                                        : 'hover:bg-slate-100/80 dark:hover:bg-slate-800/70'
                                 }`
                             }
                             style={({ isActive }) => ({
@@ -184,7 +184,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, mobileMenuOpen, setMobileMe
                             })}
                         >
                             <item.icon className="mr-3 h-4 w-4 shrink-0" />
-                            {item.name}
+                            <span className="truncate">{item.name}</span>
                         </NavLink>
                     ))}
                 </nav>
@@ -193,7 +193,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, mobileMenuOpen, setMobileMe
                 <div className="border-t p-3" style={{ borderColor: 'var(--border-color)' }}>
                     <button
                         onClick={handleLogout}
-                        className="flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
+                        className="flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-semibold text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
                     >
                         <LogOut className="mr-3 h-4 w-4" />
                         Logout

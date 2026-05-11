@@ -5,7 +5,8 @@ import api from '../../api';
 import {
     Users, CalendarCheck, Activity, CreditCard,
     TrendingUp, Stethoscope, FileText,
-    AlertCircle, Loader2, CalendarPlus
+    AlertCircle, Loader2, CalendarPlus,
+    type LucideIcon
 } from 'lucide-react';
 import { formatDoctorName } from '../../utils/displayNames';
 import { PatientPageHeader, PatientStatCard } from '../../components/patient/PatientPanel';
@@ -52,7 +53,7 @@ interface DoctorStats {
 interface StatCard {
     label: string;
     value: string | number;
-    icon: any;
+    icon: LucideIcon;
     color: string;
     bg: string;
     change?: string;
@@ -68,10 +69,13 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     }
 };
 
-const unwrapList = <T,>(payload: any): T[] => {
-    const data = payload?.data ?? payload;
-    if (Array.isArray(data?.content)) return data.content;
-    if (Array.isArray(data)) return data;
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null;
+
+const unwrapList = <T,>(payload: unknown): T[] => {
+    const data = isRecord(payload) && 'data' in payload ? payload.data : payload;
+    if (isRecord(data) && Array.isArray(data.content)) return data.content as T[];
+    if (Array.isArray(data)) return data as T[];
     return [];
 };
 
@@ -263,7 +267,7 @@ const Overview: React.FC = () => {
                     action={
                         <a
                             href="/patient/book-appointment"
-                            className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--primary-dark)]"
+                                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(15,118,110,0.20)] transition-all hover:bg-[var(--primary-dark)] active:translate-y-px"
                         >
                             <CalendarPlus className="h-4 w-4" />
                             Book Appointment
@@ -271,7 +275,7 @@ const Overview: React.FC = () => {
                     }
                 />
             ) : (
-                <div className="flex items-center justify-between">
+                <div className="surface-panel flex items-center justify-between p-5">
                     <div>
                         <h1 className="text-2xl font-bold" style={{ color: 'var(--text-color)' }}>
                             {greeting()}, {user?.fullName?.split(' ')[0] || user?.username}
@@ -280,8 +284,8 @@ const Overview: React.FC = () => {
                             {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         </p>
                     </div>
-                    <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium"
-                        style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                    <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
+                        style={{ background: 'var(--primary-soft)', border: '1px solid var(--ring)', color: 'var(--primary)' }}>
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-dot" />
                         System Online
                     </div>
@@ -375,7 +379,7 @@ const Overview: React.FC = () => {
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="data-table w-full text-sm">
                             <thead>
                                 <tr className="border-b" style={{ borderColor: 'var(--border-color)' }}>
                                     <th className="pb-3 text-left font-medium" style={{ color: 'var(--text-muted)' }}>

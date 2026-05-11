@@ -46,13 +46,19 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Public authentication endpoints
-                        .requestMatchers("/api/auth/**", "/auth/**", "/login/**", "/oauth2/**", "/api/health", "/health", "/ready").permitAll()
+                        .requestMatchers(
+                                "/api", "/api/", "/api/health", "/health", "/ready",
+                                "/", "/index.html", "/favicon.ico", "/rahul.jpg", "/vite.svg", "/assets/**",
+                                "/login", "/register", "/patient/**", "/doctor/**", "/admin/**", "/telehealth", "/telehealth/**",
+                                "/api/auth/**", "/auth/**", "/login/**", "/oauth2/**",
+                                "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**")
+                        .permitAll()
                         // Public doctor listing endpoint
                         .requestMatchers("/api/doctors/**", "/doctors/**").permitAll()
                         // Public SockJS/STOMP handshake endpoint; subscriptions are scoped client-side.
                         .requestMatchers("/ws/**").permitAll()
                         // H2 console (dev only)
-                        .requestMatchers("/h2-console/**").permitAll()
+                        .requestMatchers("/h2-console", "/h2-console/**").permitAll()
                         // All other requests require authentication (for production)
                         .anyRequest().authenticated())
                 .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
@@ -80,8 +86,11 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Restrict to frontend local dev servers
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5174"));
+        // Allow local dev plus Railway-hosted frontend/API origin.
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "https://*.railway.app"));
 
         // Allow HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));

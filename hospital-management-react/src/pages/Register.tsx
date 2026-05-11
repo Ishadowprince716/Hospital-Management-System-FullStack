@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import axios from 'axios';
+import { API_BASE } from '../api';
+import { loginSuccess } from '../store/slices/authSlice';
+import GoogleAuthButton from '../components/auth/GoogleAuthButton';
+import { completeGoogleRedirectSignIn, getFirebaseAuthErrorMessage, signInWithGoogleAccount } from '../utils/firebaseGoogleAuth';
+import { AtSign, Phone, ShieldCheck, UserRound } from 'lucide-react';
 
 type ApiResponse = { success: boolean; message: string; data?: unknown };
+type AuthResponse = { token: string; username: string; role: string; userId: number; fullName: string; profilePictureUrl?: string };
 type Role = 'PATIENT' | 'DOCTOR';
 
 const ROLE_META: Record<Role, { label: string; desc: string }> = {
@@ -49,6 +56,7 @@ const FEATURES = [
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [form, setForm] = useState({ username: '', email: '', password: '', fullName: '', phoneNumber: '', role: 'PATIENT' as Role });
   const [loading, setLoading]   = useState(false);
   const [error,   setError]     = useState<string | null>(null);
@@ -60,14 +68,16 @@ const Register: React.FC = () => {
 
   useEffect(() => { setTimeout(() => setMounted(true), 60); }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setForm(f => ({ ...f, [name]: name === 'phoneNumber' ? value.replace(/\D/g, '').slice(0, 10) : value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true); setError(null); setSuccess(null);
     try {
-      const res = await axios.post<ApiResponse>('http://localhost:8080/api/auth/register', form);
+      const res = await axios.post<ApiResponse>(`${API_BASE}/auth/register`, form);
       setSuccess(res.data.message || 'Account created! Redirecting…');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err: unknown) {
@@ -77,24 +87,128 @@ const Register: React.FC = () => {
     } finally { setLoading(false); }
   };
 
-  const step1OK = !!(form.fullName && form.username && form.email && form.phoneNumber);
+  const completeGoogleAuth = useCallback((auth: AuthResponse, email = '') => {
+    if (!auth?.token) return;
+    localStorage.setItem('token', auth.token);
+    dispatch(loginSuccess({
+      user: {
+        id: auth.userId ?? 0,
+        username: auth.username ?? email,
+        email,
+        role: auth.role,
+        fullName: auth.fullName ?? auth.username ?? email,
+        profilePictureUrl: auth.profilePictureUrl,
+      },
+      token: auth.token,
+    }));
+    navigate(auth.role === 'DOCTOR' ? '/doctor' : '/patient');
+  }, [dispatch, navigate]);
+
+  useEffect(() => {
+    let active = true;
+
+    const finishGoogleRedirect = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await completeGoogleRedirectSignIn(form.role);
+        if (result && active) {
+          setSuccess('Google account connected. Redirecting...');
+          completeGoogleAuth(result.auth, result.email);
+        }
+      } catch (err: unknown) {
+        if (active) setError(getFirebaseAuthErrorMessage(err));
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    finishGoogleRedirect();
+    return () => {
+      active = false;
+    };
+  }, [completeGoogleAuth, form.role]);
+
+  const handleGoogleRegister = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      await signInWithGoogleAccount(form.role);
+    } catch (err: unknown) {
+      let msg = 'Google sign-in failed. Please try again.';
+      if (axios.isAxiosError<ApiResponse>(err)) msg = err.response?.data?.message || msg;
+      setError(getFirebaseAuthErrorMessage(err) || msg);
+      setLoading(false);
+    }
+  };
+
+  const step1OK = !!(
+    form.fullName.trim().length >= 2 &&
+    form.username.trim().length >= 3 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) &&
+    /^\d{10}$/.test(form.phoneNumber)
+  );
   const score = pwdStrength(form.password);
   const sl = strengthLabel(score);
 
   const inputStyle = (name: string): React.CSSProperties => ({
-    width: '100%', height: 48, border: `1.5px solid ${focused === name ? '#0dcfba' : '#e2e8f0'}`,
-    borderRadius: 12, padding: '0 16px', fontSize: 14, fontWeight: 500, color: '#1e293b',
-    background: '#f8fafc', outline: 'none',
-    boxShadow: focused === name ? '0 0 0 3px rgba(13,207,186,0.15)' : 'none',
-    transition: 'border-color .2s, box-shadow .2s',
+    width: '100%',
+    height: 48,
+    border: `1.5px solid ${focused === name ? '#14b8a6' : '#d7e0ec'}`,
+    borderRadius: 14,
+    padding: '0 18px 0 44px',
+    fontSize: 14,
+    fontWeight: 650,
+    color: '#0f172a',
+    background: '#fff',
+    outline: 'none',
+    boxShadow: focused === name ? '0 0 0 4px rgba(20,184,166,0.14), 0 8px 18px rgba(15,23,42,0.06)' : '0 2px 8px rgba(15,23,42,0.03)',
+    transition: 'border-color .2s, box-shadow .2s, background .2s',
   });
 
+  const Field = ({
+    name,
+    label,
+    placeholder,
+    type = 'text',
+    icon: Icon,
+  }: {
+    name: keyof typeof form;
+    label: string;
+    placeholder: string;
+    type?: string;
+    icon: React.ElementType;
+  }) => (
+    <label style={S.field}>
+      <span style={S.fieldLabel}>{label}</span>
+      <span style={S.inputWrap}>
+        <Icon size={17} strokeWidth={2.1} style={S.inputIcon} />
+        <input
+          name={name}
+          placeholder={placeholder}
+          type={type}
+          value={form[name]}
+          onChange={handleChange}
+          onFocus={() => setFocused(name)}
+          onBlur={() => setFocused(null)}
+          required
+          autoComplete={name === 'email' ? 'email' : name === 'fullName' ? 'name' : name === 'username' ? 'username' : 'tel'}
+          inputMode={name === 'phoneNumber' ? 'numeric' : undefined}
+          pattern={name === 'phoneNumber' ? '\\d{10}' : undefined}
+          title={name === 'phoneNumber' ? 'Enter a 10 digit phone number' : undefined}
+          style={inputStyle(name)}
+        />
+      </span>
+    </label>
+  );
+
   return (
-    <div style={S.page}>
+    <div className="auth-page" style={S.page}>
       <style>{CSS}</style>
 
       {/* ── LEFT PANEL ─────────────────────────── */}
-      <div style={{ ...S.left, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(-24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1)' }}>
+      <div className="auth-left" style={{ ...S.left, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(-24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1)' }}>
         <div>
           {/* Logo */}
           <div style={S.logoBox}>
@@ -116,21 +230,37 @@ const Register: React.FC = () => {
             ))}
           </div>
         </div>
-        <div style={S.devCredit}>
-          <div style={S.devAvatar}>RK</div>
-          <div>
-            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', margin: '0 0 1px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Designed &amp; Developed by</p>
-            <p style={{ fontSize: 13, color: '#2dd4bf', fontWeight: 600, margin: 0 }}>Rahul Singh Kushwaha</p>
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', margin: '1px 0 0' }}>Full Stack Developer &amp; UI/UX Designer</p>
+        <a
+          href="https://www.linkedin.com/in/rahul-singh-kushwah-233b36283"
+          target="_blank"
+          rel="noreferrer"
+          className="dev-credit"
+          style={S.devCredit}
+          aria-label="Open Rahul Singh Kushwah LinkedIn profile"
+        >
+          <img src="/rahul.jpg" alt="Rahul Singh Kushwah" style={S.devAvatar} />
+          <div style={S.devText}>
+            <p style={S.devEyebrow}>Designed &amp; Developed by</p>
+            <p style={S.devName}>Rahul Singh Kushwah</p>
+            <p style={S.devRole}>Full Stack Developer &amp; UI/UX Designer</p>
           </div>
-        </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={S.devIcon}>
+            <path d="M7 10v7M7 7.2v.1M11 17v-4.1c0-1.6 1.1-2.9 2.7-2.9s2.3 1 2.3 2.8V17" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            <rect x="3" y="3" width="18" height="18" rx="4" stroke="#fff" strokeWidth="1.8"/>
+          </svg>
+        </a>
       </div>
 
       {/* ── RIGHT PANEL ─────────────────────────── */}
-      <div style={{ ...S.right, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1) .1s' }}>
-        <div style={S.card}>
+      <div className="auth-right" style={{ ...S.right, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1) .1s' }}>
+        <div className="register-card" style={S.card}>
+          <div className="register-mark" style={S.cardHeaderMark}>MediCare access</div>
           <h2 style={S.cardTitle}>Create Account</h2>
           <p style={S.cardSub}>Join thousands of patients and doctors</p>
+          <div className="register-trust" style={S.trustStrip}>
+            <ShieldCheck size={16} strokeWidth={2.3} />
+            <span>Secure account setup with encrypted health records</span>
+          </div>
 
           {/* Role tabs */}
           <div style={S.tabs}>
@@ -138,26 +268,38 @@ const Register: React.FC = () => {
               const on = form.role === r;
               return (
                 <button key={r} type="button" onClick={() => setForm(f => ({ ...f, role: r }))} className="role-tab"
-                  style={{ ...S.tab, background: on ? '#0dcfba' : 'transparent', border: `1.5px solid ${on ? '#0dcfba' : '#e2e8f0'}`, boxShadow: on ? '0 4px 16px rgba(13,207,186,0.4)' : 'none', transform: on ? 'translateY(-1px)' : 'none', flex: 1 }}>
+                  style={{ ...S.tab, background: on ? 'linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%)' : '#fff', border: `1.5px solid ${on ? 'rgba(20,184,166,0)' : '#d7e0ec'}`, boxShadow: on ? '0 12px 28px rgba(20,184,166,0.28)' : '0 5px 18px rgba(15,23,42,0.04)', transform: on ? 'translateY(-2px)' : 'none', flex: 1 }}>
                   {r === 'PATIENT' ? <PatientIcon active={on}/> : <DoctorIcon active={on}/>}
                   <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: on ? '#fff' : '#64748b', margin: 0 }}>{ROLE_META[r].label}</p>
-                    <p style={{ fontSize: 11, color: on ? 'rgba(255,255,255,0.8)' : '#94a3b8', margin: '2px 0 0' }}>{ROLE_META[r].desc}</p>
+                    <p style={{ fontSize: 14, fontWeight: 850, color: on ? '#fff' : '#334155', margin: 0 }}>{ROLE_META[r].label}</p>
+                    <p style={{ fontSize: 11, lineHeight: 1.35, color: on ? 'rgba(255,255,255,0.84)' : '#64748b', margin: '4px 0 0' }}>{ROLE_META[r].desc}</p>
                   </div>
                 </button>
               );
             })}
           </div>
 
+          <GoogleAuthButton
+            label={loading ? 'Connecting to Google...' : `Continue with Google as ${ROLE_META[form.role].label}`}
+            disabled={loading}
+            onClick={handleGoogleRegister}
+          />
+
+          <div style={S.divider}>
+            <span style={S.dividerLine} />
+            <span style={S.dividerText}>or create with email</span>
+            <span style={S.dividerLine} />
+          </div>
+
           {/* Step indicator */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <div style={S.stepper}>
             {[1, 2].map(s => (
               <React.Fragment key={s}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: step >= s ? '#0dcfba' : '#f1f5f9', border: `2px solid ${step >= s ? '#0dcfba' : '#e2e8f0'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: step >= s ? '#fff' : '#94a3b8', transition: 'all .3s', boxShadow: step === s ? '0 0 12px rgba(13,207,186,0.5)' : 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: step >= s ? 'linear-gradient(135deg, #14b8a6, #0ea5e9)' : '#f8fafc', border: `1.5px solid ${step >= s ? 'rgba(20,184,166,0)' : '#d7e0ec'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 850, color: step >= s ? '#fff' : '#94a3b8', transition: 'all .3s', boxShadow: step === s ? '0 8px 18px rgba(20,184,166,0.28)' : 'none' }}>
                     {step > s ? '✓' : s}
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: step === s ? 600 : 400, color: step >= s ? '#0f172a' : '#94a3b8' }}>
+                  <span style={{ fontSize: 13, fontWeight: step === s ? 800 : 650, color: step >= s ? '#0f172a' : '#94a3b8' }}>
                     {s === 1 ? 'Basic Info' : 'Set Password'}
                   </span>
                 </div>
@@ -168,15 +310,15 @@ const Register: React.FC = () => {
 
           {/* Step 1 */}
           {step === 1 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, animation: 'slideIn .3s ease' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <input name="fullName"    placeholder="Full Name"    value={form.fullName}    onChange={handleChange} onFocus={() => setFocused('fullName')}    onBlur={() => setFocused(null)} required style={inputStyle('fullName')}/>
-                <input name="username"    placeholder="Username"     value={form.username}    onChange={handleChange} onFocus={() => setFocused('username')}    onBlur={() => setFocused(null)} required style={inputStyle('username')}/>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, animation: 'slideIn .3s ease' }}>
+              <div className="register-field-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <Field name="fullName" label="Full name" placeholder="Rahul Singh" icon={UserRound} />
+                <Field name="username" label="Username" placeholder="rahul716" icon={UserRound} />
               </div>
-              <input name="email"         placeholder="Email Address" type="email" value={form.email}  onChange={handleChange} onFocus={() => setFocused('email')}  onBlur={() => setFocused(null)} required style={inputStyle('email')}/>
-              <input name="phoneNumber"   placeholder="Phone Number (10 digits)" value={form.phoneNumber} onChange={handleChange} onFocus={() => setFocused('phone')} onBlur={() => setFocused(null)} required pattern="\d{10}" title="10 digits" style={inputStyle('phone')}/>
+              <Field name="email" label="Email address" placeholder="name@example.com" type="email" icon={AtSign} />
+              <Field name="phoneNumber" label="Phone number" placeholder="10 digit mobile number" icon={Phone} />
 
-              <button type="button" onClick={() => step1OK && setStep(2)} style={{ height: 50, borderRadius: 12, border: 'none', background: step1OK ? 'linear-gradient(135deg, #0dcfba 0%, #0ea5e9 100%)' : '#f1f5f9', color: step1OK ? '#fff' : '#94a3b8', fontSize: 15, fontWeight: 700, cursor: step1OK ? 'pointer' : 'not-allowed', boxShadow: step1OK ? '0 6px 24px rgba(13,207,186,0.4)' : 'none', transition: 'all .25s', marginTop: 4 }} className={step1OK ? 'login-btn' : ''}>
+              <button type="button" onClick={() => step1OK && setStep(2)} style={{ height: 50, borderRadius: 14, border: 'none', background: step1OK ? 'linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%)' : '#eef3f8', color: step1OK ? '#fff' : '#8fa0b7', fontSize: 15, fontWeight: 850, cursor: step1OK ? 'pointer' : 'not-allowed', boxShadow: step1OK ? '0 12px 28px rgba(20,184,166,0.26)' : 'inset 0 0 0 1px #e3eaf2', transition: 'all .25s', marginTop: 4 }} className={step1OK ? 'login-btn' : ''}>
                 Continue →
               </button>
             </div>
@@ -221,14 +363,14 @@ const Register: React.FC = () => {
                   style={{ flex: 1, height: 50, borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #0dcfba 0%, #0ea5e9 100%)', color: '#fff', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 6px 24px rgba(13,207,186,0.4)', opacity: loading ? .7 : 1, transition: 'all .25s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   {loading
                     ? <span style={{ width: 20, height: 20, border: '2.5px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin .7s linear infinite' }}/>
-                    : 'Create Account 🎉'}
+                  : 'Create Account'}
                 </button>
               </div>
             </div>
           )}
 
           {/* Sign in */}
-          <p style={{ textAlign: 'center', fontSize: 13, color: '#94a3b8', marginTop: 18 }}>
+          <p style={{ textAlign: 'center', fontSize: 13, color: '#7c8da6', marginTop: 16 }}>
             Already have an account?{' '}
             <Link to="/login" style={{ color: '#0dcfba', fontWeight: 700, textDecoration: 'none' }}>Login here</Link>
           </p>
@@ -239,19 +381,37 @@ const Register: React.FC = () => {
 };
 
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Inter', system-ui, sans-serif; }
+  body { font-family: 'Manrope', system-ui, sans-serif; font-synthesis: none; }
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
-  input::placeholder { color: #cbd5e1; font-size: 14px; }
-  input:-webkit-autofill { -webkit-box-shadow: 0 0 0 100px #f8fafc inset !important; -webkit-text-fill-color: #1e293b !important; }
-  .login-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.08); }
+  input::placeholder { color: #a9b7c9; font-size: 13px; font-weight: 650; }
+  input:-webkit-autofill { -webkit-box-shadow: 0 0 0 100px #fff inset !important; -webkit-text-fill-color: #0f172a !important; }
+  .login-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.05); box-shadow: 0 16px 32px rgba(20,184,166,0.30) !important; }
   .role-tab { transition: all .25s cubic-bezier(.34,1.56,.64,1); outline: none; cursor: pointer; }
+  .role-tab:hover { border-color: #9fded8 !important; transform: translateY(-2px); }
+  .google-auth-btn:hover:not(:disabled) { border-color: #cbd5e1 !important; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(15,23,42,0.10) !important; }
+  .dev-credit:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.32); transform: translateY(-1px); }
+  @media (max-width: 900px) {
+    .auth-page { flex-direction: column; overflow-y: auto !important; }
+    .auth-left { display: none !important; }
+    .auth-right { min-height: 100vh; padding: 16px 20px !important; }
+    .register-card { max-width: 468px !important; padding: 18px 28px 20px !important; border-radius: 20px !important; }
+    .register-mark { display: none !important; }
+    .register-trust { margin: -2px 0 12px !important; padding: 7px 9px !important; font-size: 11px !important; }
+    .role-tab { min-height: 92px !important; padding: 12px 10px !important; }
+    .google-auth-btn { height: 46px !important; }
+    .dev-credit { margin-top: 28px !important; }
+  }
+  @media (max-width: 560px) {
+    .auth-right { padding: 18px 14px !important; }
+    .register-field-grid { grid-template-columns: 1fr !important; }
+  }
 `;
 
 const S: Record<string, React.CSSProperties> = {
-  page:        { minHeight: '100vh', display: 'flex', alignItems: 'stretch', fontFamily: "'Inter',system-ui,sans-serif", background: 'linear-gradient(135deg, #4dd9c0 0%, #38b2ea 30%, #c084fc 65%, #fb923c 100%)', overflow: 'hidden' },
+  page:        { minHeight: '100vh', display: 'flex', alignItems: 'stretch', fontFamily: "'Manrope',system-ui,sans-serif", background: 'linear-gradient(135deg, #35d0bd 0%, #4c8df6 35%, #b777f1 68%, #f28b5b 100%)', overflow: 'auto' },
   left:        { flex: '0 0 48%', padding: '52px 56px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' },
   logoBox:     { width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', border: '1.5px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' },
   heading:     { fontSize: 48, fontWeight: 900, color: '#fff', lineHeight: 1.1, letterSpacing: '-1.5px', textShadow: '0 2px 16px rgba(0,0,0,0.12)' },
@@ -260,14 +420,29 @@ const S: Record<string, React.CSSProperties> = {
   featureIcon: { width: 38, height: 38, borderRadius: 10, background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 },
   featureTitle:{ fontSize: 14, fontWeight: 700, color: '#fff', margin: '0 0 2px' },
   featureDesc: { fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: 0 },
-  devCredit:   { display: 'flex', alignItems: 'center', gap: 12 },
-  devAvatar:   { width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', border: '2px solid rgba(255,255,255,0.4)', flexShrink: 0 },
-  right:       { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 48px' },
-  card:        { width: '100%', maxWidth: 420, background: '#fff', borderRadius: 24, padding: '36px 32px', boxShadow: '0 24px 80px rgba(0,0,0,0.18)' },
-  cardTitle:   { fontSize: 24, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px', textAlign: 'center', margin: '0 0 6px' },
-  cardSub:     { fontSize: 14, color: '#94a3b8', textAlign: 'center', margin: '0 0 20px', fontWeight: 500 },
-  tabs:        { display: 'flex', gap: 10, marginBottom: 20 },
-  tab:         { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 10px', borderRadius: 14 },
+  devCredit:   { display: 'flex', alignItems: 'center', gap: 12, width: '100%', maxWidth: 390, minHeight: 76, marginTop: 'auto', padding: '12px 14px', borderRadius: 14, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', textDecoration: 'none', transition: 'all .2s ease', overflow: 'hidden' },
+  devAvatar:   { width: 52, height: 52, borderRadius: '50%', objectFit: 'contain', objectPosition: 'center', background: 'rgba(255,255,255,0.18)', border: '2px solid rgba(255,255,255,0.58)', boxShadow: '0 4px 16px rgba(15,23,42,0.18)', flexShrink: 0, padding: 2, display: 'block' },
+  devText:     { minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 },
+  devEyebrow:  { fontSize: 10, lineHeight: 1.2, color: 'rgba(255,255,255,0.62)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  devName:     { fontSize: 14, lineHeight: 1.25, color: '#2dd4bf', fontWeight: 800, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  devRole:     { fontSize: 11, lineHeight: 1.25, color: 'rgba(255,255,255,0.66)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  devIcon:     { marginLeft: 'auto', opacity: 0.85, flexShrink: 0 },
+  right:       { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px 48px' },
+  card:        { width: '100%', maxWidth: 466, background: 'rgba(255,255,255,0.97)', borderRadius: 22, padding: '26px 34px 24px', boxShadow: '0 28px 90px rgba(30,41,59,0.22)', border: '1px solid rgba(255,255,255,0.72)' },
+  cardHeaderMark: { width: 'fit-content', margin: '0 auto 8px', padding: '5px 10px', borderRadius: 999, background: '#ecfeff', color: '#0f766e', fontSize: 11, fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.08em' },
+  cardTitle:   { fontSize: 26, fontWeight: 850, color: '#07111f', letterSpacing: '0', textAlign: 'center', margin: '0 0 6px', lineHeight: 1.12 },
+  cardSub:     { fontSize: 14, color: '#63748a', textAlign: 'center', margin: '0 0 18px', fontWeight: 650 },
+  trustStrip:   { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '-6px 0 16px', padding: '8px 10px', borderRadius: 14, background: '#f0fdfa', color: '#0f766e', fontSize: 12, fontWeight: 800, border: '1px solid #ccfbf1' },
+  tabs:        { display: 'flex', gap: 12, marginBottom: 16 },
+  tab:         { minHeight: 104, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '14px 12px', borderRadius: 16 },
+  stepper:     { display: 'flex', alignItems: 'center', gap: 12, margin: '0 0 16px' },
+  divider:     { display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0 15px' },
+  dividerLine: { flex: 1, height: 1, background: '#e2e8f0' },
+  dividerText: { fontSize: 11, fontWeight: 850, color: '#8797ad', textTransform: 'uppercase', letterSpacing: '0.08em' },
+  field:       { display: 'flex', flexDirection: 'column', gap: 6 },
+  fieldLabel:  { fontSize: 11, fontWeight: 850, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' },
+  inputWrap:   { position: 'relative', display: 'block' },
+  inputIcon:   { position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#8aa0b8', pointerEvents: 'none', zIndex: 1 },
 };
 
 export default Register;

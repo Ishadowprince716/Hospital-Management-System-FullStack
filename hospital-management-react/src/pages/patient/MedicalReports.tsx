@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { useGetPatientMedicalReportsQuery } from '../../store/api/patientApiSlice';
 import { formatDoctorName } from '../../utils/displayNames';
+import { API_BASE } from '../../api';
 import {
     PatientAlert,
     PatientEmptyState,
@@ -25,17 +26,28 @@ interface MedicalReport {
 
 import SmartDiagnosticLab from '../../components/dashboard/SmartDiagnosticLab';
 
+const getMedicalReports = (payload: unknown): MedicalReport[] => {
+    if (Array.isArray(payload)) {
+        return payload as MedicalReport[];
+    }
+    if (payload && typeof payload === 'object') {
+        const content = (payload as { content?: unknown }).content;
+        return Array.isArray(content) ? content as MedicalReport[] : [];
+    }
+    return [];
+};
+
 const MedicalReports: React.FC = () => {
     const { user } = useSelector((state: RootState) => state.auth);
     const { data, error, isLoading } = useGetPatientMedicalReportsQuery(user?.id as number, {
         skip: !user?.id,
     });
 
-    const reports: MedicalReport[] = data?.data?.content || data?.data || [];
+    const reports = getMedicalReports(data?.data);
 
     const handleDownload = (report: MedicalReport) => {
         const token = localStorage.getItem('token');
-        fetch(`http://localhost:8080/api/reports/${report.id}/download`, {
+        fetch(`${API_BASE}/reports/${report.id}/download`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }

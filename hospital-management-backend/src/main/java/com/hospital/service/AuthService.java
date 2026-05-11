@@ -274,8 +274,28 @@ public class AuthService {
             logger.info("Custom admin user 'whoami' created");
         }
 
-        // NOTE: Default Doctor and Patient creation removed to enforce real-time data
-        // only.
+        if (!userRepository.existsByUsername("doctor1")) {
+            Doctor doctor = new Doctor();
+            doctor.setUsername("doctor1");
+            doctor.setPassword(passwordEncoder.encode("doctor123"));
+            doctor.setEmail("doctor1@hospital.local");
+            doctor.setPhoneNumber("9876543210");
+            doctor.setRole("DOCTOR");
+            doctor.setFullName("Dr. Rahul Singh Kushwaha");
+            doctor.setIsActive(true);
+            doctor.setProvider("LOCAL");
+            doctor.setSpecialization("General Physician");
+            doctor.setQualification("MBBS");
+            doctor.setExperienceYears(5);
+            doctor.setConsultationFee(500.0);
+            doctor.setDepartment("General Medicine");
+            doctor.setLicenseNumber("DOC-DOCTOR1");
+            doctor.setAvailableDays("[\"Monday\",\"Tuesday\",\"Wednesday\",\"Thursday\",\"Friday\"]");
+            doctor.setAvailableTimeStart("09:00");
+            doctor.setAvailableTimeEnd("17:00");
+            doctorRepository.save(doctor);
+            logger.info("Default doctor user 'doctor1' created");
+        }
     }
 
     /**
@@ -432,9 +452,12 @@ public class AuthService {
             throw new IllegalArgumentException("Login request cannot be null");
         }
 
-        String username = request.getUsername();
-        String password = request.getPassword();
-        String role = request.getRole();
+        String username = request.getUsername() != null ? request.getUsername().trim() : null;
+        String password = request.getPassword() != null ? request.getPassword().trim() : null;
+        String role = request.getRole() != null ? request.getRole().trim() : null;
+        request.setUsername(username);
+        request.setPassword(password);
+        request.setRole(role);
 
         // Validate username
         if (username == null || username.trim().isEmpty()) {

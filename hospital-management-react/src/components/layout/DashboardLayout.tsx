@@ -26,8 +26,8 @@ const DashboardLayout: React.FC = () => {
                 setMobileMenuOpen={setMobileMenuOpen}
             />
 
-            <main className="md:pl-64 pt-16 min-h-screen transition-all duration-300">
-                <div className={isPatient ? 'px-4 py-5 sm:px-6 lg:px-8' : 'p-6'}>
+            <main className="min-h-screen pt-16 transition-all duration-300 md:pl-64">
+                <div className={`app-page ${isPatient ? 'px-4 py-5 sm:px-6 lg:px-8' : 'px-4 py-5 sm:px-6 lg:px-8'}`}>
                     <Outlet />
                 </div>
             </main>

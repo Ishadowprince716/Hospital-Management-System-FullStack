@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { CreditCard, CheckCircle2, Clock, XCircle, AlertCircle, Receipt, X } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
@@ -51,18 +51,24 @@ const PatientBilling: React.FC = () => {
     const [payMethod, setPayMethod] = useState('CASH');
     const [paying, setPaying] = useState(false);
     const [paySuccess, setPaySuccess] = useState(false);
+    const patientId = user?.id;
 
-    const fetchBills = async () => {
+    const fetchBills = useCallback(async () => {
+        if (!patientId) {
+            setBills([]);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
-            const res = await api.get(`/bills/patient/${user?.id}?size=50`);
+            const res = await api.get(`/bills/patient/${patientId}?size=50`);
             setBills(res.data?.data?.content || res.data?.data || []);
         } catch {
             setError('Failed to load bills. No billing data found for your account yet.');
         } finally { setLoading(false); }
-    };
+    }, [patientId]);
 
-    useEffect(() => { if (user?.id) fetchBills(); }, [user?.id]);
+    useEffect(() => { fetchBills(); }, [fetchBills]);
 
     // POST /bills/{id}/pay — REST pay action
     const handlePay = async (e: React.FormEvent) => {

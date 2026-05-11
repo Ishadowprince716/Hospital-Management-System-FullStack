@@ -22,7 +22,7 @@ const userStr = localStorage.getItem('user');
 let initialUser = null;
 try {
     if (userStr) initialUser = JSON.parse(userStr);
-} catch (e) {
+} catch {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
 }
@@ -45,6 +45,7 @@ const authSlice = createSlice({
         },
         loginSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
             state.loading = false;
+            state.error = null;
             state.isAuthenticated = true;
             state.user = action.payload.user;
             state.token = action.payload.token;
@@ -54,6 +55,9 @@ const authSlice = createSlice({
         loginFailure: (state, action: PayloadAction<string>) => {
             state.loading = false;
             state.error = action.payload;
+        },
+        clearAuthError: (state) => {
+            state.error = null;
         },
         logout: (state) => {
             state.user = null;
@@ -79,5 +83,5 @@ const authSlice = createSlice({
     },
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout, updateCurrentUser, initializeAuth } = authSlice.actions;
+export const { loginStart, loginSuccess, loginFailure, clearAuthError, logout, updateCurrentUser, initializeAuth } = authSlice.actions;
 export default authSlice.reducer;
