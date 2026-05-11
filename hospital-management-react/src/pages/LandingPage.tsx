@@ -55,21 +55,26 @@ const LandingPage: React.FC = () => {
     const navigate = useNavigate();
 
     return (
-        <div className="min-h-screen bg-white text-slate-950 transition-colors dark:bg-slate-950">
+        <div className="landing-page min-h-screen bg-white text-slate-950 antialiased transition-colors dark:bg-slate-950">
+            <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+                .landing-page { font-family: 'Manrope', system-ui, sans-serif; font-synthesis: none; }
+                .landing-page * { letter-spacing: 0; }
+            `}</style>
             {/* ─── Navigation ─── */}
-            <nav className="fixed top-0 z-50 w-full border-b border-slate-200/70 bg-white/85 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/85">
-                <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6">
-                    <button onClick={() => navigate('/')} className="flex items-center gap-3 text-left">
-                        <div className="grid h-11 w-11 place-items-center rounded-2xl bg-teal-600 text-white shadow-lg shadow-teal-600/20">
+            <nav className="fixed top-0 z-50 w-full border-b border-slate-200/80 bg-white/88 shadow-sm shadow-slate-900/[0.03] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/85">
+                <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8">
+                    <button onClick={() => navigate('/')} className="group flex items-center gap-3 text-left">
+                        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 text-white shadow-xl shadow-teal-600/22 transition-transform group-hover:-translate-y-0.5">
                             <Activity className="h-6 w-6" />
                         </div>
                         <div>
-                            <span className="block text-lg font-black tracking-tight dark:text-white">MediCare <span className="text-teal-600">HMS</span></span>
-                            <span className="hidden text-xs font-bold uppercase tracking-[0.18em] text-slate-400 sm:block">Hospital OS</span>
+                            <span className="block text-xl font-extrabold text-slate-950 dark:text-white">MediCare <span className="text-teal-600">HMS</span></span>
+                            <span className="hidden text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-400 sm:block">Hospital OS</span>
                         </div>
                     </button>
 
-                    <div className="hidden items-center gap-7 text-sm font-bold text-slate-600 dark:text-slate-300 lg:flex">
+                    <div className="hidden items-center gap-8 text-[14px] font-extrabold text-slate-600 dark:text-slate-300 lg:flex">
                         <a href="#features" className="transition-colors hover:text-teal-600">Features</a>
                         <a href="#ai" className="transition-colors hover:text-teal-600">AI Health</a>
                         <a href="#telehealth" className="transition-colors hover:text-teal-600">Telehealth</a>
@@ -77,32 +82,32 @@ const LandingPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-3">
-                        <button onClick={() => navigate('/login')} className="hidden rounded-xl px-4 py-2.5 text-sm font-black text-slate-700 transition-all hover:bg-slate-100 hover:text-teal-700 dark:text-slate-200 dark:hover:bg-slate-900 sm:inline-flex">Login</button>
-                        <button onClick={() => navigate('/register')} className="rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-teal-600/25 transition-all hover:bg-teal-700 active:scale-95 sm:px-6">Get Started</button>
+                        <button onClick={() => navigate('/login')} className="hidden rounded-xl px-4 py-2.5 text-sm font-extrabold text-slate-700 transition-all hover:bg-slate-100 hover:text-teal-700 dark:text-slate-200 dark:hover:bg-slate-900 sm:inline-flex">Login</button>
+                        <button onClick={() => navigate('/register')} className="rounded-xl bg-teal-600 px-5 py-3 text-sm font-extrabold text-white shadow-xl shadow-teal-600/25 transition-all hover:-translate-y-0.5 hover:bg-teal-700 active:scale-95 sm:px-7">Get Started</button>
                     </div>
                 </div>
             </nav>
 
             {/* ─── Hero Section ─── */}
-            <section className="relative overflow-hidden px-4 pb-14 pt-32 sm:px-6 lg:pb-20 lg:pt-36">
-                <div className="absolute inset-x-0 top-0 -z-10 h-[720px] bg-[radial-gradient(circle_at_12%_18%,rgba(20,184,166,0.18),transparent_30rem),radial-gradient(circle_at_88%_10%,rgba(37,99,235,0.16),transparent_28rem)]" />
-                <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 lg:grid-cols-[0.94fr_1.06fr]">
+            <section className="relative overflow-hidden px-5 pb-12 pt-32 sm:px-8 lg:pb-16 lg:pt-34">
+                <div className="absolute inset-x-0 top-0 -z-10 h-[740px] bg-[linear-gradient(180deg,rgba(248,250,252,1)_0%,rgba(255,255,255,1)_58%,rgba(255,255,255,0)_100%)]" />
+                <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 lg:grid-cols-[0.92fr_1.08fr]">
                     <div>
-                        <div className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-white/80 px-4 py-2 text-xs font-black uppercase tracking-widest text-teal-700 shadow-sm backdrop-blur dark:border-teal-900/70 dark:bg-teal-950/20 dark:text-teal-300">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-white px-4 py-2 text-xs font-extrabold uppercase tracking-widest text-teal-700 shadow-lg shadow-teal-900/[0.06] backdrop-blur dark:border-teal-900/70 dark:bg-teal-950/20 dark:text-teal-300">
                             <Sparkles className="h-4 w-4" /> Next-Gen Healthcare Platform
                         </div>
-                        <h1 className="mt-6 max-w-4xl text-5xl font-black leading-[0.98] tracking-tight text-slate-950 dark:text-white md:text-7xl">
+                        <h1 className="mt-7 max-w-4xl text-5xl font-extrabold leading-[1.02] text-slate-950 dark:text-white md:text-[72px]">
                             MediCare HMS for smarter hospitals and calmer patients
                         </h1>
-                        <p className="mt-6 max-w-2xl text-base font-medium leading-8 text-slate-600 dark:text-slate-400 sm:text-lg">
+                        <p className="mt-6 max-w-2xl text-[17px] font-semibold leading-8 text-slate-600 dark:text-slate-400">
                             Manage appointments, records, billing, doctors, patients, AI guidance, and telehealth inside one polished hospital operating system.
                         </p>
 
                         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                            <button onClick={() => navigate('/register')} className="group inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-teal-600 px-7 text-base font-black text-white shadow-xl shadow-teal-600/25 transition-all hover:bg-teal-700 active:scale-[0.99]">
+                            <button onClick={() => navigate('/register')} className="group inline-flex h-13 min-h-13 items-center justify-center gap-2 rounded-2xl bg-teal-600 px-8 py-3.5 text-base font-extrabold text-white shadow-2xl shadow-teal-600/25 transition-all hover:-translate-y-0.5 hover:bg-teal-700 active:scale-[0.99]">
                                 Start Using HMS <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                             </button>
-                            <button onClick={() => navigate('/login')} className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-7 text-base font-black text-slate-700 shadow-sm transition-all hover:border-teal-300 hover:text-teal-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                            <button onClick={() => navigate('/login')} className="inline-flex min-h-13 items-center justify-center rounded-2xl border border-slate-200 bg-white px-8 py-3.5 text-base font-extrabold text-slate-700 shadow-md shadow-slate-900/[0.05] transition-all hover:-translate-y-0.5 hover:border-teal-300 hover:text-teal-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
                                 Login to Dashboard
                             </button>
                         </div>
@@ -113,7 +118,7 @@ const LandingPage: React.FC = () => {
                                 { icon: Video, label: 'Telehealth ready' },
                                 { icon: Bot, label: 'AI assisted care' },
                             ].map((item) => (
-                                <div key={item.label} className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-bold text-slate-700 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300">
+                                <div key={item.label} className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-extrabold text-slate-700 shadow-md shadow-slate-900/[0.04] backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300">
                                     <item.icon className="h-4 w-4 text-teal-600" />
                                     {item.label}
                                 </div>
@@ -122,14 +127,15 @@ const LandingPage: React.FC = () => {
                     </div>
 
                     <div className="relative">
-                        <div className="rounded-[32px] border border-slate-200 bg-white/90 p-4 shadow-2xl shadow-slate-900/12 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
-                            <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
+                        <div className="absolute -inset-8 -z-10 rounded-[44px] bg-gradient-to-br from-teal-500/14 via-blue-500/12 to-violet-500/14 blur-2xl" />
+                        <div className="rounded-[34px] border border-slate-200 bg-white/92 p-4 shadow-[0_32px_90px_rgba(15,23,42,0.14)] backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
+                            <div className="overflow-hidden rounded-[26px] border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
                                 <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-950">
                                     <div>
-                                        <p className="text-sm font-black text-slate-950 dark:text-white">Today’s Operations</p>
-                                        <p className="text-xs font-semibold text-slate-500">Live clinical workspace</p>
+                                        <p className="text-base font-extrabold text-slate-950 dark:text-white">Today’s Operations</p>
+                                        <p className="text-xs font-bold text-slate-500">Live clinical workspace</p>
                                     </div>
-                                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">Online</span>
+                                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-extrabold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">Online</span>
                                 </div>
 
                                 <div className="grid gap-4 p-5 lg:grid-cols-[0.9fr_1.1fr]">
@@ -139,11 +145,11 @@ const LandingPage: React.FC = () => {
                                             { label: 'Patients', value: '1,248', icon: Users, tone: 'bg-teal-50 text-teal-600' },
                                             { label: 'Revenue', value: '₹84k', icon: CreditCard, tone: 'bg-amber-50 text-amber-600' },
                                         ].map((stat) => (
-                                            <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                                            <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-md shadow-slate-900/[0.04] dark:border-slate-800 dark:bg-slate-950">
                                                 <div className="flex items-center justify-between">
                                                     <div>
-                                                        <p className="text-xs font-bold uppercase tracking-widest text-slate-400">{stat.label}</p>
-                                                        <p className="mt-1 text-2xl font-black text-slate-950 dark:text-white">{stat.value}</p>
+                                                        <p className="text-xs font-extrabold uppercase tracking-widest text-slate-400">{stat.label}</p>
+                                                        <p className="mt-1 text-2xl font-extrabold text-slate-950 dark:text-white">{stat.value}</p>
                                                     </div>
                                                     <div className={`grid h-11 w-11 place-items-center rounded-xl ${stat.tone}`}>
                                                         <stat.icon className="h-5 w-5" />
@@ -153,9 +159,9 @@ const LandingPage: React.FC = () => {
                                         ))}
                                     </div>
 
-                                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+                                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-md shadow-slate-900/[0.04] dark:border-slate-800 dark:bg-slate-950">
                                         <div className="mb-4 flex items-center justify-between">
-                                            <p className="text-sm font-black text-slate-950 dark:text-white">Care Timeline</p>
+                                            <p className="text-sm font-extrabold text-slate-950 dark:text-white">Care Timeline</p>
                                             <FileText className="h-5 w-5 text-slate-400" />
                                         </div>
                                         {[
@@ -165,10 +171,10 @@ const LandingPage: React.FC = () => {
                                             ['16:30', 'Billing reconciliation', 'Paid'],
                                         ].map(([time, title, status]) => (
                                             <div key={title} className="flex items-start gap-3 border-t border-slate-100 py-3 first:border-t-0 first:pt-0 dark:border-slate-800">
-                                                <span className="w-12 shrink-0 text-xs font-black text-slate-400">{time}</span>
+                                                <span className="w-12 shrink-0 text-xs font-extrabold text-slate-400">{time}</span>
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="truncate text-sm font-bold text-slate-700 dark:text-slate-200">{title}</p>
-                                                    <p className="text-xs font-semibold text-teal-600">{status}</p>
+                                                    <p className="truncate text-sm font-extrabold text-slate-700 dark:text-slate-200">{title}</p>
+                                                    <p className="text-xs font-bold text-teal-600">{status}</p>
                                                 </div>
                                             </div>
                                         ))}
@@ -179,7 +185,7 @@ const LandingPage: React.FC = () => {
                     </div>
 
                     <div className="lg:col-span-2">
-                        <div className="grid grid-cols-2 gap-4 border-y border-slate-200 py-8 dark:border-slate-800 md:grid-cols-4">
+                        <div className="grid grid-cols-2 gap-4 border-y border-slate-200 py-7 dark:border-slate-800 md:grid-cols-4">
                             {[
                                 { label: 'Active Doctors', value: '150+' },
                                 { label: 'Happy Patients', value: '12k+' },
@@ -187,8 +193,8 @@ const LandingPage: React.FC = () => {
                                 { label: 'Uptime', value: '99.9%' }
                             ].map((stat) => (
                                 <div key={stat.label} className="text-center">
-                                    <div className="text-3xl font-black text-slate-950 dark:text-white">{stat.value}</div>
-                                    <div className="mt-1 text-xs font-black uppercase tracking-widest text-slate-400">{stat.label}</div>
+                                    <div className="text-3xl font-extrabold text-slate-950 dark:text-white">{stat.value}</div>
+                                    <div className="mt-1 text-xs font-extrabold uppercase tracking-widest text-slate-400">{stat.label}</div>
                                 </div>
                             ))}
                         </div>

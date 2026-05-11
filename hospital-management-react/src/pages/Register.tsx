@@ -145,11 +145,18 @@ const Register: React.FC = () => {
   const sl = strengthLabel(score);
 
   const inputStyle = (name: string): React.CSSProperties => ({
-    width: '100%', height: 48, border: `1.5px solid ${focused === name ? '#0dcfba' : '#e2e8f0'}`,
-    borderRadius: 12, padding: '0 16px', fontSize: 14, fontWeight: 500, color: '#1e293b',
-    background: '#f8fafc', outline: 'none',
-    boxShadow: focused === name ? '0 0 0 3px rgba(13,207,186,0.15)' : 'none',
-    transition: 'border-color .2s, box-shadow .2s',
+    width: '100%',
+    height: 48,
+    border: `1.5px solid ${focused === name ? '#14b8a6' : '#d7e0ec'}`,
+    borderRadius: 14,
+    padding: '0 18px',
+    fontSize: 14,
+    fontWeight: 650,
+    color: '#0f172a',
+    background: '#fff',
+    outline: 'none',
+    boxShadow: focused === name ? '0 0 0 4px rgba(20,184,166,0.14), 0 8px 18px rgba(15,23,42,0.06)' : '0 2px 8px rgba(15,23,42,0.03)',
+    transition: 'border-color .2s, box-shadow .2s, background .2s',
   });
 
   return (
@@ -203,6 +210,7 @@ const Register: React.FC = () => {
       {/* ── RIGHT PANEL ─────────────────────────── */}
       <div className="auth-right" style={{ ...S.right, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1) .1s' }}>
         <div style={S.card}>
+          <div style={S.cardHeaderMark}>MediCare access</div>
           <h2 style={S.cardTitle}>Create Account</h2>
           <p style={S.cardSub}>Join thousands of patients and doctors</p>
 
@@ -212,11 +220,11 @@ const Register: React.FC = () => {
               const on = form.role === r;
               return (
                 <button key={r} type="button" onClick={() => setForm(f => ({ ...f, role: r }))} className="role-tab"
-                  style={{ ...S.tab, background: on ? '#0dcfba' : 'transparent', border: `1.5px solid ${on ? '#0dcfba' : '#e2e8f0'}`, boxShadow: on ? '0 4px 16px rgba(13,207,186,0.4)' : 'none', transform: on ? 'translateY(-1px)' : 'none', flex: 1 }}>
+                  style={{ ...S.tab, background: on ? 'linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%)' : '#fff', border: `1.5px solid ${on ? 'rgba(20,184,166,0)' : '#d7e0ec'}`, boxShadow: on ? '0 12px 28px rgba(20,184,166,0.28)' : '0 5px 18px rgba(15,23,42,0.04)', transform: on ? 'translateY(-2px)' : 'none', flex: 1 }}>
                   {r === 'PATIENT' ? <PatientIcon active={on}/> : <DoctorIcon active={on}/>}
                   <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: on ? '#fff' : '#64748b', margin: 0 }}>{ROLE_META[r].label}</p>
-                    <p style={{ fontSize: 11, color: on ? 'rgba(255,255,255,0.8)' : '#94a3b8', margin: '2px 0 0' }}>{ROLE_META[r].desc}</p>
+                    <p style={{ fontSize: 14, fontWeight: 850, color: on ? '#fff' : '#334155', margin: 0 }}>{ROLE_META[r].label}</p>
+                    <p style={{ fontSize: 11, lineHeight: 1.35, color: on ? 'rgba(255,255,255,0.84)' : '#64748b', margin: '4px 0 0' }}>{ROLE_META[r].desc}</p>
                   </div>
                 </button>
               );
@@ -236,14 +244,14 @@ const Register: React.FC = () => {
           </div>
 
           {/* Step indicator */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <div style={S.stepper}>
             {[1, 2].map(s => (
               <React.Fragment key={s}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: step >= s ? '#0dcfba' : '#f1f5f9', border: `2px solid ${step >= s ? '#0dcfba' : '#e2e8f0'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: step >= s ? '#fff' : '#94a3b8', transition: 'all .3s', boxShadow: step === s ? '0 0 12px rgba(13,207,186,0.5)' : 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: step >= s ? 'linear-gradient(135deg, #14b8a6, #0ea5e9)' : '#f8fafc', border: `1.5px solid ${step >= s ? 'rgba(20,184,166,0)' : '#d7e0ec'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 850, color: step >= s ? '#fff' : '#94a3b8', transition: 'all .3s', boxShadow: step === s ? '0 8px 18px rgba(20,184,166,0.28)' : 'none' }}>
                     {step > s ? '✓' : s}
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: step === s ? 600 : 400, color: step >= s ? '#0f172a' : '#94a3b8' }}>
+                  <span style={{ fontSize: 13, fontWeight: step === s ? 800 : 650, color: step >= s ? '#0f172a' : '#94a3b8' }}>
                     {s === 1 ? 'Basic Info' : 'Set Password'}
                   </span>
                 </div>
@@ -254,15 +262,15 @@ const Register: React.FC = () => {
 
           {/* Step 1 */}
           {step === 1 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, animation: 'slideIn .3s ease' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, animation: 'slideIn .3s ease' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <input name="fullName"    placeholder="Full Name"    value={form.fullName}    onChange={handleChange} onFocus={() => setFocused('fullName')}    onBlur={() => setFocused(null)} required style={inputStyle('fullName')}/>
                 <input name="username"    placeholder="Username"     value={form.username}    onChange={handleChange} onFocus={() => setFocused('username')}    onBlur={() => setFocused(null)} required style={inputStyle('username')}/>
               </div>
               <input name="email"         placeholder="Email Address" type="email" value={form.email}  onChange={handleChange} onFocus={() => setFocused('email')}  onBlur={() => setFocused(null)} required style={inputStyle('email')}/>
               <input name="phoneNumber"   placeholder="Phone Number (10 digits)" value={form.phoneNumber} onChange={handleChange} onFocus={() => setFocused('phone')} onBlur={() => setFocused(null)} required pattern="\d{10}" title="10 digits" style={inputStyle('phone')}/>
 
-              <button type="button" onClick={() => step1OK && setStep(2)} style={{ height: 50, borderRadius: 12, border: 'none', background: step1OK ? 'linear-gradient(135deg, #0dcfba 0%, #0ea5e9 100%)' : '#f1f5f9', color: step1OK ? '#fff' : '#94a3b8', fontSize: 15, fontWeight: 700, cursor: step1OK ? 'pointer' : 'not-allowed', boxShadow: step1OK ? '0 6px 24px rgba(13,207,186,0.4)' : 'none', transition: 'all .25s', marginTop: 4 }} className={step1OK ? 'login-btn' : ''}>
+              <button type="button" onClick={() => step1OK && setStep(2)} style={{ height: 50, borderRadius: 14, border: 'none', background: step1OK ? 'linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%)' : '#eef3f8', color: step1OK ? '#fff' : '#8fa0b7', fontSize: 15, fontWeight: 850, cursor: step1OK ? 'pointer' : 'not-allowed', boxShadow: step1OK ? '0 12px 28px rgba(20,184,166,0.26)' : 'inset 0 0 0 1px #e3eaf2', transition: 'all .25s', marginTop: 4 }} className={step1OK ? 'login-btn' : ''}>
                 Continue →
               </button>
             </div>
@@ -307,14 +315,14 @@ const Register: React.FC = () => {
                   style={{ flex: 1, height: 50, borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #0dcfba 0%, #0ea5e9 100%)', color: '#fff', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 6px 24px rgba(13,207,186,0.4)', opacity: loading ? .7 : 1, transition: 'all .25s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   {loading
                     ? <span style={{ width: 20, height: 20, border: '2.5px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin .7s linear infinite' }}/>
-                    : 'Create Account 🎉'}
+                  : 'Create Account'}
                 </button>
               </div>
             </div>
           )}
 
           {/* Sign in */}
-          <p style={{ textAlign: 'center', fontSize: 13, color: '#94a3b8', marginTop: 18 }}>
+          <p style={{ textAlign: 'center', fontSize: 13, color: '#7c8da6', marginTop: 16 }}>
             Already have an account?{' '}
             <Link to="/login" style={{ color: '#0dcfba', fontWeight: 700, textDecoration: 'none' }}>Login here</Link>
           </p>
@@ -325,15 +333,16 @@ const Register: React.FC = () => {
 };
 
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Inter', system-ui, sans-serif; }
+  body { font-family: 'Manrope', system-ui, sans-serif; font-synthesis: none; }
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
-  input::placeholder { color: #cbd5e1; font-size: 14px; }
-  input:-webkit-autofill { -webkit-box-shadow: 0 0 0 100px #f8fafc inset !important; -webkit-text-fill-color: #1e293b !important; }
-  .login-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.08); }
+  input::placeholder { color: #95a6bb; font-size: 14px; font-weight: 650; }
+  input:-webkit-autofill { -webkit-box-shadow: 0 0 0 100px #fff inset !important; -webkit-text-fill-color: #0f172a !important; }
+  .login-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.05); box-shadow: 0 16px 32px rgba(20,184,166,0.30) !important; }
   .role-tab { transition: all .25s cubic-bezier(.34,1.56,.64,1); outline: none; cursor: pointer; }
+  .role-tab:hover { border-color: #9fded8 !important; transform: translateY(-2px); }
   .google-auth-btn:hover:not(:disabled) { border-color: #cbd5e1 !important; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(15,23,42,0.10) !important; }
   .dev-credit:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.32); transform: translateY(-1px); }
   @media (max-width: 900px) {
@@ -345,7 +354,7 @@ const CSS = `
 `;
 
 const S: Record<string, React.CSSProperties> = {
-  page:        { minHeight: '100vh', display: 'flex', alignItems: 'stretch', fontFamily: "'Inter',system-ui,sans-serif", background: 'linear-gradient(135deg, #4dd9c0 0%, #38b2ea 30%, #c084fc 65%, #fb923c 100%)', overflow: 'hidden' },
+  page:        { minHeight: '100vh', display: 'flex', alignItems: 'stretch', fontFamily: "'Manrope',system-ui,sans-serif", background: 'linear-gradient(135deg, #35d0bd 0%, #4c8df6 35%, #b777f1 68%, #f28b5b 100%)', overflow: 'auto' },
   left:        { flex: '0 0 48%', padding: '52px 56px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' },
   logoBox:     { width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', border: '1.5px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' },
   heading:     { fontSize: 48, fontWeight: 900, color: '#fff', lineHeight: 1.1, letterSpacing: '-1.5px', textShadow: '0 2px 16px rgba(0,0,0,0.12)' },
@@ -361,15 +370,17 @@ const S: Record<string, React.CSSProperties> = {
   devName:     { fontSize: 14, lineHeight: 1.25, color: '#2dd4bf', fontWeight: 800, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   devRole:     { fontSize: 11, lineHeight: 1.25, color: 'rgba(255,255,255,0.66)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   devIcon:     { marginLeft: 'auto', opacity: 0.85, flexShrink: 0 },
-  right:       { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 48px' },
-  card:        { width: '100%', maxWidth: 420, background: '#fff', borderRadius: 24, padding: '36px 32px', boxShadow: '0 24px 80px rgba(0,0,0,0.18)' },
-  cardTitle:   { fontSize: 24, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px', textAlign: 'center', margin: '0 0 6px' },
-  cardSub:     { fontSize: 14, color: '#94a3b8', textAlign: 'center', margin: '0 0 20px', fontWeight: 500 },
-  tabs:        { display: 'flex', gap: 10, marginBottom: 20 },
-  tab:         { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 10px', borderRadius: 14 },
-  divider:     { display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0 18px' },
+  right:       { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px 48px' },
+  card:        { width: '100%', maxWidth: 466, background: 'rgba(255,255,255,0.97)', borderRadius: 22, padding: '26px 34px 24px', boxShadow: '0 28px 90px rgba(30,41,59,0.22)', border: '1px solid rgba(255,255,255,0.72)' },
+  cardHeaderMark: { width: 'fit-content', margin: '0 auto 8px', padding: '5px 10px', borderRadius: 999, background: '#ecfeff', color: '#0f766e', fontSize: 11, fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.08em' },
+  cardTitle:   { fontSize: 26, fontWeight: 850, color: '#07111f', letterSpacing: '0', textAlign: 'center', margin: '0 0 6px', lineHeight: 1.12 },
+  cardSub:     { fontSize: 14, color: '#63748a', textAlign: 'center', margin: '0 0 18px', fontWeight: 650 },
+  tabs:        { display: 'flex', gap: 12, marginBottom: 16 },
+  tab:         { minHeight: 104, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '14px 12px', borderRadius: 16 },
+  stepper:     { display: 'flex', alignItems: 'center', gap: 12, margin: '0 0 16px' },
+  divider:     { display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0 15px' },
   dividerLine: { flex: 1, height: 1, background: '#e2e8f0' },
-  dividerText: { fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' },
+  dividerText: { fontSize: 11, fontWeight: 850, color: '#8797ad', textTransform: 'uppercase', letterSpacing: '0.08em' },
 };
 
 export default Register;
