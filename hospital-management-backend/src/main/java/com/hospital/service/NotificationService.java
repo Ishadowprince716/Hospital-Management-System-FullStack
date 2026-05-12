@@ -108,4 +108,10 @@ public class NotificationService {
 
         messagingTemplate.convertAndSendToUser(username, "/queue/notifications", payload);
     }
+
+    public void sendTelehealthCallNotification(Map<String, String> payload) {
+        payload.putIfAbsent("timestamp", String.valueOf(System.currentTimeMillis()));
+        payload.putIfAbsent("type", "TELEHEALTH_CALL");
+        messagingTemplate.convertAndSend("/topic/telehealth", payload);
+    }
 }

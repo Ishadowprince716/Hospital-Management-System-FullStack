@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarCheck, CalendarPlus, Clock, XCircle, CheckCircle2, AlertCircle, Video } from 'lucide-react';
+import { CalendarCheck, CalendarPlus, Clock, XCircle, CheckCircle2, AlertCircle, BellRing, Headphones, PhoneCall } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../../api';
 import { Button } from '../../components/ui/Button';
 import { formatDoctorName } from '../../utils/displayNames';
+import { requestTelehealthNotificationPermission, unlockTelehealthAudio } from '../../utils/telehealthAlerts';
 import {
     PatientAlert,
     PatientEmptyState,
@@ -23,6 +24,9 @@ interface Appointment {
     status: string;
     reason: string;
 }
+
+const getStatus = (appointment: Appointment) => (appointment.status || '').toUpperCase();
+const canJoinCall = (appointment: Appointment) => ['SCHEDULED', 'CONFIRMED', 'PENDING'].includes(getStatus(appointment));
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     const s = status.toUpperCase();
@@ -47,6 +51,7 @@ const MyAppointments: React.FC = () => {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [alertsReady, setAlertsReady] = useState(localStorage.getItem('telehealthAudioEnabled') === 'true');
 
     const fetchAppointments = async () => {
         setLoading(true);
@@ -75,9 +80,9 @@ const MyAppointments: React.FC = () => {
         }
     };
 
-    const upcomingCount = appointments.filter(appt => ['CONFIRMED', 'PENDING', 'SCHEDULED'].includes((appt.status || '').toUpperCase())).length;
-    const completedCount = appointments.filter(appt => (appt.status || '').toUpperCase() === 'COMPLETED').length;
-    const cancelledCount = appointments.filter(appt => (appt.status || '').toUpperCase() === 'CANCELLED').length;
+    const upcomingCount = appointments.filter(canJoinCall).length;
+    const completedCount = appointments.filter(appt => getStatus(appt) === 'COMPLETED').length;
+    const callReadyCount = appointments.filter(canJoinCall).length;
 
     return (
         <PatientPageFrame size="lg">
@@ -87,17 +92,31 @@ const MyAppointments: React.FC = () => {
                 icon={CalendarCheck}
                 tone="blue"
                 action={
-                    <Button onClick={() => navigate('/patient/book-appointment')} className="gap-2 bg-[var(--primary)] text-white">
-                        <CalendarPlus className="h-4 w-4" />
-                        Book New
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            variant="outline"
+                            className="gap-2"
+                            onClick={async () => {
+                                await unlockTelehealthAudio();
+                                await requestTelehealthNotificationPermission();
+                                setAlertsReady(true);
+                            }}
+                        >
+                            <BellRing className="h-4 w-4" />
+                            {alertsReady ? 'Call Alerts On' : 'Enable Alerts'}
+                        </Button>
+                        <Button onClick={() => navigate('/patient/book-appointment')} className="gap-2 bg-[var(--primary)] text-white">
+                            <CalendarPlus className="h-4 w-4" />
+                            Book New
+                        </Button>
+                    </div>
                 }
             />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <PatientStatCard label="Upcoming" value={upcomingCount} icon={CalendarCheck} tone="blue" helper="Confirmed or pending" />
+                <PatientStatCard label="Call Ready" value={callReadyCount} icon={Headphones} tone="emerald" helper="Video rooms available" />
                 <PatientStatCard label="Completed" value={completedCount} icon={CheckCircle2} tone="emerald" helper="Past consultations" />
-                <PatientStatCard label="Cancelled" value={cancelledCount} icon={XCircle} tone="rose" helper="No longer active" />
             </div>
 
             {error && (
@@ -120,7 +139,7 @@ const MyAppointments: React.FC = () => {
             ) : (
                 <div className={`${patientCardClass} overflow-hidden`}>
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
+                            <table className="w-full min-w-[860px] text-sm text-left">
                                 <thead className="text-xs uppercase bg-gray-50 dark:bg-slate-800/50 text-[var(--text-muted)] border-b border-[var(--border-color)]">
                                     <tr>
                                         <th className="px-6 py-4 font-semibold">Doctor</th>
@@ -144,24 +163,30 @@ const MyAppointments: React.FC = () => {
                                                     {appt.appointmentTime || 'TBD'}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-[var(--text-muted)] max-w-xs truncate" title={appt.reason}>
-                                                {appt.reason || '—'}
+                                            <td className="px-6 py-4 text-[var(--text-muted)] max-w-xs" title={appt.reason}>
+                                                <p className="truncate">{appt.reason || '—'}</p>
+                                                {canJoinCall(appt) && (
+                                                    <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-cyan-50 px-2 py-0.5 text-[11px] font-bold text-cyan-700 ring-1 ring-cyan-100">
+                                                        <Headphones className="h-3 w-3" />
+                                                        Online consultation
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <StatusBadge status={appt.status} />
                                             </td>
                                             <td className="px-6 py-4 text-right space-x-2">
-                                                {appt.status === 'CONFIRMED' && (
+                                                {canJoinCall(appt) && (
                                                     <Button
                                                         size="sm"
-                                                        className="bg-emerald-600 text-white hover:bg-emerald-700 px-3 py-1 h-auto flex items-center gap-1.5"
+                                                        className="h-9 gap-1.5 rounded-xl bg-teal-600 px-3 text-xs font-bold text-white shadow-lg shadow-teal-100 hover:bg-teal-700"
                                                         onClick={() => navigate(`/telehealth/${appt.id}`)}
                                                     >
-                                                        <Video className="w-3.5 h-3.5" />
+                                                        <PhoneCall className="w-3.5 h-3.5" />
                                                         Join Call
                                                     </Button>
                                                 )}
-                                                {(appt.status === 'PENDING' || appt.status === 'CONFIRMED') && (
+                                                {(getStatus(appt) === 'PENDING' || getStatus(appt) === 'CONFIRMED' || getStatus(appt) === 'SCHEDULED') && (
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"

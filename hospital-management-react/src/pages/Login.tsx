@@ -4,8 +4,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { clearAuthError, loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice';
 import type { RootState } from '../store';
 import api, { getApiErrorMessage } from '../api';
-import GoogleAuthButton from '../components/auth/GoogleAuthButton';
-import { completeGoogleRedirectSignIn, getFirebaseAuthErrorMessage, signInWithGoogleAccount } from '../utils/firebaseGoogleAuth';
 
 type ApiResponse<T> = { success: boolean; message: string; data: T };
 type AuthResponse = { token: string; username: string; role: string; userId: number; fullName: string; profilePictureUrl?: string };
@@ -54,7 +52,6 @@ const Login: React.FC = () => {
   const [role,     setRole]     = useState<Role>('PATIENT');
   const [showPwd,  setShowPwd]  = useState(false);
   const [remember, setRemember] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [uFocus,   setUFocus]   = useState(false);
   const [pFocus,   setPFocus]   = useState(false);
   const [mounted,  setMounted]  = useState(false);
@@ -104,29 +101,6 @@ const Login: React.FC = () => {
     navigate(r === 'ADMIN' ? '/admin' : r === 'DOCTOR' ? '/doctor' : '/patient');
   }, [dispatch, navigate, role]);
 
-  useEffect(() => {
-    let active = true;
-
-    const finishGoogleRedirect = async () => {
-      setGoogleLoading(true);
-      try {
-        const result = await completeGoogleRedirectSignIn(role === 'ADMIN' ? 'PATIENT' : role);
-        if (result && active) {
-          finishAuth(result.auth, result.email);
-        }
-      } catch (err: unknown) {
-        if (active) dispatch(loginFailure(getFirebaseAuthErrorMessage(err)));
-      } finally {
-        if (active) setGoogleLoading(false);
-      }
-    };
-
-    finishGoogleRedirect();
-    return () => {
-      active = false;
-    };
-  }, [dispatch, finishAuth, role]);
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanUsername = username.trim();
@@ -138,22 +112,6 @@ const Login: React.FC = () => {
       finishAuth(d);
     } catch (err: unknown) {
       dispatch(loginFailure(getApiErrorMessage(err, 'Invalid credentials. Please try again.')));
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    if (role === 'ADMIN') {
-      dispatch(loginFailure('Google sign-in is available for Patient and Doctor accounts only.'));
-      return;
-    }
-
-    dispatch(loginStart());
-    setGoogleLoading(true);
-    try {
-      await signInWithGoogleAccount(role);
-    } catch (err: unknown) {
-      dispatch(loginFailure(getApiErrorMessage(err, getFirebaseAuthErrorMessage(err))));
-      setGoogleLoading(false);
     }
   };
 
@@ -225,7 +183,7 @@ const Login: React.FC = () => {
       <div className="auth-right" style={{ ...S.right, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1) .1s' }}>
         <div style={S.card}>
           <h2 style={S.cardTitle}>Welcome Back!</h2>
-          <p style={S.cardSub}>Please login to continue</p>
+          <p style={S.cardSub}>Use your hospital ID and password to continue</p>
 
           {/* Role Tabs */}
           <div style={S.tabs}>
@@ -240,21 +198,9 @@ const Login: React.FC = () => {
             })}
           </div>
 
-          {role !== 'ADMIN' && (
-            <>
-              <GoogleAuthButton
-                label={googleLoading ? 'Connecting to Google...' : `Continue with Google as ${role.charAt(0) + role.slice(1).toLowerCase()}`}
-                disabled={loading || googleLoading}
-                onClick={handleGoogleSignIn}
-              />
-
-              <div style={S.divider}>
-                <span style={S.dividerLine} />
-                <span style={S.dividerText}>or use username</span>
-                <span style={S.dividerLine} />
-              </div>
-            </>
-          )}
+          <div style={S.secureNote}>
+            Video consultation access is protected by your HMS username and password. Google login is not required.
+          </div>
 
           {/* Form */}
           <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -326,16 +272,14 @@ const Login: React.FC = () => {
 };
 
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Inter', system-ui, sans-serif; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  input::placeholder { color: #cbd5e1; font-size: 14px; }
+  input::placeholder { color: #94a3b8; font-size: 14px; }
   input:-webkit-autofill { -webkit-box-shadow: 0 0 0 100px #fff inset !important; -webkit-text-fill-color: #1e293b !important; }
   .login-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(13,207,186,0.55) !important; }
   .role-tab { transition: all .25s cubic-bezier(.34,1.56,.64,1); outline: none; cursor: pointer; }
   .role-tab:hover { transform: translateY(-2px); }
-  .google-auth-btn:hover:not(:disabled) { border-color: #cbd5e1 !important; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(15,23,42,0.10) !important; }
   .dev-credit:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.32); transform: translateY(-1px); }
   @media (max-width: 900px) {
     .auth-page { flex-direction: column; overflow-y: auto !important; }
@@ -444,6 +388,18 @@ const S: Record<string, React.CSSProperties> = {
   divider: { display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0 14px' },
   dividerLine: { flex: 1, height: 1, background: '#e2e8f0' },
   dividerText: { fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' },
+  secureNote: {
+    margin: '0 0 18px',
+    padding: '11px 14px',
+    borderRadius: 14,
+    background: '#f0fdfa',
+    border: '1px solid #ccfbf1',
+    color: '#0f766e',
+    fontSize: 12,
+    fontWeight: 700,
+    lineHeight: 1.5,
+    textAlign: 'center',
+  },
 };
 
 export default Login;

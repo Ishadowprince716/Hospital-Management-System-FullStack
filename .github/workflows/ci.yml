@@ -10,6 +10,17 @@ on:
       - codex/**
 
 jobs:
+  dependency-review:
+    if: github.event_name == 'pull_request' && vars.ENABLE_DEPENDENCY_REVIEW == 'true'
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+
   backend:
     name: Backend
     runs-on: ubuntu-latest
@@ -25,9 +36,15 @@ jobs:
           java-version: "21"
           cache: maven
 
-      - name: Test backend
+      - name: Verify backend (tests + coverage gate)
         working-directory: hospital-management-backend
-        run: mvn -B test
+        run: mvn -B verify
+
+      - name: Backend artifact sanity check
+        working-directory: hospital-management-backend
+        run: |
+          ls target/*.jar
+          echo "Backend JAR generated successfully."
 
   frontend:
     name: Frontend
@@ -52,6 +69,20 @@ jobs:
         working-directory: hospital-management-react
         run: npm run lint
 
+      - name: Unit tests with coverage
+        working-directory: hospital-management-react
+        run: npm run test
+
       - name: Build frontend
         working-directory: hospital-management-react
         run: npm run build
+
+      - name: Dependency audit (critical)
+        working-directory: hospital-management-react
+        run: npm audit --audit-level=critical
+
+      - name: Frontend artifact sanity check
+        working-directory: hospital-management-react
+        run: |
+          ls dist/index.html
+          echo "Frontend bundle generated successfully."

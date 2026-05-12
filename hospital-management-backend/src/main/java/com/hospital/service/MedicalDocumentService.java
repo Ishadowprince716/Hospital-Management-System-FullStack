@@ -6,6 +6,8 @@ import com.hospital.model.User;
 import com.hospital.repository.mysql.MedicalDocumentRepository;
 import com.hospital.repository.mysql.PatientRepository;
 import com.hospital.repository.mysql.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ import java.util.UUID;
 
 @Service
 public class MedicalDocumentService {
+    private static final Logger log = LoggerFactory.getLogger(MedicalDocumentService.class);
 
     private final MedicalDocumentRepository documentRepository;
     private final PatientRepository patientRepository;
@@ -41,7 +44,7 @@ public class MedicalDocumentService {
         try {
             Files.createDirectories(Paths.get(uploadDir));
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Unable to create medical upload directory at {}", uploadDir, e);
         }
     }
 
@@ -119,7 +122,7 @@ public class MedicalDocumentService {
             try {
                 Files.deleteIfExists(Paths.get(uploadDir + filename));
             } catch (IOException e) {
-                e.printStackTrace();
+                log.warn("Failed to delete local medical document file: {}", filename, e);
             }
         }
 

@@ -1,5 +1,6 @@
 package com.hospital.controller;
 
+import com.hospital.common.ApiResponse;
 import java.net.URI;
 import java.util.Map;
 
@@ -12,28 +13,30 @@ import org.springframework.web.bind.annotation.RestController;
 public class HealthController {
 
     @GetMapping({"/api", "/api/"})
-    public ResponseEntity<?> apiRoot() {
-        return ResponseEntity.ok(Map.of(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> apiRoot() {
+        return ResponseEntity.ok(ApiResponse.success(Map.of(
                 "name", "MediCare HMS API",
                 "status", "ok",
-                "database", "H2 in-memory",
+                "database", "configured by SPRING_DATASOURCE_URL",
                 "links", Map.of(
                         "health", "/api/health",
+                        "readiness", "/ready",
+                        "actuatorHealth", "/actuator/health",
                         "doctors", "/api/doctors",
                         "swagger", "/swagger-ui/index.html",
                         "openApi", "/v3/api-docs",
-                        "h2Console", "/h2-console/")));
+                        "h2Console", "/h2-console/"))));
     }
 
     @GetMapping({"/health", "/api/health"})
-    public ResponseEntity<?> health() {
-        return ResponseEntity.ok(Map.of("status", "ok"));
+    public ResponseEntity<ApiResponse<Map<String, Object>>> health() {
+        return ResponseEntity.ok(ApiResponse.success(Map.of("status", "ok")));
     }
 
     @GetMapping("/ready")
-    public ResponseEntity<?> ready() {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> ready() {
         // TODO: add DB connectivity check if needed
-        return ResponseEntity.ok(Map.of("ready", true));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("ready", true)));
     }
 
     @GetMapping("/h2-console")

@@ -13,6 +13,7 @@ import DashboardLayout from './components/layout/DashboardLayout';
 import WebSocketListener from './components/WebSocketListener';
 import CommandPalette from './components/CommandPalette';
 import { Toaster } from 'react-hot-toast';
+import RouteErrorBoundary from './components/system/RouteErrorBoundary';
 
 // ─── Lazy Loaded Pages (Code Splitting) ───
 const Overview = lazy(() => import('./pages/dashboard/Overview'));
@@ -55,6 +56,10 @@ const PageLoader = () => (
     </div>
 );
 
+const withBoundary = (element: React.ReactElement) => (
+    <RouteErrorBoundary>{element}</RouteErrorBoundary>
+);
+
 // ─── Protected Route ───
 const ProtectedRoute = ({ children, roles }: { children: React.ReactNode; roles?: string[] }) => {
     const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
@@ -89,9 +94,9 @@ function App() {
                 <Suspense fallback={<PageLoader />}>
                     <Routes>
                         {/* ── Public ── */}
-                        <Route path="/"         element={!isAuthenticated ? <LandingPage /> : <Navigate to={getHomeRedirect()} />} />
-                        <Route path="/login"    element={!isAuthenticated ? <Login />    : <Navigate to={getHomeRedirect()} />} />
-                        <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to={getHomeRedirect()} />} />
+                        <Route path="/"         element={!isAuthenticated ? withBoundary(<LandingPage />) : <Navigate to={getHomeRedirect()} />} />
+                        <Route path="/login"    element={!isAuthenticated ? withBoundary(<Login />)    : <Navigate to={getHomeRedirect()} />} />
+                        <Route path="/register" element={!isAuthenticated ? withBoundary(<Register />) : <Navigate to={getHomeRedirect()} />} />
 
                         {/* ── Patient Routes ── */}
                         <Route
@@ -102,15 +107,15 @@ function App() {
                                 </ProtectedRoute>
                             }
                         >
-                            <Route index                    element={<Overview />} />
-                            <Route path="appointments"      element={<MyAppointments />} />
-                            <Route path="book-appointment"  element={<BookAppointment />} />
-                            <Route path="medical-records"   element={<MedicalRecords />} />
-                            <Route path="medical-reports"   element={<MedicalReports />} />
-                            <Route path="prescriptions"     element={<PatientPrescriptions />} />
-                            <Route path="billing"           element={<PatientBilling />} />
-                            <Route path="messages"          element={<Notifications />} />
-                            <Route path="settings"          element={<SystemSettings />} />
+                            <Route index                    element={withBoundary(<Overview />)} />
+                            <Route path="appointments"      element={withBoundary(<MyAppointments />)} />
+                            <Route path="book-appointment"  element={withBoundary(<BookAppointment />)} />
+                            <Route path="medical-records"   element={withBoundary(<MedicalRecords />)} />
+                            <Route path="medical-reports"   element={withBoundary(<MedicalReports />)} />
+                            <Route path="prescriptions"     element={withBoundary(<PatientPrescriptions />)} />
+                            <Route path="billing"           element={withBoundary(<PatientBilling />)} />
+                            <Route path="messages"          element={withBoundary(<Notifications />)} />
+                            <Route path="settings"          element={withBoundary(<SystemSettings />)} />
                         </Route>
 
                         {/* ── Doctor Routes ── */}
@@ -122,15 +127,15 @@ function App() {
                                 </ProtectedRoute>
                             }
                         >
-                            <Route index                    element={<Overview />} />
-                            <Route path="appointments"      element={<DoctorAppointments />} />
-                            <Route path="patients"          element={<DoctorMyPatients />} />
-                            <Route path="prescriptions"     element={<DoctorPrescriptions />} />
-                            <Route path="medical-records"   element={<DoctorMedicalRecords />} />
-                            <Route path="lab-orders"        element={<DoctorLabOrders />} />
-                            <Route path="availability"      element={<DoctorAvailability />} />
-                            <Route path="messages"          element={<Notifications />} />
-                            <Route path="settings"          element={<SystemSettings />} />
+                            <Route index                    element={withBoundary(<Overview />)} />
+                            <Route path="appointments"      element={withBoundary(<DoctorAppointments />)} />
+                            <Route path="patients"          element={withBoundary(<DoctorMyPatients />)} />
+                            <Route path="prescriptions"     element={withBoundary(<DoctorPrescriptions />)} />
+                            <Route path="medical-records"   element={withBoundary(<DoctorMedicalRecords />)} />
+                            <Route path="lab-orders"        element={withBoundary(<DoctorLabOrders />)} />
+                            <Route path="availability"      element={withBoundary(<DoctorAvailability />)} />
+                            <Route path="messages"          element={withBoundary(<Notifications />)} />
+                            <Route path="settings"          element={withBoundary(<SystemSettings />)} />
                         </Route>
 
                         {/* ── Admin Routes ── */}
@@ -142,27 +147,27 @@ function App() {
                                 </ProtectedRoute>
                             }
                         >
-                            <Route index                    element={<Overview />} />
-                            <Route path="doctors"           element={<ManageDoctors />} />
-                            <Route path="patients"          element={<ManagePatients />} />
-                            <Route path="appointments"      element={<AdminAllAppointments />} />
-                            <Route path="analytics"         element={<AdminAnalytics />} />
-                            <Route path="billing"           element={<AdminBilling />} />
-                            <Route path="inventory"         element={<InventoryDashboard />} />
-                            <Route path="beds"              element={<BedHeatmap />} />
-                            <Route path="notifications"     element={<Notifications />} />
-                            <Route path="settings"          element={<SystemSettings />} />
+                            <Route index                    element={withBoundary(<Overview />)} />
+                            <Route path="doctors"           element={withBoundary(<ManageDoctors />)} />
+                            <Route path="patients"          element={withBoundary(<ManagePatients />)} />
+                            <Route path="appointments"      element={withBoundary(<AdminAllAppointments />)} />
+                            <Route path="analytics"         element={withBoundary(<AdminAnalytics />)} />
+                            <Route path="billing"           element={withBoundary(<AdminBilling />)} />
+                            <Route path="inventory"         element={withBoundary(<InventoryDashboard />)} />
+                            <Route path="beds"              element={withBoundary(<BedHeatmap />)} />
+                            <Route path="notifications"     element={withBoundary(<Notifications />)} />
+                            <Route path="settings"          element={withBoundary(<SystemSettings />)} />
                             </Route>
 
                             {/* ── Telehealth ── */}
                             <Route path="/telehealth" element={
                             <ProtectedRoute>
-                                <TelehealthStart />
+                                {withBoundary(<TelehealthStart />)}
                             </ProtectedRoute>
                             } />
                             <Route path="/telehealth/:appointmentId" element={
                             <ProtectedRoute>
-                                <VideoCall />
+                                {withBoundary(<VideoCall />)}
                             </ProtectedRoute>
                             } />
 
