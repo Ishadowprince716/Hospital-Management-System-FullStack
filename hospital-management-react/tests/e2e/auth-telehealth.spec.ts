@@ -1,10 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const patientUser = process.env.HMS_PATIENT_USERNAME || 'patient1';
-const patientPass = process.env.HMS_PATIENT_PASSWORD || 'patient123';
-const doctorUser = process.env.HMS_DOCTOR_USERNAME || 'doctor1';
-const doctorPass = process.env.HMS_DOCTOR_PASSWORD || 'doctor123';
+const patientUser = process.env.HMS_PATIENT_USERNAME;
+const patientPass = process.env.HMS_PATIENT_PASSWORD;
+const doctorUser = process.env.HMS_DOCTOR_USERNAME;
+const doctorPass = process.env.HMS_DOCTOR_PASSWORD;
 const appointmentId = process.env.HMS_TEST_APPOINTMENT_ID;
+const hasAuthEnv = Boolean(patientUser && patientPass && doctorUser && doctorPass);
 
 const login = async (page: Page, username: string, password: string, role: 'PATIENT' | 'DOCTOR') => {
     await page.goto('/login');
@@ -15,15 +16,17 @@ const login = async (page: Page, username: string, password: string, role: 'PATI
 };
 
 test('patient and doctor can login to their dashboards', async ({ browser }) => {
+    test.skip(!hasAuthEnv, 'Set HMS_PATIENT_USERNAME/HMS_PATIENT_PASSWORD/HMS_DOCTOR_USERNAME/HMS_DOCTOR_PASSWORD.');
+
     const patientContext = await browser.newContext();
     const doctorContext = await browser.newContext();
     const patientPage = await patientContext.newPage();
     const doctorPage = await doctorContext.newPage();
 
-    await login(patientPage, patientUser, patientPass, 'PATIENT');
+    await login(patientPage, patientUser!, patientPass!, 'PATIENT');
     await expect(patientPage).toHaveURL(/\/patient/);
 
-    await login(doctorPage, doctorUser, doctorPass, 'DOCTOR');
+    await login(doctorPage, doctorUser!, doctorPass!, 'DOCTOR');
     await expect(doctorPage).toHaveURL(/\/doctor/);
 
     await patientContext.close();
@@ -31,15 +34,18 @@ test('patient and doctor can login to their dashboards', async ({ browser }) => 
 });
 
 test('telehealth room can be opened by both roles', async ({ browser }) => {
-    test.skip(!appointmentId, 'Set HMS_TEST_APPOINTMENT_ID to run telehealth E2E checks.');
+    test.skip(
+        !hasAuthEnv || !appointmentId,
+        'Set HMS_PATIENT_USERNAME/HMS_PATIENT_PASSWORD/HMS_DOCTOR_USERNAME/HMS_DOCTOR_PASSWORD/HMS_TEST_APPOINTMENT_ID.'
+    );
 
     const patientContext = await browser.newContext();
     const doctorContext = await browser.newContext();
     const patientPage = await patientContext.newPage();
     const doctorPage = await doctorContext.newPage();
 
-    await login(patientPage, patientUser, patientPass, 'PATIENT');
-    await login(doctorPage, doctorUser, doctorPass, 'DOCTOR');
+    await login(patientPage, patientUser!, patientPass!, 'PATIENT');
+    await login(doctorPage, doctorUser!, doctorPass!, 'DOCTOR');
 
     await patientPage.goto(`/telehealth/${appointmentId}`);
     await doctorPage.goto(`/telehealth/${appointmentId}`);
