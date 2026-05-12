@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
@@ -65,6 +66,18 @@ public class AuthService {
 
     @Value("${firebase.web-api-key}")
     private String firebaseWebApiKey;
+
+    @Value("${hms.seed.admin.username:whoami}")
+    private String seedAdminUsername;
+
+    @Value("${hms.seed.admin.password:}")
+    private String seedAdminPassword;
+
+    @Value("${hms.seed.doctor.username:doctor1}")
+    private String seedDoctorUsername;
+
+    @Value("${hms.seed.doctor.password:}")
+    private String seedDoctorPassword;
 
     /**
      * Constructor with dependency injection
@@ -261,24 +274,24 @@ public class AuthService {
         logger.info("Initializing default users");
 
         // Create Admin (Requested custom admin)
-        if (!userRepository.existsByUsername("whoami")) {
+        if (!userRepository.existsByUsername(seedAdminUsername)) {
             User admin = new User();
-            admin.setUsername("whoami");
-            admin.setPassword(passwordEncoder.encode("iamgroot"));
-            admin.setEmail("whoami@hospital.com");
+            admin.setUsername(seedAdminUsername);
+            admin.setPassword(passwordEncoder.encode(resolveSeedPassword(seedAdminPassword, "ADMIN")));
+            admin.setEmail(seedAdminUsername + "@hospital.com");
             admin.setPhoneNumber("0000000000");
             admin.setRole("ADMIN");
             admin.setFullName("Root Administrator");
             admin.setIsActive(true);
             userRepository.save(admin);
-            logger.info("Custom admin user 'whoami' created");
+            logger.info("Custom admin user '{}' created", seedAdminUsername);
         }
 
-        if (!userRepository.existsByUsername("doctor1")) {
+        if (!userRepository.existsByUsername(seedDoctorUsername)) {
             Doctor doctor = new Doctor();
-            doctor.setUsername("doctor1");
-            doctor.setPassword(passwordEncoder.encode("doctor123"));
-            doctor.setEmail("doctor1@hospital.local");
+            doctor.setUsername(seedDoctorUsername);
+            doctor.setPassword(passwordEncoder.encode(resolveSeedPassword(seedDoctorPassword, "DOCTOR")));
+            doctor.setEmail(seedDoctorUsername + "@hospital.local");
             doctor.setPhoneNumber("9876543210");
             doctor.setRole("DOCTOR");
             doctor.setFullName("Dr. Rahul Singh Kushwaha");
@@ -294,7 +307,7 @@ public class AuthService {
             doctor.setAvailableTimeStart("09:00");
             doctor.setAvailableTimeEnd("17:00");
             doctorRepository.save(doctor);
-            logger.info("Default doctor user 'doctor1' created");
+            logger.info("Default doctor user '{}' created", seedDoctorUsername);
         }
     }
 
@@ -434,6 +447,18 @@ public class AuthService {
 
     private String stringValue(Object value) {
         return value != null ? value.toString() : null;
+    }
+
+    private String resolveSeedPassword(String configuredPassword, String accountType) {
+        if (configuredPassword != null && !configuredPassword.isBlank()) {
+            return configuredPassword;
+        }
+
+        String generated = UUID.randomUUID().toString().replace("-", "");
+        logger.warn(
+                "No configured seed password for {} default account. Generated random startup password.",
+                accountType);
+        return generated;
     }
 
     private record FirebaseUserInfo(String uid, String email, String displayName, String photoUrl) {

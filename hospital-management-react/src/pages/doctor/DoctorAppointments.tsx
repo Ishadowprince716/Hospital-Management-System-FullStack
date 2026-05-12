@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarCheck, Clock, XCircle, CheckCircle2, AlertCircle, Loader2, Eye, ChevronDown, Video } from 'lucide-react';
+import { CalendarCheck, Clock, XCircle, CheckCircle2, AlertCircle, Loader2, Eye, BellRing, Headphones, PhoneCall } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../../api';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { requestTelehealthNotificationPermission, unlockTelehealthAudio } from '../../utils/telehealthAlerts';
 
 interface Patient { id: number; fullName: string; phoneNumber?: string; bloodGroup?: string; }
 interface Appointment {
@@ -19,6 +20,7 @@ const getPatientInitial = (appointment: Appointment) =>
     getPatientName(appointment).charAt(0).toUpperCase() || 'P';
 
 const getStatus = (appointment: Appointment) => (appointment.status || '').toUpperCase();
+const canCall = (appointment: Appointment) => ['SCHEDULED', 'CONFIRMED', 'PENDING'].includes(getStatus(appointment));
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     const map: Record<string, string> = {
@@ -41,6 +43,7 @@ const DoctorAppointments: React.FC = () => {
     const [selected, setSelected] = useState<Appointment | null>(null);
     const [filter, setFilter] = useState('ALL');
     const [updatingId, setUpdatingId] = useState<number | null>(null);
+    const [alertsReady, setAlertsReady] = useState(localStorage.getItem('telehealthAudioEnabled') === 'true');
 
     const fetchAppointments = async () => {
         setLoading(true);
@@ -73,10 +76,24 @@ const DoctorAppointments: React.FC = () => {
 
     return (
         <div className="max-w-6xl mx-auto space-y-6 animate-fadeIn">
-            <div><h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--text-color)' }}><CalendarCheck className="h-6 w-6 text-teal-600" /> My Appointments</h1><p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Manage patient appointments and update their status.</p></div>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div><h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--text-color)' }}><CalendarCheck className="h-6 w-6 text-teal-600" /> My Appointments</h1><p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Manage patient appointments and update their status.</p></div>
+                <Button
+                    variant="outline"
+                    className="gap-2 self-start"
+                    onClick={async () => {
+                        await unlockTelehealthAudio();
+                        await requestTelehealthNotificationPermission();
+                        setAlertsReady(true);
+                    }}
+                >
+                    <BellRing className="h-4 w-4" />
+                    {alertsReady ? 'Call Alerts On' : 'Enable Call Alerts'}
+                </Button>
+            </div>
 
-            <div className="grid grid-cols-3 gap-4">
-                {[{ label: 'Total', value: stats.total }, { label: 'Upcoming', value: stats.scheduled }, { label: 'Completed', value: stats.completed }].map(s => (
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                {[{ label: 'Total', value: stats.total }, { label: 'Upcoming', value: stats.scheduled }, { label: 'Telehealth Ready', value: appointments.filter(canCall).length }, { label: 'Completed', value: stats.completed }].map(s => (
                     <div key={s.label} className="stat-card text-center"><p className="text-2xl font-bold text-teal-600">{s.value}</p><p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{s.label}</p></div>
                 ))}
             </div>
@@ -89,13 +106,13 @@ const DoctorAppointments: React.FC = () => {
                 ))}
             </div>
 
-            <Card className="border-[var(--border-color)] shadow-sm">
+            <Card className="overflow-visible border-[var(--border-color)] shadow-sm">
                 <CardContent className="p-0">
                     {loading ? <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-teal-600" /></div> : filtered.length === 0 ? (
                         <div className="text-center py-16"><CalendarCheck className="h-12 w-12 mx-auto mb-3 text-gray-300" /><p className="text-sm" style={{ color: 'var(--text-muted)' }}>No appointments found.</p></div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
+                        <div className="overflow-x-auto overflow-y-visible">
+                            <table className="w-full min-w-[960px] text-sm">
                                 <thead className="text-xs uppercase bg-gray-50 dark:bg-slate-800/50 border-b border-[var(--border-color)]" style={{ color: 'var(--text-muted)' }}>
                                     <tr>{['Patient', 'Date & Time', 'Reason', 'Status', 'Actions'].map(h => <th key={h} className={`px-6 py-4 ${h === 'Actions' ? 'text-right' : 'text-left'}`}>{h}</th>)}</tr>
                                 </thead>
@@ -112,31 +129,42 @@ const DoctorAppointments: React.FC = () => {
                                                 <p className="font-medium" style={{ color: 'var(--text-color)' }}>{appt.appointmentDate ? new Date(appt.appointmentDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—'}</p>
                                                 <p className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)' }}><Clock className="h-3 w-3" /> {appt.appointmentTime || 'TBD'}</p>
                                             </td>
-                                            <td className="px-6 py-4 max-w-[140px] truncate" style={{ color: 'var(--text-muted)' }}>{appt.reason || '—'}</td>
+                                            <td className="px-6 py-4 max-w-[180px]" style={{ color: 'var(--text-muted)' }}>
+                                                <p className="truncate" title={appt.reason || ''}>{appt.reason || '—'}</p>
+                                                {canCall(appt) && (
+                                                    <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-cyan-50 px-2 py-0.5 text-[11px] font-bold text-cyan-700 ring-1 ring-cyan-100">
+                                                        <Headphones className="h-3 w-3" />
+                                                        Online room ready
+                                                    </span>
+                                                )}
+                                            </td>
                                             <td className="px-6 py-4"><StatusBadge status={appt.status} /></td>
                                             <td className="px-6 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    {['SCHEDULED', 'CONFIRMED', 'PENDING'].includes(getStatus(appt)) && (
+                                                <div className="flex min-w-[300px] items-center justify-end gap-2">
+                                                    {canCall(appt) && (
                                                         <Button
                                                             size="sm"
-                                                            className="bg-teal-600 text-white hover:bg-teal-700 px-3 py-1.5 h-auto flex items-center gap-1.5 text-xs font-medium rounded-lg"
+                                                            className="h-9 gap-1.5 rounded-xl bg-teal-600 px-3 text-xs font-bold text-white shadow-lg shadow-teal-100 hover:bg-teal-700"
                                                             onClick={() => navigate(`/telehealth/${appt.id}`)}
                                                         >
-                                                            <Video className="w-3.5 h-3.5" />
+                                                            <PhoneCall className="h-3.5 w-3.5" />
                                                             Start Call
                                                         </Button>
                                                     )}
-                                                    <button onClick={() => setSelected(appt)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700" title="View"><Eye className="h-4 w-4 text-blue-600" /></button>
-                                                    <div className="relative group">
-                                                        <button className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-[var(--border-color)] hover:border-teal-400 transition-colors" style={{ color: 'var(--text-color)' }} disabled={updatingId === appt.id}>
-                                                            {updatingId === appt.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <ChevronDown className="h-3 w-3" />} Update
-                                                        </button>
-                                                        <div className="absolute right-0 top-full mt-1 w-36 rounded-xl shadow-lg border border-[var(--border-color)] z-10 hidden group-hover:block" style={{ background: 'var(--card-bg)' }}>
-                                                            {['SCHEDULED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'].map(s => (
-                                                                <button key={s} onClick={() => handleStatusChange(appt.id, s)} className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-slate-700 first:rounded-t-xl last:rounded-b-xl" style={{ color: 'var(--text-color)' }}>{s.replace('_', ' ')}</button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
+                                                    <button onClick={() => setSelected(appt)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 transition hover:border-blue-200 hover:bg-blue-100" title="View appointment details"><Eye className="h-4 w-4" /></button>
+                                                    <label className="sr-only" htmlFor={`status-${appt.id}`}>Update appointment status</label>
+                                                    <select
+                                                        id={`status-${appt.id}`}
+                                                        value={getStatus(appt)}
+                                                        disabled={updatingId === appt.id}
+                                                        onChange={(event) => handleStatusChange(appt.id, event.target.value)}
+                                                        className="h-9 rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] px-3 text-xs font-bold text-[var(--text-color)] outline-none transition hover:border-teal-300 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 disabled:opacity-60"
+                                                    >
+                                                        {['SCHEDULED', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'].map(s => (
+                                                            <option key={s} value={s}>{s.replace('_', ' ')}</option>
+                                                        ))}
+                                                    </select>
+                                                    {updatingId === appt.id && <Loader2 className="h-4 w-4 animate-spin text-teal-600" />}
                                                 </div>
                                             </td>
                                         </tr>

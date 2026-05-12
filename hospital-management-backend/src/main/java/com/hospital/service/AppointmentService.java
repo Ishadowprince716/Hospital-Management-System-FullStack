@@ -6,6 +6,8 @@ import com.hospital.model.Patient;
 import com.hospital.repository.mysql.AppointmentRepository;
 import com.hospital.repository.mysql.DoctorRepository;
 import com.hospital.repository.mysql.PatientRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,7 @@ import java.util.List;
 
 @Service
 public class AppointmentService {
+    private static final Logger log = LoggerFactory.getLogger(AppointmentService.class);
 
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
@@ -60,7 +63,8 @@ public class AppointmentService {
         appointment.setConsultationFee(doctor.getConsultationFee());
 
         Appointment saved = appointmentRepository.save(appointment);
-        System.out.println("✓ Appointment booked successfully: ID=" + saved.getId() + ", Doctor ID=" + doctor.getId() + ", Patient ID=" + patient.getId());
+        log.info("Appointment booked successfully: id={}, doctorId={}, patientId={}",
+                saved.getId(), doctor.getId(), patient.getId());
         return saved;
     }
 

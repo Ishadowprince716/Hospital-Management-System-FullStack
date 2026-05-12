@@ -1,7 +1,12 @@
 package com.hospital.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hospital.common.ApiResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -14,8 +19,10 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Security Configuration
@@ -27,10 +34,26 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final RateLimitingFilter rateLimitingFilter;
+    private final ObjectMapper objectMapper;
+    private final List<String> allowedOriginPatterns;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, RateLimitingFilter rateLimitingFilter) {
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthFilter,
+            RateLimitingFilter rateLimitingFilter,
+            ObjectMapper objectMapper,
+            @Value("${cors.allowed-origins:http://localhost:*,http://127.0.0.1:*,https://*.railway.app}") String allowedOrigins) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.rateLimitingFilter = rateLimitingFilter;
+        this.objectMapper = objectMapper;
+        List<String> configuredOrigins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isBlank())
+                .collect(Collectors.toCollection(ArrayList::new));
+        if (configuredOrigins.isEmpty()) {
+            configuredOrigins.add("http://localhost:*");
+            configuredOrigins.add("http://127.0.0.1:*");
+        }
+        this.allowedOriginPatterns = configuredOrigins;
     }
 
     @Bean
@@ -48,6 +71,7 @@ public class SecurityConfig {
                         // Public authentication endpoints
                         .requestMatchers(
                                 "/api", "/api/", "/api/health", "/health", "/ready",
+                                "/actuator/health", "/actuator/health/**",
                                 "/", "/index.html", "/favicon.ico", "/rahul.jpg", "/vite.svg", "/assets/**",
                                 "/login", "/register", "/patient/**", "/doctor/**", "/admin/**", "/telehealth", "/telehealth/**",
                                 "/api/auth/**", "/auth/**", "/login/**", "/oauth2/**",
@@ -66,14 +90,12 @@ public class SecurityConfig {
                 // Exception Handling
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                            response.setContentType("application/json");
-                            response.getWriter().write("{\"error\": \"Unauthorized\"}");
+                            writeApiError(response, request, HttpStatus.UNAUTHORIZED, "Unauthorized", "UNAUTHORIZED",
+                                    "Authentication is required to access this resource.");
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.setStatus(HttpStatus.FORBIDDEN.value());
-                            response.setContentType("application/json");
-                            response.getWriter().write("{\"error\": \"Access Denied\"}");
+                            writeApiError(response, request, HttpStatus.FORBIDDEN, "Access denied", "FORBIDDEN",
+                                    "You do not have permission to access this resource.");
                         }));
 
         // Allow H2 console frames
@@ -86,11 +108,8 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allow local dev plus Railway-hosted frontend/API origin.
-        configuration.setAllowedOriginPatterns(Arrays.asList(
-                "http://localhost:*",
-                "http://127.0.0.1:*",
-                "https://*.railway.app"));
+        // Allowed origins are configurable for production hardening.
+        configuration.setAllowedOriginPatterns(allowedOriginPatterns);
 
         // Allow HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
@@ -107,5 +126,19 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    private void writeApiError(HttpServletResponse response, HttpServletRequest request, HttpStatus status,
+                               String message, String code, String details) throws java.io.IOException {
+        response.setStatus(status.value());
+        response.setContentType("application/json");
+        Object requestId = request.getAttribute(RequestCorrelationFilter.REQUEST_ID_KEY);
+        ApiResponse<Void> apiResponse = ApiResponse.<Void>builder()
+                .success(false)
+                .message(message)
+                .error(ApiResponse.ErrorPayload.builder().code(code).details(details).build())
+                .requestId(requestId != null ? String.valueOf(requestId) : "n/a")
+                .build();
+        response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
     }
 }

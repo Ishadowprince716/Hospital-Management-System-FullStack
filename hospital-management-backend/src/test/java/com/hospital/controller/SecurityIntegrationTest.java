@@ -55,7 +55,9 @@ public class SecurityIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isTooManyRequests())
-                .andExpect(jsonPath("$.error").value("Too many requests. Please try again later."));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Too many requests. Please try again later."))
+                .andExpect(jsonPath("$.error.code").value("RATE_LIMITED"));
     }
 
     @Test
@@ -66,7 +68,8 @@ public class SecurityIntegrationTest {
 
         mockMvc.perform(get("/api"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("ok"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.status").value("ok"));
 
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk());

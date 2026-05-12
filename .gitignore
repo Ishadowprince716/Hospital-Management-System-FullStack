@@ -50,6 +50,9 @@ Thumbs.db
 # Frontend dependencies
 node_modules/
 dist/
+coverage/
+playwright-report/
+test-results/
 
 # Firebase
 .firebase/

@@ -1,5 +1,7 @@
 package com.hospital.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hospital.common.ApiResponse;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
@@ -20,9 +22,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RateLimitingFilter extends OncePerRequestFilter {
 
     private final Map<String, Bucket> cache = new ConcurrentHashMap<>();
+    private final ObjectMapper objectMapper;
 
     private final Bandwidth loginLimit = Bandwidth.classic(5, Refill.intervally(5, Duration.ofMinutes(1)));
     private final Bandwidth apiLimit = Bandwidth.classic(100, Refill.intervally(100, Duration.ofMinutes(1)));
+
+    public RateLimitingFilter(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     private Bucket resolveBucket(String ip, String requestURI) {
         String key = ip + "-" + (requestURI.contains("/login") ? "LOGIN" : "API");
@@ -58,7 +65,12 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         } else {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType("application/json");
-            response.getWriter().write("{\"error\": \"Too many requests. Please try again later.\"}");
+            ApiResponse<Void> body = ApiResponse.error(
+                    "Too many requests. Please try again later.",
+                    "RATE_LIMITED",
+                    "Request volume exceeded the current throttling policy."
+            );
+            response.getWriter().write(objectMapper.writeValueAsString(body));
         }
     }
 }

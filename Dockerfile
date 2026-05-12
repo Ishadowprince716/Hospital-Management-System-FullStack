@@ -27,6 +27,12 @@ WORKDIR /app
 RUN addgroup -S hms && adduser -S hms -G hms
 RUN mkdir -p /app/uploads/medical-documents && chown -R hms:hms /app
 USER hms
+ENV SPRING_PROFILES_ACTIVE=prod
+ENV SPRING_FLYWAY_ENABLED=true
+ENV SPRING_JPA_HIBERNATE_DDL_AUTO=validate
+ENV SPRING_SQL_INIT_MODE=never
+ENV H2_CONSOLE_ENABLED=false
+ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75"
 
 # Copy the built backend JAR
 COPY --from=backend-build /app/backend/target/hospital-management-*.jar app.jar

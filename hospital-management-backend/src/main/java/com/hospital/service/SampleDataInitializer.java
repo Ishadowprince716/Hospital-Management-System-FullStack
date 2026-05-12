@@ -1,10 +1,13 @@
 package com.hospital.service;
 
 import org.springframework.boot.CommandLineRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class SampleDataInitializer implements CommandLineRunner {
+    private static final Logger log = LoggerFactory.getLogger(SampleDataInitializer.class);
 
     private final AuthService authService;
 
@@ -18,6 +21,6 @@ public class SampleDataInitializer implements CommandLineRunner {
         // removed)
         authService.initializeDefaultUsers();
 
-        System.out.println("Sample data initialization is disabled. System will use only real user registration data.");
+        log.info("Sample data initialization is disabled. System will use only real user registration data.");
     }
 }

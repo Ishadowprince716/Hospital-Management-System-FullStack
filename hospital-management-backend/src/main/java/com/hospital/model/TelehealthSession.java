@@ -33,10 +33,26 @@ public class TelehealthSession {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private String status = "READY";
+
     @Column(name = "created_at")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+
+    @Column(name = "last_invite_at")
+    private LocalDateTime lastInviteAt;
+
+    @Column(name = "declined_at")
+    private LocalDateTime declinedAt;
+
     @Column(name = "ended_at")
     private LocalDateTime endedAt;
+
+    @Column(name = "ended_reason")
+    private String endedReason;
 }

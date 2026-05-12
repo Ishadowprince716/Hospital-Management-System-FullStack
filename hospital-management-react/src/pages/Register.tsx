@@ -1,15 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
 import axios from 'axios';
 import { API_BASE } from '../api';
-import { loginSuccess } from '../store/slices/authSlice';
-import GoogleAuthButton from '../components/auth/GoogleAuthButton';
-import { completeGoogleRedirectSignIn, getFirebaseAuthErrorMessage, signInWithGoogleAccount } from '../utils/firebaseGoogleAuth';
 import { AtSign, Phone, ShieldCheck, UserRound } from 'lucide-react';
 
 type ApiResponse = { success: boolean; message: string; data?: unknown };
-type AuthResponse = { token: string; username: string; role: string; userId: number; fullName: string; profilePictureUrl?: string };
 type Role = 'PATIENT' | 'DOCTOR';
 
 const ROLE_META: Record<Role, { label: string; desc: string }> = {
@@ -56,7 +51,6 @@ const FEATURES = [
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
   const [form, setForm] = useState({ username: '', email: '', password: '', fullName: '', phoneNumber: '', role: 'PATIENT' as Role });
   const [loading, setLoading]   = useState(false);
   const [error,   setError]     = useState<string | null>(null);
@@ -85,62 +79,6 @@ const Register: React.FC = () => {
       if (axios.isAxiosError<ApiResponse>(err)) msg = err.response?.data?.message || msg;
       setError(msg);
     } finally { setLoading(false); }
-  };
-
-  const completeGoogleAuth = useCallback((auth: AuthResponse, email = '') => {
-    if (!auth?.token) return;
-    localStorage.setItem('token', auth.token);
-    dispatch(loginSuccess({
-      user: {
-        id: auth.userId ?? 0,
-        username: auth.username ?? email,
-        email,
-        role: auth.role,
-        fullName: auth.fullName ?? auth.username ?? email,
-        profilePictureUrl: auth.profilePictureUrl,
-      },
-      token: auth.token,
-    }));
-    navigate(auth.role === 'DOCTOR' ? '/doctor' : '/patient');
-  }, [dispatch, navigate]);
-
-  useEffect(() => {
-    let active = true;
-
-    const finishGoogleRedirect = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const result = await completeGoogleRedirectSignIn(form.role);
-        if (result && active) {
-          setSuccess('Google account connected. Redirecting...');
-          completeGoogleAuth(result.auth, result.email);
-        }
-      } catch (err: unknown) {
-        if (active) setError(getFirebaseAuthErrorMessage(err));
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-
-    finishGoogleRedirect();
-    return () => {
-      active = false;
-    };
-  }, [completeGoogleAuth, form.role]);
-
-  const handleGoogleRegister = async () => {
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      await signInWithGoogleAccount(form.role);
-    } catch (err: unknown) {
-      let msg = 'Google sign-in failed. Please try again.';
-      if (axios.isAxiosError<ApiResponse>(err)) msg = err.response?.data?.message || msg;
-      setError(getFirebaseAuthErrorMessage(err) || msg);
-      setLoading(false);
-    }
   };
 
   const step1OK = !!(
@@ -279,16 +217,8 @@ const Register: React.FC = () => {
             })}
           </div>
 
-          <GoogleAuthButton
-            label={loading ? 'Connecting to Google...' : `Continue with Google as ${ROLE_META[form.role].label}`}
-            disabled={loading}
-            onClick={handleGoogleRegister}
-          />
-
-          <div style={S.divider}>
-            <span style={S.dividerLine} />
-            <span style={S.dividerText}>or create with email</span>
-            <span style={S.dividerLine} />
+          <div style={S.accountNote}>
+            Create a secure HMS username and password. Video consultations use this account, not Google login.
           </div>
 
           {/* Step indicator */}
@@ -381,17 +311,15 @@ const Register: React.FC = () => {
 };
 
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Manrope', system-ui, sans-serif; font-synthesis: none; }
+  body { font-family: 'Inter', system-ui, sans-serif; font-synthesis: none; }
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
-  input::placeholder { color: #a9b7c9; font-size: 13px; font-weight: 650; }
+  input::placeholder { color: #8da1b8; font-size: 13px; font-weight: 650; }
   input:-webkit-autofill { -webkit-box-shadow: 0 0 0 100px #fff inset !important; -webkit-text-fill-color: #0f172a !important; }
   .login-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.05); box-shadow: 0 16px 32px rgba(20,184,166,0.30) !important; }
   .role-tab { transition: all .25s cubic-bezier(.34,1.56,.64,1); outline: none; cursor: pointer; }
   .role-tab:hover { border-color: #9fded8 !important; transform: translateY(-2px); }
-  .google-auth-btn:hover:not(:disabled) { border-color: #cbd5e1 !important; transform: translateY(-1px); box-shadow: 0 8px 22px rgba(15,23,42,0.10) !important; }
   .dev-credit:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.32); transform: translateY(-1px); }
   @media (max-width: 900px) {
     .auth-page { flex-direction: column; overflow-y: auto !important; }
@@ -401,7 +329,6 @@ const CSS = `
     .register-mark { display: none !important; }
     .register-trust { margin: -2px 0 12px !important; padding: 7px 9px !important; font-size: 11px !important; }
     .role-tab { min-height: 92px !important; padding: 12px 10px !important; }
-    .google-auth-btn { height: 46px !important; }
     .dev-credit { margin-top: 28px !important; }
   }
   @media (max-width: 560px) {
@@ -411,7 +338,7 @@ const CSS = `
 `;
 
 const S: Record<string, React.CSSProperties> = {
-  page:        { minHeight: '100vh', display: 'flex', alignItems: 'stretch', fontFamily: "'Manrope',system-ui,sans-serif", background: 'linear-gradient(135deg, #35d0bd 0%, #4c8df6 35%, #b777f1 68%, #f28b5b 100%)', overflow: 'auto' },
+  page:        { minHeight: '100vh', display: 'flex', alignItems: 'stretch', fontFamily: "'Inter',system-ui,sans-serif", background: 'linear-gradient(135deg, #35d0bd 0%, #4c8df6 35%, #b777f1 68%, #f28b5b 100%)', overflow: 'auto' },
   left:        { flex: '0 0 48%', padding: '52px 56px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' },
   logoBox:     { width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', border: '1.5px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' },
   heading:     { fontSize: 48, fontWeight: 900, color: '#fff', lineHeight: 1.1, letterSpacing: '-1.5px', textShadow: '0 2px 16px rgba(0,0,0,0.12)' },
@@ -436,9 +363,7 @@ const S: Record<string, React.CSSProperties> = {
   tabs:        { display: 'flex', gap: 12, marginBottom: 16 },
   tab:         { minHeight: 104, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '14px 12px', borderRadius: 16 },
   stepper:     { display: 'flex', alignItems: 'center', gap: 12, margin: '0 0 16px' },
-  divider:     { display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0 15px' },
-  dividerLine: { flex: 1, height: 1, background: '#e2e8f0' },
-  dividerText: { fontSize: 11, fontWeight: 850, color: '#8797ad', textTransform: 'uppercase', letterSpacing: '0.08em' },
+  accountNote: { margin: '0 0 15px', padding: '10px 12px', borderRadius: 14, background: '#f0fdfa', border: '1px solid #ccfbf1', color: '#0f766e', fontSize: 12, fontWeight: 800, lineHeight: 1.45, textAlign: 'center' },
   field:       { display: 'flex', flexDirection: 'column', gap: 6 },
   fieldLabel:  { fontSize: 11, fontWeight: 850, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' },
   inputWrap:   { position: 'relative', display: 'block' },
