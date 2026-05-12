@@ -6,8 +6,7 @@ on:
     branches:
       - main
       - staging
-      - Hospital-Management-System-FullStack
-      - codex/**
+      - Hospital-Appointment-Patient-Record-Management
 
 jobs:
   dependency-review:
