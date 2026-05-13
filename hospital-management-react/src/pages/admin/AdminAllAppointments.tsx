@@ -7,6 +7,7 @@ import api from '../../api';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { formatDoctorName } from '../../utils/displayNames';
 
 interface Appointment {
     id: number;
@@ -14,10 +15,16 @@ interface Appointment {
     reason: string;
     appointmentDate: string;
     appointmentTime: string;
+    patientId?: number;
+    doctorId?: number;
+    patientName?: string;
+    patientPhoneNumber?: string;
+    doctorName?: string;
+    doctorSpecialization?: string;
     consultationFee?: number;
     paymentStatus?: string;
     patient?: { id: number; fullName: string; phoneNumber?: string };
-    doctor?: { id: number; fullName: string; specialization?: string };
+    doctor?: { id: number; fullName: string; specialization?: string; consultationFee?: number };
 }
 
 const STATUS_OPTS = ['ALL', 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'PENDING'];
@@ -38,6 +45,28 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
             <Icon className="h-3 w-3" />{s}
         </span>
     );
+};
+
+const isNonEmptyString = (value?: string | null) => Boolean(value && value.trim());
+
+const getPatientName = (appointment: Appointment) =>
+    appointment.patient?.fullName || appointment.patientName || '—';
+
+const getPatientPhone = (appointment: Appointment) =>
+    appointment.patient?.phoneNumber || appointment.patientPhoneNumber || '—';
+
+const getDoctorName = (appointment: Appointment) => {
+    const doctorName = appointment.doctor?.fullName || appointment.doctorName;
+    return formatDoctorName(doctorName, 'Dr. —');
+};
+
+const getDoctorSpecialization = (appointment: Appointment) =>
+    appointment.doctor?.specialization || appointment.doctorSpecialization || '—';
+
+const getConsultationFeeLabel = (appointment: Appointment) => {
+    const fee = appointment.consultationFee ?? appointment.doctor?.consultationFee;
+    if (typeof fee !== 'number' || Number.isNaN(fee)) return '—';
+    return `₹${fee}`;
 };
 
 const AdminAllAppointments: React.FC = () => {
@@ -71,9 +100,11 @@ const AdminAllAppointments: React.FC = () => {
     };
 
     const filtered = appointments.filter(a => {
+        const patientName = getPatientName(a).toLowerCase();
+        const doctorName = (a.doctor?.fullName || a.doctorName || '').toLowerCase();
         const matchSearch = search === '' ||
-            (a.patient?.fullName || '').toLowerCase().includes(search.toLowerCase()) ||
-            (a.doctor?.fullName  || '').toLowerCase().includes(search.toLowerCase());
+            patientName.includes(search.toLowerCase()) ||
+            doctorName.includes(search.toLowerCase());
         const matchStatus = statusFilter === 'ALL' || a.status === statusFilter;
         return matchSearch && matchStatus;
     });
@@ -152,9 +183,9 @@ const AdminAllAppointments: React.FC = () => {
                                 <tbody className="divide-y divide-[var(--border-color)]">
                                     {filtered.map(appt => (
                                         <tr key={appt.id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                                            <td className="px-5 py-4 font-medium" style={{ color: 'var(--text-color)' }}>{appt.patient?.fullName || '—'}</td>
-                                            <td className="px-5 py-4" style={{ color: 'var(--text-color)' }}>Dr. {appt.doctor?.fullName || '—'}</td>
-                                            <td className="px-5 py-4 text-xs" style={{ color: 'var(--text-muted)' }}>{appt.doctor?.specialization || '—'}</td>
+                                            <td className="px-5 py-4 font-medium" style={{ color: 'var(--text-color)' }}>{getPatientName(appt)}</td>
+                                            <td className="px-5 py-4" style={{ color: 'var(--text-color)' }}>{getDoctorName(appt)}</td>
+                                            <td className="px-5 py-4 text-xs" style={{ color: 'var(--text-muted)' }}>{getDoctorSpecialization(appt)}</td>
                                             <td className="px-5 py-4">
                                                 <p className="font-medium" style={{ color: 'var(--text-color)' }}>
                                                     {appt.appointmentDate ? new Date(appt.appointmentDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—'}
@@ -163,7 +194,7 @@ const AdminAllAppointments: React.FC = () => {
                                             </td>
                                             <td className="px-5 py-4"><StatusBadge status={appt.status} /></td>
                                             <td className="px-5 py-4 text-sm font-medium" style={{ color: 'var(--text-color)' }}>
-                                                {appt.consultationFee ? `₹${appt.consultationFee}` : '—'}
+                                                {getConsultationFeeLabel(appt)}
                                             </td>
                                             <td className="px-5 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2">
@@ -213,19 +244,24 @@ const AdminAllAppointments: React.FC = () => {
                         </div>
                         <div className="space-y-3">
                             {[
-                                { l: 'Patient',     v: selectedAppt.patient?.fullName || '—' },
-                                { l: 'Phone',       v: selectedAppt.patient?.phoneNumber || '—' },
-                                { l: 'Doctor',      v: `Dr. ${selectedAppt.doctor?.fullName || '—'}` },
-                                { l: 'Department',  v: selectedAppt.doctor?.specialization || '—' },
+                                { l: 'Patient',     v: getPatientName(selectedAppt) },
+                                { l: 'Phone',       v: getPatientPhone(selectedAppt) },
+                                { l: 'Doctor',      v: getDoctorName(selectedAppt) },
+                                { l: 'Department',  v: getDoctorSpecialization(selectedAppt) },
                                 { l: 'Date',        v: selectedAppt.appointmentDate ? new Date(selectedAppt.appointmentDate).toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) : '—' },
                                 { l: 'Time',        v: selectedAppt.appointmentTime || '—' },
                                 { l: 'Reason',      v: selectedAppt.reason || '—' },
-                                { l: 'Fee',         v: selectedAppt.consultationFee ? `₹${selectedAppt.consultationFee}` : '—' },
+                                { l: 'Fee',         v: getConsultationFeeLabel(selectedAppt) },
                                 { l: 'Payment',     v: selectedAppt.paymentStatus || '—' },
                             ].map(row => (
                                 <div key={row.l} className="flex justify-between py-1.5 border-b border-[var(--border-color)]">
                                     <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{row.l}</span>
-                                    <span className="text-sm font-medium" style={{ color: 'var(--text-color)' }}>{row.v}</span>
+                                    <span
+                                        className="text-sm font-medium"
+                                        style={{ color: isNonEmptyString(row.v) ? 'var(--text-color)' : 'var(--text-muted)' }}
+                                    >
+                                        {row.v}
+                                    </span>
                                 </div>
                             ))}
                             <div className="flex justify-between py-1.5">

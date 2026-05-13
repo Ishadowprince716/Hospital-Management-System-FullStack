@@ -20,7 +20,74 @@ interface AnalyticsData {
     patientAgeDistribution?: Record<string, number>;
 }
 
+interface ApiEnvelope<T> {
+    success?: boolean;
+    data?: T;
+    message?: string;
+}
+
 const COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const toNumber = (value: unknown): number => {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : 0;
+};
+
+const unwrapApiData = <T,>(raw: ApiEnvelope<T> | T): T => {
+    if (raw && typeof raw === 'object' && 'data' in (raw as Record<string, unknown>)) {
+        return ((raw as ApiEnvelope<T>).data ?? {}) as T;
+    }
+    return raw as T;
+};
+
+const normalizeMonthLabel = (monthKey: string): string => {
+    const cleaned = (monthKey || '').trim();
+    if (!cleaned) return '';
+
+    const shortByName = MONTHS.find((m) => m.toLowerCase() === cleaned.slice(0, 3).toLowerCase());
+    if (shortByName) return shortByName;
+
+    const yearMonthMatch = cleaned.match(/^(\d{4})-(\d{1,2})$/);
+    if (yearMonthMatch) {
+        const monthIndex = Number(yearMonthMatch[2]) - 1;
+        if (monthIndex >= 0 && monthIndex < 12) {
+            return MONTHS[monthIndex];
+        }
+    }
+
+    const monthNumber = Number(cleaned);
+    if (Number.isInteger(monthNumber) && monthNumber >= 1 && monthNumber <= 12) {
+        return MONTHS[monthNumber - 1];
+    }
+
+    return cleaned;
+};
+
+const normalizeMonthlySeries = (source?: Record<string, number>, valueKey: 'appointments' | 'revenue' = 'appointments') => {
+    const normalized = new Map<string, number>();
+    for (const [key, value] of Object.entries(source || {})) {
+        const label = normalizeMonthLabel(key);
+        if (!label) continue;
+        normalized.set(label, toNumber(value));
+    }
+    return MONTHS.map((month) => ({ month, [valueKey]: normalized.get(month) ?? 0 }));
+};
+
+const toChartData = (map?: Record<string, number>, labelKey = 'name', valueKey = 'value') =>
+    Object.entries(map || {}).map(([k, v]) => ({ [labelKey]: k, [valueKey]: toNumber(v) }));
+
+const ensureAnalyticsDefaults = (raw?: Partial<AnalyticsData> | null): AnalyticsData => ({
+    totalPatients: toNumber(raw?.totalPatients),
+    totalDoctors: toNumber(raw?.totalDoctors),
+    totalAppointments: toNumber(raw?.totalAppointments),
+    totalRevenue: toNumber(raw?.totalRevenue),
+    appointmentsByStatus: (raw?.appointmentsByStatus || {}) as Record<string, number>,
+    appointmentsByMonth: (raw?.appointmentsByMonth || {}) as Record<string, number>,
+    revenueByMonth: (raw?.revenueByMonth || {}) as Record<string, number>,
+    revenueByDepartment: (raw?.revenueByDepartment || {}) as Record<string, number>,
+    patientAgeDistribution: (raw?.patientAgeDistribution || {}) as Record<string, number>,
+});
 
 const AdminAnalytics: React.FC = () => {
     const [data, setData] = useState<AnalyticsData | null>(null);
@@ -32,18 +99,14 @@ const AdminAnalytics: React.FC = () => {
         try {
             // GET /api/admin/analytics/dashboard
             const res = await api.get('/admin/analytics/dashboard');
-            setData(res.data);
+            const payload = unwrapApiData<AnalyticsData>(res.data);
+            setData(ensureAnalyticsDefaults(payload));
         } catch {
             // Fallback: GET /api/admin/stats
             try {
                 const res2 = await api.get('/admin/stats');
-                const raw = res2.data?.data || res2.data || {};
-                setData({
-                    totalPatients: raw.totalPatients || 0,
-                    totalDoctors: raw.totalDoctors || 0,
-                    totalAppointments: raw.totalAppointments || 0,
-                    totalRevenue: raw.totalRevenue || 0,
-                });
+                const payload = unwrapApiData<AnalyticsData>(res2.data);
+                setData(ensureAnalyticsDefaults(payload));
             } catch {
                 setError('Could not load analytics. The analytics service may not have data yet.');
             }
@@ -52,37 +115,25 @@ const AdminAnalytics: React.FC = () => {
 
     useEffect(() => { fetchAnalytics(); }, []);
 
-    // Transform map data to recharts array format
-    const toChartData = (map?: Record<string, number>, labelKey = 'name', valueKey = 'value') =>
-        map ? Object.entries(map).map(([k, v]) => ({ [labelKey]: k, [valueKey]: v })) : [];
-
     const appointmentsByStatus = toChartData(data?.appointmentsByStatus, 'status', 'count');
-    const apptByMonth = toChartData(data?.appointmentsByMonth, 'month', 'appointments');
-    const revenueByMonth = toChartData(data?.revenueByMonth, 'month', 'revenue');
+    const apptByMonth = normalizeMonthlySeries(data?.appointmentsByMonth, 'appointments');
+    const revenueByMonth = normalizeMonthlySeries(data?.revenueByMonth, 'revenue');
     const revenueByDept = toChartData(data?.revenueByDepartment, 'department', 'revenue');
     const ageDistribution = toChartData(data?.patientAgeDistribution, 'range', 'count');
 
-    // Fallback demo data when backend has no entries yet
-    const demoAppointments = apptByMonth.length > 0 ? apptByMonth : [
-        { month: 'Jan', appointments: 0 }, { month: 'Feb', appointments: 0 },
-        { month: 'Mar', appointments: 0 }, { month: 'Apr', appointments: 0 },
-        { month: 'May', appointments: 1 },
-    ];
-    const demoRevenue = revenueByMonth.length > 0 ? revenueByMonth : [
-        { month: 'Jan', revenue: 0 }, { month: 'Feb', revenue: 0 },
-        { month: 'Mar', revenue: 0 }, { month: 'Apr', revenue: 0 },
-        { month: 'May', revenue: 0 },
-    ];
+    const demoAppointments = apptByMonth;
+    const demoRevenue = revenueByMonth;
     const demoStatus = appointmentsByStatus.length > 0 ? appointmentsByStatus : [
         { status: 'SCHEDULED', count: data?.totalAppointments || 0 },
         { status: 'COMPLETED', count: 0 }, { status: 'CANCELLED', count: 0 },
     ];
+    const hasStatusData = demoStatus.some(item => toNumber(item.count) > 0);
 
     const kpiCards = [
-        { label: 'Total Patients', value: data?.totalPatients ?? '—', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
-        { label: 'Total Doctors', value: data?.totalDoctors ?? '—', icon: Stethoscope, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-100' },
-        { label: 'Total Appointments', value: data?.totalAppointments ?? '—', icon: CalendarCheck, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100' },
-        { label: 'Total Revenue', value: data?.totalRevenue !== undefined ? `₹${Number(data.totalRevenue).toFixed(0)}` : '—', icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
+        { label: 'Total Patients', value: data?.totalPatients ?? 0, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
+        { label: 'Total Doctors', value: data?.totalDoctors ?? 0, icon: Stethoscope, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-100' },
+        { label: 'Total Appointments', value: data?.totalAppointments ?? 0, icon: CalendarCheck, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100' },
+        { label: 'Total Revenue', value: `₹${toNumber(data?.totalRevenue).toFixed(0)}`, icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
     ];
 
     if (loading) return (
@@ -178,17 +229,27 @@ const AdminAnalytics: React.FC = () => {
                         <h3 className="text-base font-semibold mb-4" style={{ color: 'var(--text-color)' }}>
                             Appointment Status
                         </h3>
-                        <ResponsiveContainer width="100%" height={200}>
-                            <PieChart>
-                                <Pie data={demoStatus} dataKey="count" nameKey="status" cx="50%" cy="50%" outerRadius={75} innerRadius={40} paddingAngle={3}>
-                                    {demoStatus.map((_, i) => (
-                                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 8 }} />
-                                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-                            </PieChart>
-                        </ResponsiveContainer>
+                        {hasStatusData ? (
+                            <ResponsiveContainer width="100%" height={200}>
+                                <PieChart>
+                                    <Pie data={demoStatus} dataKey="count" nameKey="status" cx="50%" cy="50%" outerRadius={75} innerRadius={40} paddingAngle={3}>
+                                        {demoStatus.map((_, i) => (
+                                            <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: 8 }} />
+                                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="flex items-center justify-center h-[200px] rounded-xl border-2 border-dashed border-[var(--border-color)]">
+                                <div className="text-center">
+                                    <CalendarCheck className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+                                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No appointment status data yet</p>
+                                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Book or sync appointments to populate this chart</p>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
