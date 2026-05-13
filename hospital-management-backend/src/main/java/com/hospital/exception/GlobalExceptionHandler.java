@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,6 +50,18 @@ public class GlobalExceptionHandler {
 
     private boolean isNotFoundError(String message) {
         return message != null && message.toLowerCase().contains("not found");
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingResource(NoResourceFoundException e) {
+        log.warn("Static resource not found: {}", e.getResourcePath());
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(
+                        "Resource not found",
+                        "NOT_FOUND",
+                        "The requested static file does not exist."
+                ));
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
