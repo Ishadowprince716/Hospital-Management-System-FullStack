@@ -1,14 +1,16 @@
 package com.hospital.config;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,8 +25,31 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private Long expiration;
 
+    private SecretKey signingKey;
+
+    @PostConstruct
+    void initializeSigningKey() {
+        byte[] keyBytes = resolveSecretBytes(secret);
+        if (keyBytes.length < 32) {
+            throw new IllegalStateException(
+                    "JWT_SECRET must be at least 32 bytes for HS256. Generate a strong production secret and set it in the environment.");
+        }
+        signingKey = Keys.hmacShaKeyFor(keyBytes);
+    }
+
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+        return signingKey;
+    }
+
+    private byte[] resolveSecretBytes(String rawSecret) {
+        if (rawSecret == null || rawSecret.isBlank()) {
+            return new byte[0];
+        }
+        String trimmedSecret = rawSecret.trim();
+        if (trimmedSecret.startsWith("base64:")) {
+            return Decoders.BASE64.decode(trimmedSecret.substring("base64:".length()));
+        }
+        return trimmedSecret.getBytes(StandardCharsets.UTF_8);
     }
 
     public String extractUsername(String token) {

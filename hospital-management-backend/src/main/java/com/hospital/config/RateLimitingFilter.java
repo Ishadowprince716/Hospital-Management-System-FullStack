@@ -9,12 +9,14 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,18 +26,26 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private final Map<String, Bucket> cache = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper;
 
-    private final Bandwidth loginLimit = Bandwidth.classic(5, Refill.intervally(5, Duration.ofMinutes(1)));
-    private final Bandwidth apiLimit = Bandwidth.classic(100, Refill.intervally(100, Duration.ofMinutes(1)));
+    private final Bandwidth loginLimit;
+    private final Bandwidth apiLimit;
 
-    public RateLimitingFilter(ObjectMapper objectMapper) {
+    public RateLimitingFilter(
+            ObjectMapper objectMapper,
+            @Value("${rate-limit.auth.requests-per-minute:30}") long authRequestsPerMinute,
+            @Value("${rate-limit.api.requests-per-minute:300}") long apiRequestsPerMinute) {
         this.objectMapper = objectMapper;
+        this.loginLimit = Bandwidth.classic(authRequestsPerMinute,
+                Refill.intervally(authRequestsPerMinute, Duration.ofMinutes(1)));
+        this.apiLimit = Bandwidth.classic(apiRequestsPerMinute,
+                Refill.intervally(apiRequestsPerMinute, Duration.ofMinutes(1)));
     }
 
     private Bucket resolveBucket(String ip, String requestURI) {
-        String key = ip + "-" + (requestURI.contains("/login") ? "LOGIN" : "API");
+        boolean authEndpoint = isAuthEndpoint(requestURI);
+        String key = ip + "-" + (authEndpoint ? "AUTH" : "API");
         
         return cache.computeIfAbsent(key, k -> {
-            if (requestURI.contains("/login") || requestURI.contains("/register")) {
+            if (authEndpoint) {
                 return Bucket.builder().addLimit(loginLimit).build();
             } else {
                 return Bucket.builder().addLimit(apiLimit).build();
@@ -48,15 +58,12 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String requestURI = request.getRequestURI();
-        if (!requestURI.startsWith("/api/")) {
+        if (shouldSkip(request, requestURI)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty()) {
-            ip = request.getRemoteAddr();
-        }
+        String ip = resolveClientIp(request);
 
         Bucket bucket = resolveBucket(ip, requestURI);
 
@@ -65,6 +72,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         } else {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType("application/json");
+            response.setHeader("Retry-After", "60");
             ApiResponse<Void> body = ApiResponse.error(
                     "Too many requests. Please try again later.",
                     "RATE_LIMITED",
@@ -72,5 +80,35 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             );
             response.getWriter().write(objectMapper.writeValueAsString(body));
         }
+    }
+
+    private boolean shouldSkip(HttpServletRequest request, String requestURI) {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+        if (!requestURI.startsWith("/api/")) {
+            return true;
+        }
+        return requestURI.equals("/api/health") || requestURI.startsWith("/api/telehealth/ice-config");
+    }
+
+    private boolean isAuthEndpoint(String requestURI) {
+        String normalizedUri = requestURI.toLowerCase(Locale.ROOT);
+        return normalizedUri.contains("/login")
+                || normalizedUri.contains("/register")
+                || normalizedUri.contains("/verify-otp")
+                || normalizedUri.contains("/firebase");
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) {
+            return realIp.trim();
+        }
+        return request.getRemoteAddr();
     }
 }
