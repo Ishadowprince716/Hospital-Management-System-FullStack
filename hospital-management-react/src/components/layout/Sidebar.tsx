@@ -21,6 +21,8 @@ import {
     Bell,
     Activity,
     Upload,
+    Package,
+    BedDouble,
 } from 'lucide-react';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
 
@@ -48,6 +50,8 @@ const getNavItems = (role: string): NavItem[] => {
             { name: 'Appointments',    path: `/admin/appointments`, icon: CalendarCheck },
             { name: 'Analytics',       path: `/admin/analytics`,    icon: BarChart3 },
             { name: 'Billing',         path: `/admin/billing`,      icon: CreditCard },
+            { name: 'Inventory',       path: `/admin/inventory`,    icon: Package },
+            { name: 'Beds',            path: `/admin/beds`,         icon: BedDouble },
             { name: 'Notifications',   path: `/admin/notifications`,icon: Bell },
             { name: 'Settings',        path: `/admin/settings`,     icon: Settings },
         ];

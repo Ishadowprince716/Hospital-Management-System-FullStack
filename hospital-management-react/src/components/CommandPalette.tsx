@@ -21,7 +21,9 @@ import {
     Activity,
     CreditCard,
     Package,
-    LayoutGrid
+    LayoutGrid,
+    Bell,
+    Stethoscope
 } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../store/slices/authSlice';
@@ -31,6 +33,16 @@ const CommandPalette: React.FC<{ children: React.ReactNode }> = ({ children }) =
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const { user } = useSelector((state: RootState) => state.auth);
+    const roleBase = user?.role === 'ADMIN' ? '/admin' : user?.role === 'DOCTOR' ? '/doctor' : user?.role === 'PATIENT' ? '/patient' : '';
+    const homePath = roleBase || '/';
+    const settingsPath = roleBase ? `${roleBase}/settings` : '/login';
+    const notificationsPath = user?.role === 'ADMIN'
+        ? '/admin/notifications'
+        : user?.role === 'DOCTOR'
+            ? '/doctor/messages'
+            : user?.role === 'PATIENT'
+                ? '/patient/messages'
+                : '/login';
 
     const commonActions: Action[] = [
         {
@@ -38,7 +50,7 @@ const CommandPalette: React.FC<{ children: React.ReactNode }> = ({ children }) =
             name: 'Home / Dashboard',
             shortcut: ['h'],
             keywords: 'dashboard index home',
-            perform: () => navigate('/'),
+            perform: () => navigate(homePath),
             icon: <Home className="w-5 h-5" />,
         },
         {
@@ -46,8 +58,16 @@ const CommandPalette: React.FC<{ children: React.ReactNode }> = ({ children }) =
             name: 'Settings',
             shortcut: ['s'],
             keywords: 'config account profile settings',
-            perform: () => navigate('/settings'),
+            perform: () => navigate(settingsPath),
             icon: <Settings className="w-5 h-5" />,
+        },
+        {
+            id: 'notifications',
+            name: 'Messages & Notifications',
+            shortcut: ['n'],
+            keywords: 'messages alerts notifications inbox',
+            perform: () => navigate(notificationsPath),
+            icon: <Bell className="w-5 h-5" />,
         },
         {
             id: 'logout',
@@ -87,6 +107,14 @@ const CommandPalette: React.FC<{ children: React.ReactNode }> = ({ children }) =
             perform: () => navigate('/patient/medical-records'),
             icon: <Activity className="w-5 h-5" />,
         },
+        {
+            id: 'patient-billing',
+            name: 'Billing & Payments',
+            shortcut: ['b', 'p'],
+            keywords: 'invoice payment billing bills',
+            perform: () => navigate('/patient/billing'),
+            icon: <CreditCard className="w-5 h-5" />,
+        },
     ];
 
     const doctorActions: Action[] = [
@@ -105,6 +133,22 @@ const CommandPalette: React.FC<{ children: React.ReactNode }> = ({ children }) =
             keywords: 'patients list records database',
             perform: () => navigate('/doctor/patients'),
             icon: <Users className="w-5 h-5" />,
+        },
+        {
+            id: 'doctor-prescriptions',
+            name: 'Prescriptions',
+            shortcut: ['r', 'x'],
+            keywords: 'medicine prescription treatment plan',
+            perform: () => navigate('/doctor/prescriptions'),
+            icon: <Activity className="w-5 h-5" />,
+        },
+        {
+            id: 'doctor-availability',
+            name: 'Availability',
+            shortcut: ['a', 'v'],
+            keywords: 'schedule availability working hours booking slots',
+            perform: () => navigate('/doctor/availability'),
+            icon: <Stethoscope className="w-5 h-5" />,
         },
     ];
 
@@ -161,11 +205,11 @@ const CommandPalette: React.FC<{ children: React.ReactNode }> = ({ children }) =
         <KBarProvider actions={actions}>
             <KBarPortal>
                 <KBarPositioner className="bg-black/40 backdrop-blur-sm z-[9999]">
-                    <KBarAnimator className="max-w-[600px] w-full bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
-                        <div className="flex items-center px-4 py-3 border-b border-gray-100">
-                            <Search className="w-5 h-5 text-gray-400 mr-3" />
-                            <KBarSearch className="w-full bg-transparent border-none outline-none text-gray-800 placeholder-gray-400 text-lg py-1" placeholder="Type a command or search..." />
-                            <div className="px-2 py-1 bg-gray-100 rounded text-[10px] font-bold text-gray-500 ml-2">ESC</div>
+                    <KBarAnimator className="w-full max-w-[620px] overflow-hidden rounded-lg border border-[var(--border-color)] bg-[var(--card-elevated)] shadow-2xl backdrop-blur-xl">
+                        <div className="flex items-center border-b border-[var(--border-color)] px-4 py-3">
+                            <Search className="mr-3 h-5 w-5 text-[var(--text-soft)]" />
+                            <KBarSearch className="w-full border-none bg-transparent py-1 text-lg text-[var(--text-color)] outline-none placeholder:text-[var(--text-soft)]" placeholder="Type a command or search..." />
+                            <div className="ml-2 rounded bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-300">ESC</div>
                         </div>
                         <RenderResults />
                     </KBarAnimator>
@@ -184,25 +228,25 @@ function RenderResults() {
             items={results}
             onRender={({ item, active }) =>
                 typeof item === 'string' ? (
-                    <div className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50/50">
+                    <div className="bg-slate-50/70 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-[var(--text-soft)] dark:bg-slate-900/40">
                         {item}
                     </div>
                 ) : (
                     <div
-                        className={`px-4 py-3 flex items-center justify-between cursor-pointer transition-colors ${
-                            active ? 'bg-[var(--primary)] bg-opacity-10 border-l-4 border-[var(--primary)]' : 'border-l-4 border-transparent'
+                        className={`flex cursor-pointer items-center justify-between border-l-4 px-4 py-3 transition-colors ${
+                            active ? 'border-[var(--primary)] bg-teal-50/70 dark:bg-teal-950/20' : 'border-transparent'
                         }`}
                     >
                         <div className="flex items-center gap-3">
-                            <div className={`${active ? 'text-[var(--primary)]' : 'text-gray-400'}`}>
+                            <div className={`${active ? 'text-[var(--primary)]' : 'text-[var(--text-soft)]'}`}>
                                 {item.icon}
                             </div>
                             <div className="flex flex-col">
-                                <span className={`text-sm font-medium ${active ? 'text-[var(--primary)]' : 'text-gray-700'}`}>
+                                <span className={`text-sm font-semibold ${active ? 'text-[var(--primary)]' : 'text-[var(--text-color)]'}`}>
                                     {item.name}
                                 </span>
                                 {item.keywords && (
-                                    <span className="text-[10px] text-gray-400 truncate max-w-[300px]">
+                                    <span className="max-w-[300px] truncate text-[10px] text-[var(--text-soft)]">
                                         {item.keywords}
                                     </span>
                                 )}
@@ -211,7 +255,7 @@ function RenderResults() {
                         {item.shortcut?.length ? (
                             <div className="flex gap-1">
                                 {item.shortcut.map((s) => (
-                                    <kbd key={s} className="px-2 py-1 bg-gray-100 text-gray-500 rounded text-[10px] font-mono shadow-sm">
+                                    <kbd key={s} className="rounded bg-slate-100 px-2 py-1 font-mono text-[10px] text-slate-500 shadow-sm dark:bg-slate-800 dark:text-slate-300">
                                         {s.toUpperCase()}
                                     </kbd>
                                 ))}

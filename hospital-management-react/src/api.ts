@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || window.location.origin;
+export const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || window.location.origin;
 
 export const API_BASE = `${API_ORIGIN}/api`;
 export const WS_BASE = API_ORIGIN;

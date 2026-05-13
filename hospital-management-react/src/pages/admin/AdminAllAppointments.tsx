@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
     CalendarCheck, Search, Loader2,
-    CheckCircle2, Clock, XCircle, Eye, X
+    CheckCircle2, Clock, XCircle, Eye, X, RefreshCw, Download
 } from 'lucide-react';
 import api from '../../api';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -27,10 +27,11 @@ interface Appointment {
     doctor?: { id: number; fullName: string; specialization?: string; consultationFee?: number };
 }
 
-const STATUS_OPTS = ['ALL', 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'PENDING'];
+const STATUS_OPTS = ['ALL', 'SCHEDULED', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'PENDING'];
 
 const statusCfg: Record<string, { cls: string; icon: React.FC<{ className?: string }> }> = {
     SCHEDULED: { cls: 'text-blue-600 bg-blue-50 border-blue-200', icon: Clock },
+    CONFIRMED: { cls: 'text-orange-600 bg-orange-50 border-orange-200', icon: Clock },
     COMPLETED: { cls: 'text-emerald-600 bg-emerald-50 border-emerald-200', icon: CheckCircle2 },
     CANCELLED: { cls: 'text-red-600 bg-red-50 border-red-200', icon: XCircle },
     PENDING:   { cls: 'text-amber-600 bg-amber-50 border-amber-200', icon: Clock },
@@ -49,15 +50,27 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 
 const isNonEmptyString = (value?: string | null) => Boolean(value && value.trim());
 
+const escapeCsv = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+
+const downloadCsv = (filename: string, rows: unknown[][]) => {
+    const csv = rows.map(row => row.map(escapeCsv).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+};
+
 const getPatientName = (appointment: Appointment) =>
-    appointment.patient?.fullName || appointment.patientName || '—';
+    appointment.patient?.fullName || appointment.patientName || (appointment.patientId ? `Patient #${appointment.patientId}` : 'Patient details pending');
 
 const getPatientPhone = (appointment: Appointment) =>
     appointment.patient?.phoneNumber || appointment.patientPhoneNumber || '—';
 
 const getDoctorName = (appointment: Appointment) => {
     const doctorName = appointment.doctor?.fullName || appointment.doctorName;
-    return formatDoctorName(doctorName, 'Dr. —');
+    return formatDoctorName(doctorName, appointment.doctorId ? `Dr. #${appointment.doctorId}` : 'Doctor details pending');
 };
 
 const getDoctorSpecialization = (appointment: Appointment) =>
@@ -112,8 +125,27 @@ const AdminAllAppointments: React.FC = () => {
     const stats = {
         total: appointments.length,
         scheduled: appointments.filter(a => a.status === 'SCHEDULED').length,
+        confirmed: appointments.filter(a => a.status === 'CONFIRMED').length,
         completed: appointments.filter(a => a.status === 'COMPLETED').length,
         cancelled: appointments.filter(a => a.status === 'CANCELLED').length,
+    };
+
+    const exportAppointments = () => {
+        downloadCsv('hms-appointments.csv', [
+            ['ID', 'Patient', 'Doctor', 'Specialization', 'Date', 'Time', 'Reason', 'Status', 'Fee', 'Payment'],
+            ...filtered.map(appt => [
+                appt.id,
+                getPatientName(appt),
+                getDoctorName(appt),
+                getDoctorSpecialization(appt),
+                appt.appointmentDate,
+                appt.appointmentTime,
+                appt.reason,
+                appt.status,
+                getConsultationFeeLabel(appt),
+                appt.paymentStatus,
+            ]),
+        ]);
     };
 
     return (
@@ -132,14 +164,23 @@ const AdminAllAppointments: React.FC = () => {
                         <Input placeholder="Search patient or doctor..." className="pl-9 h-9 w-56"
                             value={search} onChange={e => setSearch(e.target.value)} />
                     </div>
+                    <Button type="button" variant="outline" size="sm" onClick={() => fetchAppointments(page)} isLoading={loading} className="gap-2">
+                        <RefreshCw className="h-4 w-4" />
+                        Refresh
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={exportAppointments} disabled={filtered.length === 0} className="gap-2">
+                        <Download className="h-4 w-4" />
+                        Export
+                    </Button>
                 </div>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 {[
                     { label: 'Total', value: stats.total, color: 'text-blue-600', bg: 'bg-blue-50' },
                     { label: 'Scheduled', value: stats.scheduled, color: 'text-amber-600', bg: 'bg-amber-50' },
+                    { label: 'Confirmed', value: stats.confirmed, color: 'text-orange-600', bg: 'bg-orange-50' },
                     { label: 'Completed', value: stats.completed, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                     { label: 'Cancelled', value: stats.cancelled, color: 'text-red-600', bg: 'bg-red-50' },
                 ].map(s => (
@@ -202,7 +243,7 @@ const AdminAllAppointments: React.FC = () => {
                                                         className="p-1.5 rounded-lg border border-[var(--border-color)] hover:border-blue-400 transition-colors" title="View details">
                                                         <Eye className="h-4 w-4" style={{ color: 'var(--text-muted)' }} />
                                                     </button>
-                                                    {appt.status === 'SCHEDULED' && (
+                                                    {['SCHEDULED', 'CONFIRMED'].includes(appt.status) && (
                                                         <>
                                                             <button onClick={() => updateStatus(appt.id, 'COMPLETED')}
                                                                 className="text-xs px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium transition-colors">
@@ -270,7 +311,7 @@ const AdminAllAppointments: React.FC = () => {
                             </div>
                         </div>
                         <div className="flex gap-2 mt-5">
-                            {selectedAppt.status === 'SCHEDULED' && (
+                            {['SCHEDULED', 'CONFIRMED'].includes(selectedAppt.status) && (
                                 <>
                                     <Button size="sm" className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
                                         onClick={() => { updateStatus(selectedAppt.id, 'COMPLETED'); setSelectedAppt(null); }}>

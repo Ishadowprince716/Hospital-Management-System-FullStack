@@ -53,6 +53,16 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
     '/doctor/availability': { title: 'Availability', subtitle: 'Manage weekly working hours and booking windows.' },
     '/doctor/messages': { title: 'Messages & Alerts', subtitle: 'Notifications and patient care updates.' },
     '/doctor/settings': { title: 'Settings', subtitle: 'Profile, security, and portal preferences.' },
+    '/admin': { title: 'Admin Overview', subtitle: 'Hospital operations, capacity, revenue, and user governance.' },
+    '/admin/doctors': { title: 'Doctor Management', subtitle: 'Review providers, specialties, access status, and profile quality.' },
+    '/admin/patients': { title: 'Patient Management', subtitle: 'Monitor patient access, records readiness, and contact details.' },
+    '/admin/appointments': { title: 'Appointment Control', subtitle: 'Track visits, payment status, and operational follow-through.' },
+    '/admin/analytics': { title: 'Analytics Dashboard', subtitle: 'Performance metrics, trends, and hospital health signals.' },
+    '/admin/billing': { title: 'Billing Center', subtitle: 'Invoices, collections, balances, and payment operations.' },
+    '/admin/inventory': { title: 'Inventory Control', subtitle: 'Medicine stock, low inventory alerts, and supply readiness.' },
+    '/admin/beds': { title: 'Bed Capacity', subtitle: 'Ward availability, occupancy, and capacity planning.' },
+    '/admin/notifications': { title: 'Notification Center', subtitle: 'Broadcast updates and review hospital activity alerts.' },
+    '/admin/settings': { title: 'System Settings', subtitle: 'Account, security, and hospital-wide configuration.' },
 };
 
 const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen, setMobileMenuOpen }) => {

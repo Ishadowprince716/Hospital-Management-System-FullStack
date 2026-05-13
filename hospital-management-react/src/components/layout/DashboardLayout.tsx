@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
+import DashboardCommandBar from './DashboardCommandBar';
 import AIAgent from '../shared/AIAgent';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
@@ -28,6 +29,7 @@ const DashboardLayout: React.FC = () => {
 
             <main className="min-h-screen pt-16 transition-all duration-300 md:pl-64">
                 <div className={`app-page ${isPatient ? 'px-4 py-5 sm:px-6 lg:px-8' : 'px-4 py-5 sm:px-6 lg:px-8'}`}>
+                    <DashboardCommandBar />
                     <Outlet />
                 </div>
             </main>

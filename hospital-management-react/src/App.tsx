@@ -48,6 +48,7 @@ const Notifications = lazy(() => import('./pages/shared/Notifications'));
 const SystemSettings = lazy(() => import('./pages/shared/SystemSettings'));
 const TelehealthStart = lazy(() => import('./pages/shared/TelehealthStart'));
 const VideoCall = lazy(() => import('./pages/shared/VideoCall'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 // ─── Loading Fallback ───
 const PageLoader = () => (
@@ -171,8 +172,8 @@ function App() {
                             </ProtectedRoute>
                             } />
 
-                            {/* ── Root + 404 ── */}
-                        <Route path="*"  element={<Navigate to="/" replace />} />
+                            {/* ── 404 ── */}
+                        <Route path="*"  element={withBoundary(<NotFound />)} />
                     </Routes>
                 </Suspense>
             </CommandPalette>
