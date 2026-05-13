@@ -7,6 +7,7 @@ import { Calendar, FileText, CheckCircle, AlertCircle, Stethoscope, ChevronRight
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { formatDoctorName } from '../../utils/displayNames';
+import { ProfileAvatar } from '../../components/ui/ProfileAvatar';
 import {
     PatientAlert,
     PatientPageFrame,
@@ -163,9 +164,12 @@ const BookAppointment: React.FC = () => {
                                             className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedDoctor?.id === doctor.id ? 'border-[var(--primary)] bg-blue-50/50 dark:bg-blue-900/10' : 'border-[var(--border-color)] hover:border-blue-300'}`}
                                         >
                                             <div className="flex items-start gap-4">
-                                                <div className="w-12 h-12 rounded-full bg-[var(--primary)] text-white flex items-center justify-center font-bold text-lg shrink-0">
-                                                    {doctor.fullName.charAt(0)}
-                                                </div>
+                                                <ProfileAvatar
+                                                    profilePictureUrl={doctor.profilePictureUrl}
+                                                    name={doctor.fullName}
+                                                    className="h-12 w-12 shrink-0 rounded-full text-lg"
+                                                    fallbackClassName="bg-[var(--primary)]"
+                                                />
                                                 <div>
                                                     <h3 className="font-bold text-[var(--text-color)]">{formatDoctorName(doctor.fullName)}</h3>
                                                     <p className="text-sm font-medium text-[var(--primary)]">{doctor.specialization || 'General Physician'}</p>

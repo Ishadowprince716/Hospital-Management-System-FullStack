@@ -5,7 +5,7 @@ import { Menu, Bell, Moon, Sun } from 'lucide-react';
 import type { RootState } from '../../store';
 import { useTheme } from '../../hooks/useTheme';
 import api from '../../api';
-import { getProfileImageUrl } from '../../utils/profileImage';
+import { ProfileAvatar } from '../ui/ProfileAvatar';
 
 interface NavbarProps {
     mobileMenuOpen: boolean;
@@ -72,7 +72,6 @@ const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen, setMobileMenuOpen }) =>
         PATIENT: 'from-blue-500 to-blue-700',
     };
     const gradient = roleColor[user?.role || 'PATIENT'] || roleColor.PATIENT;
-    const profileImage = getProfileImageUrl(user?.profilePictureUrl);
 
     const notifPath: Record<string, string> = {
         ADMIN:   '/admin/notifications',
@@ -161,17 +160,12 @@ const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen, setMobileMenuOpen }) =>
                                 {(user?.role || '').toLowerCase()}
                             </p>
                         </div>
-                        {profileImage ? (
-                            <img
-                                src={profileImage}
-                                alt=""
-                                className="h-9 w-9 rounded-lg border border-[var(--border-color)] object-cover shadow-md"
-                            />
-                        ) : (
-                            <div className={`h-9 w-9 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-sm font-bold shadow-md`}>
-                                {(user?.fullName?.[0] || user?.username?.[0] || 'U').toUpperCase()}
-                            </div>
-                        )}
+                        <ProfileAvatar
+                            profilePictureUrl={user?.profilePictureUrl}
+                            name={user?.fullName || user?.username}
+                            className="h-9 w-9 rounded-lg border border-[var(--border-color)] text-sm shadow-md"
+                            fallbackClassName={`bg-gradient-to-br ${gradient}`}
+                        />
                     </button>
                 </div>
             </div>

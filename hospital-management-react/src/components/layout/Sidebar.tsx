@@ -22,7 +22,7 @@ import {
     Activity,
     Upload,
 } from 'lucide-react';
-import { getProfileImageUrl } from '../../utils/profileImage';
+import { ProfileAvatar } from '../ui/ProfileAvatar';
 
 interface SidebarProps {
     userRole: string;
@@ -111,7 +111,6 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, mobileMenuOpen, setMobileMe
 
     const navItems = getNavItems(userRole);
     const accentColor = roleColors[userRole] || 'bg-blue-600';
-    const profileImage = getProfileImageUrl(user?.profilePictureUrl);
 
     return (
         <aside className={`
@@ -142,17 +141,12 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, mobileMenuOpen, setMobileMe
                     }}
                 >
                     <div className="flex items-center gap-3">
-                        {profileImage ? (
-                            <img
-                                src={profileImage}
-                                alt=""
-                                className="h-9 w-9 rounded-full border-2 border-white object-cover shadow-sm dark:border-slate-800"
-                            />
-                        ) : (
-                            <div className={`w-9 h-9 rounded-full ${accentColor} flex items-center justify-center text-white text-sm font-bold shadow-sm`}>
-                                {(user?.fullName?.[0] || user?.username?.[0] || 'U').toUpperCase()}
-                            </div>
-                        )}
+                        <ProfileAvatar
+                            profilePictureUrl={user?.profilePictureUrl}
+                            name={user?.fullName || user?.username}
+                            className="h-9 w-9 rounded-full border-2 border-white text-sm shadow-sm dark:border-slate-800"
+                            fallbackClassName={accentColor}
+                        />
                         <div className="overflow-hidden">
                             <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-color)' }}>
                                 {user?.fullName || user?.username}

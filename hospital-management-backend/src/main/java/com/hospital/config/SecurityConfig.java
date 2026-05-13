@@ -72,7 +72,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api", "/api/", "/api/health", "/health", "/ready",
                                 "/actuator/health", "/actuator/health/**",
-                                "/", "/index.html", "/favicon.ico", "/rahul.jpg", "/vite.svg", "/assets/**",
+                                "/", "/index.html", "/favicon.ico", "/rahul.jpg", "/vite.svg", "/assets/**", "/uploads/**",
                                 "/login", "/register", "/patient/**", "/doctor/**", "/admin/**", "/telehealth", "/telehealth/**",
                                 "/api/auth/**", "/auth/**", "/login/**", "/oauth2/**",
                                 "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**")

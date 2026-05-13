@@ -41,7 +41,7 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { updateCurrentUser } from '../../store/slices/authSlice';
-import { getProfileImageUrl } from '../../utils/profileImage';
+import { ProfileAvatar } from '../../components/ui/ProfileAvatar';
 
 type Tab = 'profile' | 'security' | 'notifications' | 'system';
 
@@ -480,7 +480,6 @@ const SystemSettings: React.FC = () => {
         { id: 'notifications', label: 'Notifications', icon: Bell },
         ...(isAdmin ? [{ id: 'system' as Tab, label: 'System', icon: Shield }] : []),
     ];
-    const profileImage = getProfileImageUrl(profilePictureUrl);
     const effectiveProfile = profileDetails || (user as ProfileDetails | null);
     const role = effectiveProfile?.role || user?.role || 'USER';
     const joinedDate = formatDate(effectiveProfile?.createdAt);
@@ -570,17 +569,12 @@ const SystemSettings: React.FC = () => {
                                 <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                                         <div className="relative shrink-0">
-                                            {profileImage ? (
-                                                <img
-                                                    src={profileImage}
-                                                    alt=""
-                                                    className="h-24 w-24 rounded-2xl border border-white/20 bg-white/10 object-cover shadow-lg"
-                                                />
-                                            ) : (
-                                                <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-3xl font-bold text-white shadow-lg">
-                                                    {(fullName || user?.username || 'U').charAt(0).toUpperCase()}
-                                                </div>
-                                            )}
+                                            <ProfileAvatar
+                                                profilePictureUrl={profilePictureUrl}
+                                                name={fullName || user?.username}
+                                                className="h-24 w-24 rounded-2xl border border-white/20 bg-white/10 text-3xl shadow-lg"
+                                                fallbackClassName="bg-gradient-to-br from-teal-400 to-blue-500"
+                                            />
                                             <button
                                                 type="button"
                                                 onClick={() => fileInputRef.current?.click()}
