@@ -139,9 +139,6 @@
                     <div class="social-login">
                         <p class="divider-text"><span>Or continue with</span></p>
                         <div class="social-buttons">
-                            <a href="#" id="googleSignInBtn" class="social-btn google">
-                                <i class="fab fa-google"></i>
-                            </a>
                             <a href="http://localhost:8080/oauth2/authorization/facebook" class="social-btn facebook">
                                 <i class="fab fa-facebook-f"></i>
                             </a>
@@ -175,105 +172,6 @@
 
     <script src="js/enhancements.js"></script>
     <script src="js/auth.js"></script>
-
-    <!-- Firebase SDK and Google Sign-in Logic -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDHg3yKwBwLxzkx7odMV-2N6oL5fONlNOM",
-            authDomain: "hospital-managment-syste-cff22.firebaseapp.com",
-            projectId: "hospital-managment-syste-cff22",
-            storageBucket: "hospital-managment-syste-cff22.firebasestorage.app",
-            messagingSenderId: "365926722310",
-            appId: "1:365926722310:web:fffbc77d6f77beda084c87",
-            measurementId: "G-VT0T2XDBVN"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const provider = new GoogleAuthProvider();
-
-        // Helper: store user data and redirect to dashboard
-        function handleGoogleUser(user, idToken) {
-            const loginData = {
-                token: idToken,
-                userId: user.uid,
-                username: user.email.split('@')[0],
-                role: 'PATIENT',
-                fullName: user.displayName || 'Patient'
-            };
-
-            localStorage.setItem('auth_token', loginData.token);
-            localStorage.setItem('auth_userId', loginData.userId);
-            localStorage.setItem('auth_username', loginData.username);
-            localStorage.setItem('auth_role', loginData.role);
-            localStorage.setItem('auth_fullName', loginData.fullName);
-            localStorage.setItem('auth_timestamp', Date.now());
-
-            if (window.hospitalAuth && window.hospitalAuth.showToast) {
-                window.hospitalAuth.showToast(`Welcome, ${loginData.fullName}!`, 'success');
-            }
-
-            setTimeout(() => {
-                window.location.href = 'patient-dashboard.html';
-            }, 1000);
-        }
-
-        // Check for redirect result (in case popup was blocked and we fell back)
-        (async () => {
-            try {
-                const result = await getRedirectResult(auth);
-                if (result && result.user) {
-                    const idToken = await result.user.getIdToken();
-                    handleGoogleUser(result.user, idToken);
-                }
-            } catch (err) {
-                console.warn("Redirect result check:", err.message);
-            }
-        })();
-
-        // Google Sign-In button click handler
-        const googleBtn = document.getElementById('googleSignInBtn');
-        if (googleBtn) {
-            googleBtn.addEventListener('click', async (e) => {
-                e.preventDefault();
-
-                if (window.hospitalAuth && window.hospitalAuth.showToast) {
-                    window.hospitalAuth.showToast('Connecting to Google...', 'info');
-                }
-
-                try {
-                    // Try popup first (works when not blocked)
-                    const result = await signInWithPopup(auth, provider);
-                    const idToken = await result.user.getIdToken();
-                    handleGoogleUser(result.user, idToken);
-                } catch (error) {
-                    console.error("Google Sign-In Error:", error.code, error.message);
-
-                    if (error.code === 'auth/popup-blocked') {
-                        // Fallback: use redirect if popup is blocked
-                        if (window.hospitalAuth && window.hospitalAuth.showToast) {
-                            window.hospitalAuth.showToast('Popup blocked — redirecting to Google...', 'warning');
-                        }
-                        try {
-                            await signInWithRedirect(auth, provider);
-                        } catch (redirectError) {
-                            console.error("Redirect also failed:", redirectError);
-                        }
-                    } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
-                        // User closed the popup, no need to show error
-                        console.log("User cancelled sign-in");
-                    } else {
-                        if (window.hospitalAuth && window.hospitalAuth.showToast) {
-                            window.hospitalAuth.showToast(`Google Sign-In failed: ${error.message}`, 'error');
-                        }
-                    }
-                }
-            });
-        }
-    </script>
 </body>
 
 </html>

@@ -217,10 +217,6 @@ const Register: React.FC = () => {
             })}
           </div>
 
-          <div style={S.accountNote}>
-            Create a secure HMS username and password. Video consultations use this account, not Google login.
-          </div>
-
           {/* Step indicator */}
           <div style={S.stepper}>
             {[1, 2].map(s => (
@@ -363,7 +359,6 @@ const S: Record<string, React.CSSProperties> = {
   tabs:        { display: 'flex', gap: 12, marginBottom: 16 },
   tab:         { minHeight: 104, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '14px 12px', borderRadius: 16 },
   stepper:     { display: 'flex', alignItems: 'center', gap: 12, margin: '0 0 16px' },
-  accountNote: { margin: '0 0 15px', padding: '10px 12px', borderRadius: 14, background: '#f0fdfa', border: '1px solid #ccfbf1', color: '#0f766e', fontSize: 12, fontWeight: 800, lineHeight: 1.45, textAlign: 'center' },
   field:       { display: 'flex', flexDirection: 'column', gap: 6 },
   fieldLabel:  { fontSize: 11, fontWeight: 850, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' },
   inputWrap:   { position: 'relative', display: 'block' },

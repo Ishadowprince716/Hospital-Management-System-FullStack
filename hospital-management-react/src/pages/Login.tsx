@@ -198,10 +198,6 @@ const Login: React.FC = () => {
             })}
           </div>
 
-          <div style={S.secureNote}>
-            Video consultation access is protected by your HMS username and password. Google login is not required.
-          </div>
-
           {/* Form */}
           <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* Username */}
@@ -388,18 +384,6 @@ const S: Record<string, React.CSSProperties> = {
   divider: { display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0 14px' },
   dividerLine: { flex: 1, height: 1, background: '#e2e8f0' },
   dividerText: { fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' },
-  secureNote: {
-    margin: '0 0 18px',
-    padding: '11px 14px',
-    borderRadius: 14,
-    background: '#f0fdfa',
-    border: '1px solid #ccfbf1',
-    color: '#0f766e',
-    fontSize: 12,
-    fontWeight: 700,
-    lineHeight: 1.5,
-    textAlign: 'center',
-  },
 };
 
 export default Login;

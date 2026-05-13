@@ -2,7 +2,6 @@ package com.hospital.controller;
 
 import com.hospital.common.ApiResponse;
 import com.hospital.dto.AuthResponse;
-import com.hospital.dto.FirebaseLoginRequest;
 import com.hospital.dto.LoginRequest;
 import com.hospital.dto.RegisterRequest;
 import com.hospital.service.AuthService;
@@ -31,12 +30,6 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse response = authService.register(request);
         return ResponseEntity.status(201).body(ApiResponse.success(response, "Registration successful"));
-    }
-
-    @PostMapping("/firebase")
-    public ResponseEntity<ApiResponse<AuthResponse>> firebaseLogin(@RequestBody FirebaseLoginRequest request) {
-        AuthResponse response = authService.loginWithFirebase(request);
-        return ResponseEntity.ok(ApiResponse.success(response, "Firebase login successful"));
     }
 
     @PostMapping("/initialize")
