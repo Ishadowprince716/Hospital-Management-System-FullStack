@@ -2,24 +2,36 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
     Activity,
     AlertCircle,
+    BadgeCheck,
+    BadgeIndianRupee,
     Bell,
+    BriefcaseMedical,
+    Building2,
     Camera,
+    CalendarDays,
     CheckCircle2,
+    ClipboardList,
     Database,
     Eye,
     EyeOff,
+    HeartPulse,
+    IdCard,
     Lock,
     Mail,
+    MapPin,
     MonitorCheck,
+    Phone,
     RefreshCw,
     Save,
     Server,
     Settings,
     Shield,
     Smartphone,
+    Stethoscope,
     Trash2,
     Upload,
     User,
+    UserCheck,
     Video,
 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -48,6 +60,91 @@ interface AdminSystemSettings {
     lastUpdatedAt?: string;
     health?: Record<string, unknown>;
 }
+
+interface ProfileDetails {
+    id?: number;
+    username?: string;
+    email?: string;
+    phoneNumber?: string;
+    role?: string;
+    fullName?: string;
+    isActive?: boolean;
+    provider?: string;
+    profilePictureUrl?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    dateOfBirth?: string;
+    gender?: string;
+    bloodGroup?: string;
+    address?: string;
+    emergencyContact?: string;
+    emergencyContactName?: string;
+    insuranceProvider?: string;
+    insuranceNumber?: string;
+    allergies?: string;
+    currentMedications?: string;
+    specialization?: string;
+    qualification?: string;
+    experienceYears?: number | string;
+    consultationFee?: number | string;
+    department?: string;
+    licenseNumber?: string;
+    availableDays?: string;
+    availableTimeStart?: string;
+    availableTimeEnd?: string;
+    rating?: number;
+    totalPatients?: number;
+}
+
+type PatientProfileForm = {
+    dateOfBirth: string;
+    gender: string;
+    bloodGroup: string;
+    address: string;
+    emergencyContactName: string;
+    emergencyContact: string;
+    insuranceProvider: string;
+    insuranceNumber: string;
+    allergies: string;
+    currentMedications: string;
+};
+
+type DoctorProfileForm = {
+    specialization: string;
+    qualification: string;
+    department: string;
+    licenseNumber: string;
+    experienceYears: string;
+    consultationFee: string;
+    availableDays: string;
+    availableTimeStart: string;
+    availableTimeEnd: string;
+};
+
+const emptyPatientProfile: PatientProfileForm = {
+    dateOfBirth: '',
+    gender: '',
+    bloodGroup: '',
+    address: '',
+    emergencyContactName: '',
+    emergencyContact: '',
+    insuranceProvider: '',
+    insuranceNumber: '',
+    allergies: '',
+    currentMedications: '',
+};
+
+const emptyDoctorProfile: DoctorProfileForm = {
+    specialization: '',
+    qualification: '',
+    department: '',
+    licenseNumber: '',
+    experienceYears: '',
+    consultationFee: '',
+    availableDays: '',
+    availableTimeStart: '',
+    availableTimeEnd: '',
+};
 
 const defaultSystemSettings: AdminSystemSettings = {
     maintenanceMode: false,
@@ -90,18 +187,53 @@ const unwrapSystemSettings = (raw: unknown): AdminSystemSettings => {
     };
 };
 
+const textValue = (value: unknown) => (value === null || value === undefined ? '' : String(value));
+
+const formatDate = (value?: string) => {
+    if (!value) return 'Not available';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Not available';
+    return date.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const formatDateTime = (value?: string) => {
+    if (!value) return 'Not available';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Not available';
+    return date.toLocaleString(undefined, {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+};
+
+const displayValue = (value?: string | number | null) => {
+    const text = textValue(value);
+    return text.trim() || 'Not added';
+};
+
+const selectClassName = 'h-11 w-full rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] px-3.5 py-2 text-sm text-[var(--text-color)] shadow-[var(--shadow-sm)] focus:border-[var(--primary)] focus:outline-none focus:ring-4 focus:ring-[var(--ring)] transition-all duration-200';
+const textAreaClassName = 'min-h-24 w-full rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] px-3.5 py-2 text-sm text-[var(--text-color)] shadow-[var(--shadow-sm)] placeholder:text-[var(--text-soft)] focus:border-[var(--primary)] focus:outline-none focus:ring-4 focus:ring-[var(--ring)] transition-all duration-200';
+
 const SystemSettings: React.FC = () => {
     const { user } = useSelector((state: RootState) => state.auth);
     const dispatch = useDispatch();
     const isAdmin = user?.role === 'ADMIN';
     const [tab, setTab] = useState<Tab>('profile');
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const seededUserIdRef = useRef<number | null>(null);
 
     // Profile form
     const [fullName, setFullName] = useState(user?.fullName || '');
     const [email, setEmail] = useState(user?.email || '');
     const [phone, setPhone] = useState(user?.phoneNumber || '');
     const [profilePictureUrl, setProfilePictureUrl] = useState(user?.profilePictureUrl || '');
+    const [profileDetails, setProfileDetails] = useState<ProfileDetails | null>(user as ProfileDetails | null);
+    const [profileLoading, setProfileLoading] = useState(false);
+    const [patientProfile, setPatientProfile] = useState<PatientProfileForm>(emptyPatientProfile);
+    const [doctorProfile, setDoctorProfile] = useState<DoctorProfileForm>(emptyDoctorProfile);
     const [photoUploading, setPhotoUploading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
@@ -126,11 +258,87 @@ const SystemSettings: React.FC = () => {
     const [smsNotif, setSmsNotif] = useState(false);
     const [apptReminders, setApptReminders] = useState(true);
 
+    const hydrateProfileForm = useCallback((profile: ProfileDetails | null) => {
+        if (!profile) return;
+
+        setProfileDetails(profile);
+        setFullName(textValue(profile.fullName));
+        setEmail(textValue(profile.email));
+        setPhone(textValue(profile.phoneNumber));
+        setProfilePictureUrl(textValue(profile.profilePictureUrl));
+        setPatientProfile({
+            dateOfBirth: textValue(profile.dateOfBirth),
+            gender: textValue(profile.gender),
+            bloodGroup: textValue(profile.bloodGroup),
+            address: textValue(profile.address),
+            emergencyContactName: textValue(profile.emergencyContactName),
+            emergencyContact: textValue(profile.emergencyContact),
+            insuranceProvider: textValue(profile.insuranceProvider),
+            insuranceNumber: textValue(profile.insuranceNumber),
+            allergies: textValue(profile.allergies),
+            currentMedications: textValue(profile.currentMedications),
+        });
+        setDoctorProfile({
+            specialization: textValue(profile.specialization),
+            qualification: textValue(profile.qualification),
+            department: textValue(profile.department),
+            licenseNumber: textValue(profile.licenseNumber),
+            experienceYears: textValue(profile.experienceYears),
+            consultationFee: textValue(profile.consultationFee),
+            availableDays: textValue(profile.availableDays),
+            availableTimeStart: textValue(profile.availableTimeStart),
+            availableTimeEnd: textValue(profile.availableTimeEnd),
+        });
+    }, []);
+
+    const loadProfile = useCallback(async () => {
+        if (!user?.id) return;
+        setProfileLoading(true);
+        setSaveError(null);
+        try {
+            const res = await api.get(`/users/${user.id}`);
+            hydrateProfileForm((res.data?.data || res.data) as ProfileDetails);
+        } catch (err: unknown) {
+            setSaveError(getApiErrorMessage(err, 'Unable to load full profile details.'));
+        } finally {
+            setProfileLoading(false);
+        }
+    }, [hydrateProfileForm, user?.id]);
+
+    useEffect(() => {
+        if (!user?.id || seededUserIdRef.current === user.id) return;
+        seededUserIdRef.current = user.id;
+        hydrateProfileForm(user as ProfileDetails | null);
+    }, [hydrateProfileForm, user]);
+
+    useEffect(() => {
+        void loadProfile();
+    }, [loadProfile]);
+
+    const updatePatientProfile = (key: keyof PatientProfileForm, value: string) => {
+        setPatientProfile(prev => ({ ...prev, [key]: value }));
+    };
+
+    const updateDoctorProfile = (key: keyof DoctorProfileForm, value: string) => {
+        setDoctorProfile(prev => ({ ...prev, [key]: value }));
+    };
+
     const saveProfile = async (e: React.FormEvent) => {
         e.preventDefault(); setSaving(true); setSaveError(null);
         try {
-            const res = await api.patch(`/users/${user?.id}`, { fullName, email, phoneNumber: phone });
-            dispatch(updateCurrentUser(res.data?.data || { fullName, email, phoneNumber: phone }));
+            const payload: Record<string, string> = { fullName, email, phoneNumber: phone };
+            if (user?.role === 'PATIENT') Object.assign(payload, patientProfile);
+            if (user?.role === 'DOCTOR') Object.assign(payload, doctorProfile);
+
+            const res = await api.patch(`/users/${user?.id}`, payload);
+            const updatedProfile = (res.data?.data || { ...profileDetails, ...payload }) as ProfileDetails;
+            hydrateProfileForm(updatedProfile);
+            dispatch(updateCurrentUser({
+                fullName: updatedProfile.fullName || fullName,
+                email: updatedProfile.email || email,
+                phoneNumber: updatedProfile.phoneNumber || phone,
+                profilePictureUrl: updatedProfile.profilePictureUrl || profilePictureUrl,
+            }));
             setSaveSuccess(true);
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err: unknown) {
@@ -159,6 +367,7 @@ const SystemSettings: React.FC = () => {
             });
             const nextUrl = res.data?.data?.profilePictureUrl || '';
             setProfilePictureUrl(nextUrl);
+            setProfileDetails(prev => prev ? { ...prev, profilePictureUrl: nextUrl } : prev);
             dispatch(updateCurrentUser({ profilePictureUrl: nextUrl }));
             setSaveSuccess(true);
             setTimeout(() => setSaveSuccess(false), 3000);
@@ -177,6 +386,7 @@ const SystemSettings: React.FC = () => {
         try {
             await api.patch(`/users/${user.id}`, { profilePictureUrl: '' });
             setProfilePictureUrl('');
+            setProfileDetails(prev => prev ? { ...prev, profilePictureUrl: '' } : prev);
             dispatch(updateCurrentUser({ profilePictureUrl: '' }));
         } catch (err: unknown) {
             setSaveError(getApiErrorMessage(err, 'Failed to remove profile picture.'));
@@ -271,9 +481,65 @@ const SystemSettings: React.FC = () => {
         ...(isAdmin ? [{ id: 'system' as Tab, label: 'System', icon: Shield }] : []),
     ];
     const profileImage = getProfileImageUrl(profilePictureUrl);
+    const effectiveProfile = profileDetails || (user as ProfileDetails | null);
+    const role = effectiveProfile?.role || user?.role || 'USER';
+    const joinedDate = formatDate(effectiveProfile?.createdAt);
+    const lastUpdatedDate = formatDateTime(effectiveProfile?.updatedAt);
+    const requiredProfileFields = useMemo(() => {
+        const baseFields = [fullName, email, phone, profilePictureUrl];
+        if (role === 'PATIENT') {
+            return [
+                ...baseFields,
+                patientProfile.dateOfBirth,
+                patientProfile.bloodGroup,
+                patientProfile.address,
+                patientProfile.emergencyContact,
+            ];
+        }
+        if (role === 'DOCTOR') {
+            return [
+                ...baseFields,
+                doctorProfile.specialization,
+                doctorProfile.qualification,
+                doctorProfile.department,
+                doctorProfile.licenseNumber,
+            ];
+        }
+        return [...baseFields, effectiveProfile?.username];
+    }, [
+        doctorProfile.department,
+        doctorProfile.licenseNumber,
+        doctorProfile.qualification,
+        doctorProfile.specialization,
+        effectiveProfile?.username,
+        email,
+        fullName,
+        patientProfile.address,
+        patientProfile.bloodGroup,
+        patientProfile.dateOfBirth,
+        patientProfile.emergencyContact,
+        phone,
+        profilePictureUrl,
+        role,
+    ]);
+    const profileCompletion = Math.round(
+        (requiredProfileFields.filter(value => textValue(value).trim()).length / requiredProfileFields.length) * 100
+    );
+    const roleTitle = role === 'ADMIN' ? 'Root Administrator' : role === 'DOCTOR' ? 'Clinical Provider' : 'Patient Member';
+    const profileSummary = role === 'DOCTOR'
+        ? displayValue(doctorProfile.specialization || doctorProfile.department)
+        : role === 'PATIENT'
+            ? displayValue([patientProfile.bloodGroup, patientProfile.gender].filter(Boolean).join(' • '))
+            : 'Hospital operations access';
+    const accountFacts = [
+        { label: 'User ID', value: user?.id ? `HMS-${String(user.id).padStart(4, '0')}` : 'Not available', icon: IdCard },
+        { label: 'Account Type', value: roleTitle, icon: BadgeCheck },
+        { label: 'Joined', value: joinedDate, icon: CalendarDays },
+        { label: 'Auth Provider', value: displayValue(effectiveProfile?.provider || 'LOCAL'), icon: Shield },
+    ];
 
     return (
-        <div className="max-w-3xl mx-auto space-y-6 animate-fadeIn">
+        <div className="max-w-5xl mx-auto space-y-6 animate-fadeIn">
             <div>
                 <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--text-color)' }}>
                     <Settings className="h-6 w-6 text-gray-600" /> Settings
@@ -297,128 +563,315 @@ const SystemSettings: React.FC = () => {
 
             {/* ── Profile Tab ── */}
             {tab === 'profile' && (
-                <Card className="border-[var(--border-color)] shadow-sm animate-fadeIn">
-                    <CardContent className="p-0">
-                        <div className="border-b border-[var(--border-color)] p-5 sm:p-6">
-                            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="relative shrink-0">
-                                        {profileImage ? (
-                                            <img
-                                                src={profileImage}
-                                                alt=""
-                                                className="h-20 w-20 rounded-xl border border-[var(--border-color)] object-cover shadow-sm"
-                                            />
-                                        ) : (
-                                            <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-teal-500 text-2xl font-bold text-white shadow-sm">
-                                                {(user?.fullName || user?.username || 'U').charAt(0).toUpperCase()}
+                <div className="space-y-5 animate-fadeIn">
+                    <Card className="overflow-hidden border-[var(--border-color)] shadow-sm">
+                        <CardContent className="p-0">
+                            <div className="border-b border-[var(--border-color)] bg-gradient-to-br from-slate-950 via-slate-900 to-teal-900 p-5 text-white sm:p-6">
+                                <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                                        <div className="relative shrink-0">
+                                            {profileImage ? (
+                                                <img
+                                                    src={profileImage}
+                                                    alt=""
+                                                    className="h-24 w-24 rounded-2xl border border-white/20 bg-white/10 object-cover shadow-lg"
+                                                />
+                                            ) : (
+                                                <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-3xl font-bold text-white shadow-lg">
+                                                    {(fullName || user?.username || 'U').charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 bg-white text-slate-900 shadow-lg transition-transform hover:scale-105"
+                                                title="Change profile picture"
+                                                aria-label="Change profile picture"
+                                            >
+                                                <Camera className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="mb-2 flex flex-wrap items-center gap-2">
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-white/12 px-3 py-1 text-xs font-bold uppercase tracking-normal text-teal-100">
+                                                    <UserCheck className="h-3.5 w-3.5" />
+                                                    {effectiveProfile?.isActive === false ? 'Inactive' : 'Active'}
+                                                </span>
+                                                <span className="inline-flex rounded-full bg-white/12 px-3 py-1 text-xs font-bold uppercase tracking-normal text-blue-100">
+                                                    {roleTitle}
+                                                </span>
                                             </div>
-                                        )}
-                                        <button
-                                            type="button"
-                                            onClick={() => fileInputRef.current?.click()}
-                                            className="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] shadow-sm transition-colors hover:border-blue-400"
-                                            title="Change profile picture"
-                                            aria-label="Change profile picture"
-                                        >
-                                            <Camera className="h-4 w-4 text-blue-600" />
-                                        </button>
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="truncate text-lg font-bold" style={{ color: 'var(--text-color)' }}>{user?.fullName || user?.username}</p>
-                                        <p className="truncate text-sm" style={{ color: 'var(--text-muted)' }}>{user?.email}</p>
-                                        <div className="mt-2 flex flex-wrap gap-2">
-                                            <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">{user?.role}</span>
-                                            <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Active</span>
+                                            <h2 className="truncate text-2xl font-bold sm:text-3xl">{fullName || user?.username || 'HMS User'}</h2>
+                                            <p className="mt-1 text-sm text-slate-200">{profileSummary}</p>
+                                            <p className="mt-1 text-xs text-slate-300">@{user?.username || 'username'} • {displayValue(email)}</p>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="flex flex-wrap gap-2">
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept="image/png,image/jpeg,image/webp"
-                                        className="hidden"
-                                        onChange={e => {
-                                            const file = e.target.files?.[0];
-                                            if (file) uploadProfilePicture(file);
-                                        }}
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="gap-2"
-                                        isLoading={photoUploading}
-                                        onClick={() => fileInputRef.current?.click()}
-                                    >
-                                        <Upload className="h-4 w-4" />
-                                        Upload Photo
-                                    </Button>
-                                    {profilePictureUrl && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            className="gap-2 border-red-200 text-red-600 hover:bg-red-50"
-                                            disabled={photoUploading}
-                                            onClick={removeProfilePicture}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                            Remove
-                                        </Button>
+                                    <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div>
+                                                <p className="text-xs font-semibold uppercase tracking-normal text-slate-300">Profile completeness</p>
+                                                <p className="mt-1 text-2xl font-bold">{profileCompletion}%</p>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="border-white/25 bg-white/10 text-white hover:bg-white/20"
+                                                isLoading={profileLoading}
+                                                onClick={loadProfile}
+                                            >
+                                                <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                                                Refresh
+                                            </Button>
+                                        </div>
+                                        <div className="mt-3 h-2 rounded-full bg-white/15">
+                                            <div
+                                                className="h-full rounded-full bg-teal-300 transition-all"
+                                                style={{ width: `${profileCompletion}%` }}
+                                            />
+                                        </div>
+                                        <p className="mt-3 text-xs leading-relaxed text-slate-300">
+                                            Complete role details help appointments, telehealth, billing, and support teams identify you faster.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-4">
+                                {accountFacts.map(fact => {
+                                    const Icon = fact.icon;
+                                    return (
+                                        <div key={fact.label} className="rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+                                                    <Icon className="h-5 w-5" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-sm font-bold" style={{ color: 'var(--text-color)' }}>{fact.value}</p>
+                                                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{fact.label}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_330px]">
+                        <Card className="border-[var(--border-color)] shadow-sm">
+                            <CardContent className="p-5 sm:p-6">
+                                <form onSubmit={saveProfile} className="space-y-6">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                        <div>
+                                            <h2 className="text-lg font-bold" style={{ color: 'var(--text-color)' }}>Profile Details</h2>
+                                            <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
+                                                Keep your identity, contact, and role-specific details accurate across HMS.
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept="image/png,image/jpeg,image/webp"
+                                                className="hidden"
+                                                onChange={e => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) uploadProfilePicture(file);
+                                                }}
+                                            />
+                                            <Button type="button" variant="outline" className="gap-2" isLoading={photoUploading} onClick={() => fileInputRef.current?.click()}>
+                                                <Upload className="h-4 w-4" />
+                                                Photo
+                                            </Button>
+                                            {profilePictureUrl && (
+                                                <Button type="button" variant="outline" className="gap-2 border-red-200 text-red-600 hover:bg-red-50" disabled={photoUploading} onClick={removeProfilePicture}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                    Remove
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <Input label="Full name" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" />
+                                        <Input label="Email address" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" />
+                                        <Input label="Phone number" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 9XXXXXXXXX" />
+                                        <Input label="Username" value={user?.username || ''} disabled className="cursor-not-allowed opacity-60" />
+                                    </div>
+
+                                    {role === 'PATIENT' && (
+                                        <div className="space-y-4 border-t border-[var(--border-color)] pt-5">
+                                            <div className="flex items-center gap-2">
+                                                <HeartPulse className="h-5 w-5 text-teal-600" />
+                                                <div>
+                                                    <h3 className="text-base font-bold" style={{ color: 'var(--text-color)' }}>Patient Health Profile</h3>
+                                                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Used by doctors during appointments and telehealth consults.</p>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                                <Input label="Date of birth" type="date" value={patientProfile.dateOfBirth} onChange={e => updatePatientProfile('dateOfBirth', e.target.value)} />
+                                                <div>
+                                                    <label className="mb-2 block text-sm font-semibold text-[var(--text-color)]">Gender</label>
+                                                    <select className={selectClassName} value={patientProfile.gender} onChange={e => updatePatientProfile('gender', e.target.value)}>
+                                                        <option value="">Select gender</option>
+                                                        <option value="Male">Male</option>
+                                                        <option value="Female">Female</option>
+                                                        <option value="Other">Other</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="mb-2 block text-sm font-semibold text-[var(--text-color)]">Blood group</label>
+                                                    <select className={selectClassName} value={patientProfile.bloodGroup} onChange={e => updatePatientProfile('bloodGroup', e.target.value)}>
+                                                        <option value="">Select blood group</option>
+                                                        {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(group => <option key={group} value={group}>{group}</option>)}
+                                                    </select>
+                                                </div>
+                                                <Input label="Emergency contact name" value={patientProfile.emergencyContactName} onChange={e => updatePatientProfile('emergencyContactName', e.target.value)} placeholder="Family member name" />
+                                                <Input label="Emergency contact phone" value={patientProfile.emergencyContact} onChange={e => updatePatientProfile('emergencyContact', e.target.value)} placeholder="+91 9XXXXXXXXX" />
+                                                <Input label="Insurance provider" value={patientProfile.insuranceProvider} onChange={e => updatePatientProfile('insuranceProvider', e.target.value)} placeholder="Provider name" />
+                                                <Input label="Insurance number" value={patientProfile.insuranceNumber} onChange={e => updatePatientProfile('insuranceNumber', e.target.value)} placeholder="Policy / member ID" />
+                                                <div className="md:col-span-2">
+                                                    <label className="mb-2 block text-sm font-semibold text-[var(--text-color)]">Address</label>
+                                                    <textarea className={textAreaClassName} value={patientProfile.address} onChange={e => updatePatientProfile('address', e.target.value)} placeholder="Street, city, state, postal code" />
+                                                </div>
+                                                <div>
+                                                    <label className="mb-2 block text-sm font-semibold text-[var(--text-color)]">Known allergies</label>
+                                                    <textarea className={textAreaClassName} value={patientProfile.allergies} onChange={e => updatePatientProfile('allergies', e.target.value)} placeholder="Example: Penicillin, peanuts" />
+                                                </div>
+                                                <div>
+                                                    <label className="mb-2 block text-sm font-semibold text-[var(--text-color)]">Current medications</label>
+                                                    <textarea className={textAreaClassName} value={patientProfile.currentMedications} onChange={e => updatePatientProfile('currentMedications', e.target.value)} placeholder="Ongoing medicines and dosage" />
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
-                                </div>
-                            </div>
-                            <p className="mt-4 text-xs" style={{ color: 'var(--text-muted)' }}>
-                                JPG, PNG, or WEBP image. Keep it under 2 MB for faster loading.
-                            </p>
-                        </div>
 
-                        <form onSubmit={saveProfile} className="space-y-4 p-5 sm:p-6">
-                            <div>
-                                <h2 className="text-base font-semibold" style={{ color: 'var(--text-color)' }}>
-                                    Personal Details
-                                </h2>
-                                <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
-                                    Keep your contact information accurate for appointments and hospital updates.
-                                </p>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-color)' }}>Full Name</label>
-                                    <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-color)' }}>Email Address</label>
-                                    <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-color)' }}>Phone Number</label>
-                                    <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 9XXXXXXXXX" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-color)' }}>Username</label>
-                                    <Input value={user?.username || ''} disabled className="opacity-60 cursor-not-allowed" />
-                                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Username cannot be changed.</p>
-                                </div>
-                            </div>
-                            {saveSuccess && (
-                                <div className="flex items-center gap-2 p-3 rounded-lg text-emerald-600 bg-emerald-50 border border-emerald-200 text-sm animate-fadeIn">
-                                    <CheckCircle2 className="h-4 w-4" /> Profile updated successfully!
-                                </div>
-                            )}
-                            {saveError && (
-                                <div className="flex items-center gap-2 p-3 rounded-lg text-red-600 bg-red-50 border border-red-200 text-sm">
-                                    <AlertCircle className="h-4 w-4 shrink-0" /> {saveError}
-                                </div>
-                            )}
-                            <div className="flex gap-3 pt-1">
-                                <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white" isLoading={saving}>Save Changes</Button>
-                                <Button type="button" variant="outline" onClick={() => { setFullName(user?.fullName||''); setEmail(user?.email||''); setPhone(user?.phoneNumber||''); }}>Reset</Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
+                                    {role === 'DOCTOR' && (
+                                        <div className="space-y-4 border-t border-[var(--border-color)] pt-5">
+                                            <div className="flex items-center gap-2">
+                                                <Stethoscope className="h-5 w-5 text-teal-600" />
+                                                <div>
+                                                    <h3 className="text-base font-bold" style={{ color: 'var(--text-color)' }}>Doctor Professional Profile</h3>
+                                                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Controls how patients and admins see clinical availability.</p>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                                <Input label="Specialization" value={doctorProfile.specialization} onChange={e => updateDoctorProfile('specialization', e.target.value)} placeholder="Cardiology" />
+                                                <Input label="Department" value={doctorProfile.department} onChange={e => updateDoctorProfile('department', e.target.value)} placeholder="Heart & Vascular" />
+                                                <Input label="Qualification" value={doctorProfile.qualification} onChange={e => updateDoctorProfile('qualification', e.target.value)} placeholder="MBBS, MD" />
+                                                <Input label="License number" value={doctorProfile.licenseNumber} onChange={e => updateDoctorProfile('licenseNumber', e.target.value)} placeholder="Medical registration ID" />
+                                                <Input label="Experience years" type="number" min="0" value={doctorProfile.experienceYears} onChange={e => updateDoctorProfile('experienceYears', e.target.value)} />
+                                                <Input label="Consultation fee (₹)" type="number" min="0" value={doctorProfile.consultationFee} onChange={e => updateDoctorProfile('consultationFee', e.target.value)} />
+                                                <Input label="Available days" value={doctorProfile.availableDays} onChange={e => updateDoctorProfile('availableDays', e.target.value)} placeholder="Monday, Wednesday, Friday" />
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <Input label="Start time" type="time" value={doctorProfile.availableTimeStart} onChange={e => updateDoctorProfile('availableTimeStart', e.target.value)} />
+                                                    <Input label="End time" type="time" value={doctorProfile.availableTimeEnd} onChange={e => updateDoctorProfile('availableTimeEnd', e.target.value)} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {role === 'ADMIN' && (
+                                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                                            <div className="flex items-start gap-3">
+                                                <Shield className="mt-0.5 h-5 w-5 shrink-0" />
+                                                <div>
+                                                    <p className="font-bold">Administrator account</p>
+                                                    <p className="mt-1 text-xs leading-relaxed">This profile has operational access to users, appointments, billing, analytics, notifications, and system controls.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {saveSuccess && (
+                                        <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 animate-fadeIn">
+                                            <CheckCircle2 className="h-4 w-4" /> Profile updated successfully.
+                                        </div>
+                                    )}
+                                    {saveError && (
+                                        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                                            <AlertCircle className="h-4 w-4 shrink-0" /> {saveError}
+                                        </div>
+                                    )}
+
+                                    <div className="flex flex-wrap gap-3 border-t border-[var(--border-color)] pt-5">
+                                        <Button type="submit" className="gap-2 bg-teal-600 text-white hover:bg-teal-700" isLoading={saving}>
+                                            <Save className="h-4 w-4" />
+                                            Save Profile
+                                        </Button>
+                                        <Button type="button" variant="outline" onClick={() => hydrateProfileForm(effectiveProfile)}>
+                                            Reset Changes
+                                        </Button>
+                                    </div>
+                                </form>
+                            </CardContent>
+                        </Card>
+
+                        <div className="space-y-5">
+                            <Card className="border-[var(--border-color)] shadow-sm">
+                                <CardContent className="space-y-4 p-5">
+                                    <div>
+                                        <h3 className="text-base font-bold" style={{ color: 'var(--text-color)' }}>Profile Snapshot</h3>
+                                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Live account details from the backend.</p>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {[
+                                            { icon: Mail, label: 'Email', value: displayValue(email) },
+                                            { icon: Phone, label: 'Phone', value: displayValue(phone) },
+                                            { icon: MapPin, label: role === 'PATIENT' ? 'Address' : 'Location', value: role === 'PATIENT' ? displayValue(patientProfile.address) : displayValue(doctorProfile.department) },
+                                            { icon: CalendarDays, label: 'Last updated', value: lastUpdatedDate },
+                                        ].map(item => {
+                                            const Icon = item.icon;
+                                            return (
+                                                <div key={item.label} className="flex gap-3 rounded-xl border border-[var(--border-color)] p-3">
+                                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+                                                        <Icon className="h-4 w-4" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.label}</p>
+                                                        <p className="truncate text-sm font-semibold" style={{ color: 'var(--text-color)' }}>{item.value}</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-[var(--border-color)] shadow-sm">
+                                <CardContent className="space-y-4 p-5">
+                                    <div className="flex items-center gap-2">
+                                        {role === 'DOCTOR' ? <BriefcaseMedical className="h-5 w-5 text-teal-600" /> : role === 'PATIENT' ? <HeartPulse className="h-5 w-5 text-teal-600" /> : <Shield className="h-5 w-5 text-teal-600" />}
+                                        <h3 className="text-base font-bold" style={{ color: 'var(--text-color)' }}>Role Details</h3>
+                                    </div>
+                                    {role === 'PATIENT' && (
+                                        <div className="grid grid-cols-1 gap-3 text-sm">
+                                            <div className="flex items-center justify-between gap-3"><span className="text-[var(--text-muted)]">Blood group</span><strong>{displayValue(patientProfile.bloodGroup)}</strong></div>
+                                            <div className="flex items-center justify-between gap-3"><span className="text-[var(--text-muted)]">Emergency contact</span><strong>{displayValue(patientProfile.emergencyContact)}</strong></div>
+                                            <div className="flex items-center justify-between gap-3"><span className="text-[var(--text-muted)]">Insurance</span><strong>{displayValue(patientProfile.insuranceProvider)}</strong></div>
+                                        </div>
+                                    )}
+                                    {role === 'DOCTOR' && (
+                                        <div className="grid grid-cols-1 gap-3 text-sm">
+                                            <div className="flex items-center gap-3"><Building2 className="h-4 w-4 text-slate-500" /><span className="flex-1 text-[var(--text-muted)]">Department</span><strong>{displayValue(doctorProfile.department)}</strong></div>
+                                            <div className="flex items-center gap-3"><BadgeIndianRupee className="h-4 w-4 text-slate-500" /><span className="flex-1 text-[var(--text-muted)]">Fee</span><strong>{doctorProfile.consultationFee ? `₹${doctorProfile.consultationFee}` : 'Not added'}</strong></div>
+                                            <div className="flex items-center gap-3"><ClipboardList className="h-4 w-4 text-slate-500" /><span className="flex-1 text-[var(--text-muted)]">Availability</span><strong>{displayValue(doctorProfile.availableDays)}</strong></div>
+                                        </div>
+                                    )}
+                                    {role === 'ADMIN' && (
+                                        <div className="grid grid-cols-1 gap-3 text-sm">
+                                            <div className="flex items-center justify-between gap-3"><span className="text-[var(--text-muted)]">Scope</span><strong>Full system</strong></div>
+                                            <div className="flex items-center justify-between gap-3"><span className="text-[var(--text-muted)]">Billing</span><strong>Enabled</strong></div>
+                                            <div className="flex items-center justify-between gap-3"><span className="text-[var(--text-muted)]">System settings</span><strong>Enabled</strong></div>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* ── Security Tab ── */}

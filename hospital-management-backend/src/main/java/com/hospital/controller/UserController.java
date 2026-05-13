@@ -49,8 +49,8 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @PathVariable Long id,
             @RequestBody Map<String, String> request) {
-        // Delegate to auth service for password change
-        return ResponseEntity.ok(ApiResponse.success(null, "Password change endpoint — implement via AuthService"));
+        userService.changePassword(id, request);
+        return ResponseEntity.ok(ApiResponse.success(null, "Password updated successfully"));
     }
 
     @DeleteMapping("/{id}")
