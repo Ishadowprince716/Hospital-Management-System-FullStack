@@ -139,9 +139,6 @@
                     <div class="social-login">
                         <p class="divider-text"><span>Or continue with</span></p>
                         <div class="social-buttons">
-                            <a href="#" id="googleSignInBtn" class="social-btn google">
-                                <i class="fab fa-google"></i>
-                            </a>
                             <a href="http://localhost:8080/oauth2/authorization/facebook" class="social-btn facebook">
                                 <i class="fab fa-facebook-f"></i>
                             </a>
@@ -175,83 +172,6 @@
 
     <script src="js/enhancements.js"></script>
     <script src="js/auth.js"></script>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDHg3yKwBwLxzkx7odMV-2N6oL5fONlNOM",
-            authDomain: "hospital-managment-syste-cff22.firebaseapp.com",
-            projectId: "hospital-managment-syste-cff22",
-            storageBucket: "hospital-managment-syste-cff22.firebasestorage.app",
-            messagingSenderId: "365926722310",
-            appId: "1:365926722310:web:fffbc77d6f77beda084c87",
-            measurementId: "G-VT0T2XDBVN"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const provider = new GoogleAuthProvider();
-
-        // Handle redirect result when page loads back from Google
-        try {
-            const result = await getRedirectResult(auth);
-            if (result) {
-                const user = result.user;
-
-                const loginData = {
-                    token: await user.getIdToken(),
-                    userId: user.uid,
-                    username: user.email.split('@')[0],
-                    role: 'PATIENT',
-                    fullName: user.displayName || 'Patient'
-                };
-
-                const timestamp = Date.now();
-                localStorage.setItem('auth_token', loginData.token);
-                localStorage.setItem('auth_userId', loginData.userId);
-                localStorage.setItem('auth_username', loginData.username);
-                localStorage.setItem('auth_role', loginData.role);
-                localStorage.setItem('auth_fullName', loginData.fullName);
-                localStorage.setItem('auth_timestamp', timestamp);
-
-                if (window.hospitalAuth && window.hospitalAuth.showToast) {
-                    window.hospitalAuth.showToast(`Welcome, ${loginData.fullName}!`, 'success');
-                }
-
-                setTimeout(() => {
-                    window.location.href = 'patient-dashboard.html';
-                }, 1000);
-            }
-        } catch (error) {
-            console.error("Google Redirect Result Error:", error);
-            if (window.hospitalAuth && window.hospitalAuth.showToast) {
-                window.hospitalAuth.showToast(`Google Sign-In failed: ${error.message}`, 'error');
-            }
-        }
-
-        // Button click triggers redirect to Google
-        const googleBtn = document.getElementById('googleSignInBtn');
-        if (googleBtn) {
-            googleBtn.addEventListener('click', async (e) => {
-                e.preventDefault();
-
-                if (window.hospitalAuth && window.hospitalAuth.showToast) {
-                    window.hospitalAuth.showToast('Redirecting to Google...', 'info');
-                }
-
-                try {
-                    await signInWithRedirect(auth, provider);
-                } catch (error) {
-                    console.error("Google Sign-In Error:", error);
-                    if (window.hospitalAuth && window.hospitalAuth.showToast) {
-                        window.hospitalAuth.showToast(`Google Sign-In failed: ${error.message}`, 'error');
-                    }
-                }
-            });
-        }
-    </script>
 </body>
 
 </html>

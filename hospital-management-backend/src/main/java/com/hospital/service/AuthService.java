@@ -2,7 +2,6 @@ package com.hospital.service;
 
 import com.hospital.config.JwtUtil;
 import com.hospital.dto.AuthResponse;
-import com.hospital.dto.FirebaseLoginRequest;
 import com.hospital.dto.LoginRequest;
 import com.hospital.dto.RegisterRequest;
 import com.hospital.model.Doctor;
@@ -17,12 +16,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -62,10 +59,6 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final OtpService otpService;
-    private final RestTemplate restTemplate;
-
-    @Value("${firebase.web-api-key}")
-    private String firebaseWebApiKey;
 
     @Value("${hms.seed.admin.username:whoami}")
     private String seedAdminUsername;
@@ -84,14 +77,13 @@ public class AuthService {
      */
     public AuthService(UserRepository userRepository, PatientRepository patientRepository,
             DoctorRepository doctorRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil,
-            OtpService otpService, RestTemplate restTemplate) {
+            OtpService otpService) {
         this.userRepository = userRepository;
         this.patientRepository = patientRepository;
         this.doctorRepository = doctorRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.otpService = otpService;
-        this.restTemplate = restTemplate;
     }
 
     /**
@@ -227,42 +219,6 @@ public class AuthService {
         }
     }
 
-    @Transactional
-    public AuthResponse loginWithFirebase(FirebaseLoginRequest request) {
-        if (request == null || request.getIdToken() == null || request.getIdToken().isBlank()) {
-            throw new IllegalArgumentException("Firebase ID token is required");
-        }
-
-        String requestedRole = request.getRole() != null ? request.getRole().toUpperCase() : "PATIENT";
-        if (!List.of("PATIENT", "DOCTOR").contains(requestedRole)) {
-            throw new IllegalArgumentException("Firebase login is available for patient and doctor accounts only");
-        }
-
-        FirebaseUserInfo firebaseUser = verifyFirebaseToken(request.getIdToken());
-        User user = userRepository.findByEmail(firebaseUser.email())
-                .map(existing -> updateFirebaseUser(existing, firebaseUser, requestedRole))
-                .orElseGet(() -> createFirebaseUser(firebaseUser, requestedRole));
-
-        if (!user.getRole().equalsIgnoreCase(requestedRole)) {
-            throw new RuntimeException("This Firebase account is registered as " + user.getRole()
-                    + ". Select the " + user.getRole() + " role to continue.");
-        }
-
-        if (!user.getIsActive()) {
-            throw new RuntimeException("Account is inactive. Contact administrator.");
-        }
-
-        String token = jwtUtil.generateToken(user.getUsername(), user.getRole(), user.getId());
-        return new AuthResponse(
-                token,
-                user.getUsername(),
-                user.getRole(),
-                user.getId(),
-                user.getFullName(),
-                user.getProfilePictureUrl(),
-                "Firebase login successful");
-    }
-
     /**
      * Initialize default test users (called on application startup)
      */
@@ -350,105 +306,6 @@ public class AuthService {
                 "Verification successful");
     }
 
-    @SuppressWarnings("unchecked")
-    private FirebaseUserInfo verifyFirebaseToken(String idToken) {
-        if (firebaseWebApiKey == null || firebaseWebApiKey.isBlank()) {
-            throw new RuntimeException("Firebase web API key is not configured");
-        }
-
-        String url = "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=" + firebaseWebApiKey;
-        Map<String, String> body = Map.of("idToken", idToken);
-
-        Map<String, Object> response = restTemplate.postForObject(url, body, Map.class);
-        List<Map<String, Object>> users = response != null
-                ? (List<Map<String, Object>>) response.get("users")
-                : null;
-
-        if (users == null || users.isEmpty()) {
-            throw new RuntimeException("Invalid Firebase session");
-        }
-
-        Map<String, Object> user = users.get(0);
-        String uid = stringValue(user.get("localId"));
-        String email = stringValue(user.get("email"));
-        String name = stringValue(user.get("displayName"));
-        String photoUrl = stringValue(user.get("photoUrl"));
-
-        if (email == null || email.isBlank()) {
-            throw new RuntimeException("Firebase account email is required");
-        }
-
-        return new FirebaseUserInfo(uid, email, name, photoUrl);
-    }
-
-    private User createFirebaseUser(FirebaseUserInfo firebaseUser, String role) {
-        User user = "DOCTOR".equals(role) ? new Doctor() : new Patient();
-        user.setUsername(uniqueFirebaseUsername(firebaseUser.email(), firebaseUser.uid()));
-        user.setEmail(firebaseUser.email());
-        user.setPassword(passwordEncoder.encode("FIREBASE_AUTH:" + firebaseUser.uid()));
-        user.setFullName(displayName(firebaseUser));
-        user.setPhoneNumber("0000000000");
-        user.setProvider("FIREBASE");
-        user.setProviderId(firebaseUser.uid());
-        user.setProfilePictureUrl(firebaseUser.photoUrl());
-        user.setRole(role);
-        user.setIsActive(true);
-        return userRepository.save(user);
-    }
-
-    private User updateFirebaseUser(User user, FirebaseUserInfo firebaseUser, String requestedRole) {
-        if (!user.getRole().equalsIgnoreCase(requestedRole)) {
-            return user;
-        }
-
-        user.setProvider("FIREBASE");
-        user.setProviderId(firebaseUser.uid());
-        if (firebaseUser.photoUrl() != null && !firebaseUser.photoUrl().isBlank()) {
-            user.setProfilePictureUrl(firebaseUser.photoUrl());
-        }
-        if ((user.getFullName() == null || user.getFullName().isBlank())
-                && firebaseUser.displayName() != null && !firebaseUser.displayName().isBlank()) {
-            user.setFullName(firebaseUser.displayName());
-        }
-        return userRepository.save(user);
-    }
-
-    private String uniqueFirebaseUsername(String email, String uid) {
-        String base = email.substring(0, email.indexOf('@')).replaceAll("[^A-Za-z0-9_]", "_");
-        if (base.length() < 3) {
-            base = "user_" + base;
-        }
-        if (base.length() > 42) {
-            base = base.substring(0, 42);
-        }
-
-        String candidate = base;
-        int suffix = 1;
-        while (userRepository.existsByUsername(candidate)) {
-            String uidSuffix = uid != null && uid.length() >= 6 ? uid.substring(0, 6) : String.valueOf(suffix++);
-            candidate = base + "_" + uidSuffix;
-            if (candidate.length() > 50) {
-                candidate = candidate.substring(0, 50);
-            }
-            if (!userRepository.existsByUsername(candidate)) {
-                break;
-            }
-            candidate = base + "_" + suffix++;
-        }
-        return candidate;
-    }
-
-    private String displayName(FirebaseUserInfo firebaseUser) {
-        if (firebaseUser.displayName() != null && !firebaseUser.displayName().isBlank()) {
-            return firebaseUser.displayName();
-        }
-        return firebaseUser.email().substring(0, firebaseUser.email().indexOf('@'));
-    }
-
-    private String stringValue(Object value) {
-        return value != null ? value.toString() : null;
-    }
-
     private String resolveSeedPassword(String configuredPassword, String accountType) {
         if (configuredPassword != null && !configuredPassword.isBlank()) {
             return configuredPassword;
@@ -459,9 +316,6 @@ public class AuthService {
                 "No configured seed password for {} default account. Generated random startup password.",
                 accountType);
         return generated;
-    }
-
-    private record FirebaseUserInfo(String uid, String email, String displayName, String photoUrl) {
     }
 
     // ============== Private Validation Methods ==============

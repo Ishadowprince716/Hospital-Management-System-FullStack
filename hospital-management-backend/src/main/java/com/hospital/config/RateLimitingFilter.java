@@ -96,8 +96,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String normalizedUri = requestURI.toLowerCase(Locale.ROOT);
         return normalizedUri.contains("/login")
                 || normalizedUri.contains("/register")
-                || normalizedUri.contains("/verify-otp")
-                || normalizedUri.contains("/firebase");
+                || normalizedUri.contains("/verify-otp");
     }
 
     private String resolveClientIp(HttpServletRequest request) {
