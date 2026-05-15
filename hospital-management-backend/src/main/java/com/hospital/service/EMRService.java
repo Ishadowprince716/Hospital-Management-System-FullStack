@@ -5,6 +5,8 @@ import com.hospital.repository.mysql.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +65,12 @@ public class EMRService {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found with ID: " + patientId));
         vitalSigns.setPatient(patient);
+        if (vitalSigns.getWeight() != null && vitalSigns.getHeight() != null
+                && vitalSigns.getHeight().compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal heightMeters = vitalSigns.getHeight().divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+            BigDecimal bmi = vitalSigns.getWeight().divide(heightMeters.multiply(heightMeters), 2, RoundingMode.HALF_UP);
+            vitalSigns.setBmi(bmi);
+        }
         return vitalSignsRepository.save(vitalSigns);
     }
 

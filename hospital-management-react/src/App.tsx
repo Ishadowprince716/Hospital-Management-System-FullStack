@@ -25,6 +25,19 @@ const MedicalRecords = lazy(() => import('./pages/patient/MedicalRecords'));
 const PatientPrescriptions = lazy(() => import('./pages/patient/PatientPrescriptions'));
 const MedicalReports = lazy(() => import('./pages/patient/MedicalReports'));
 const PatientBilling = lazy(() => import('./pages/patient/PatientBilling'));
+const CarePlan = lazy(() => import('./pages/patient/CarePlan'));
+const VitalsTracker = lazy(() => import('./pages/patient/VitalsTracker'));
+const SupportCenter = lazy(() => import('./pages/patient/SupportCenter'));
+const PatientFeedback = lazy(() => import('./pages/patient/PatientFeedback'));
+const DischargeInstructions = lazy(() => import('./pages/patient/DischargeInstructions'));
+const PatientReferrals = lazy(() => import('./pages/patient/PatientReferrals'));
+const InsurancePreauth = lazy(() => import('./pages/patient/InsurancePreauth'));
+const MedicationRefills = lazy(() => import('./pages/patient/MedicationRefills'));
+const AppointmentWaitlist = lazy(() => import('./pages/patient/AppointmentWaitlist'));
+const EmergencyTransport = lazy(() => import('./pages/patient/EmergencyTransport'));
+const VisitorPasses = lazy(() => import('./pages/patient/VisitorPasses'));
+const DietaryMeals = lazy(() => import('./pages/patient/DietaryMeals'));
+const RoomServices = lazy(() => import('./pages/patient/RoomServices'));
 
 // Doctor
 const DoctorAppointments = lazy(() => import('./pages/doctor/DoctorAppointments'));
@@ -33,6 +46,11 @@ const DoctorPrescriptions = lazy(() => import('./pages/doctor/DoctorPrescription
 const DoctorMedicalRecords = lazy(() => import('./pages/doctor/DoctorMedicalRecords'));
 const DoctorLabOrders = lazy(() => import('./pages/doctor/DoctorLabOrders'));
 const DoctorAvailability = lazy(() => import('./pages/doctor/DoctorAvailability'));
+const DoctorTriage = lazy(() => import('./pages/doctor/DoctorTriage'));
+const SafetyReports = lazy(() => import('./pages/doctor/SafetyReports'));
+const ClinicalHandoffs = lazy(() => import('./pages/doctor/ClinicalHandoffs'));
+const DischargePlanner = lazy(() => import('./pages/doctor/DischargePlanner'));
+const DoctorReferrals = lazy(() => import('./pages/doctor/DoctorReferrals'));
 
 // Admin
 const ManageDoctors = lazy(() => import('./pages/admin/ManageDoctors'));
@@ -42,6 +60,21 @@ const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
 const AdminBilling = lazy(() => import('./pages/admin/AdminBilling'));
 const InventoryDashboard = lazy(() => import('./pages/admin/InventoryDashboard'));
 const BedHeatmap = lazy(() => import('./pages/admin/BedHeatmap'));
+const OperationsCenter = lazy(() => import('./pages/admin/OperationsCenter'));
+const SupportDesk = lazy(() => import('./pages/admin/SupportDesk'));
+const PatientExperience = lazy(() => import('./pages/admin/PatientExperience'));
+const RiskCenter = lazy(() => import('./pages/admin/RiskCenter'));
+const HandoffMonitor = lazy(() => import('./pages/admin/HandoffMonitor'));
+const DischargeBoard = lazy(() => import('./pages/admin/DischargeBoard'));
+const ReferralDesk = lazy(() => import('./pages/admin/ReferralDesk'));
+const InsuranceDesk = lazy(() => import('./pages/admin/InsuranceDesk'));
+const PharmacyQueue = lazy(() => import('./pages/admin/PharmacyQueue'));
+const WaitlistBoard = lazy(() => import('./pages/admin/WaitlistBoard'));
+const TransportDispatch = lazy(() => import('./pages/admin/TransportDispatch'));
+const VisitorDesk = lazy(() => import('./pages/admin/VisitorDesk'));
+const NutritionDesk = lazy(() => import('./pages/admin/NutritionDesk'));
+const HousekeepingBoard = lazy(() => import('./pages/admin/HousekeepingBoard'));
+const CommandAlerts = lazy(() => import('./pages/admin/CommandAlerts'));
 
 // Shared
 const Notifications = lazy(() => import('./pages/shared/Notifications'));
@@ -111,10 +144,23 @@ function App() {
                             <Route index                    element={withBoundary(<Overview />)} />
                             <Route path="appointments"      element={withBoundary(<MyAppointments />)} />
                             <Route path="book-appointment"  element={withBoundary(<BookAppointment />)} />
+                            <Route path="waitlist"          element={withBoundary(<AppointmentWaitlist />)} />
+                            <Route path="transport"         element={withBoundary(<EmergencyTransport />)} />
+                            <Route path="visitors"          element={withBoundary(<VisitorPasses />)} />
+                            <Route path="meals"             element={withBoundary(<DietaryMeals />)} />
+                            <Route path="room-services"     element={withBoundary(<RoomServices />)} />
                             <Route path="medical-records"   element={withBoundary(<MedicalRecords />)} />
                             <Route path="medical-reports"   element={withBoundary(<MedicalReports />)} />
                             <Route path="prescriptions"     element={withBoundary(<PatientPrescriptions />)} />
                             <Route path="billing"           element={withBoundary(<PatientBilling />)} />
+                            <Route path="care-plan"         element={withBoundary(<CarePlan />)} />
+                            <Route path="vitals"            element={withBoundary(<VitalsTracker />)} />
+                            <Route path="support"           element={withBoundary(<SupportCenter />)} />
+                            <Route path="feedback"          element={withBoundary(<PatientFeedback />)} />
+                            <Route path="discharge"         element={withBoundary(<DischargeInstructions />)} />
+                            <Route path="referrals"         element={withBoundary(<PatientReferrals />)} />
+                            <Route path="insurance"         element={withBoundary(<InsurancePreauth />)} />
+                            <Route path="refills"           element={withBoundary(<MedicationRefills />)} />
                             <Route path="messages"          element={withBoundary(<Notifications />)} />
                             <Route path="settings"          element={withBoundary(<SystemSettings />)} />
                         </Route>
@@ -135,6 +181,11 @@ function App() {
                             <Route path="medical-records"   element={withBoundary(<DoctorMedicalRecords />)} />
                             <Route path="lab-orders"        element={withBoundary(<DoctorLabOrders />)} />
                             <Route path="availability"      element={withBoundary(<DoctorAvailability />)} />
+                            <Route path="triage"            element={withBoundary(<DoctorTriage />)} />
+                            <Route path="safety"            element={withBoundary(<SafetyReports />)} />
+                            <Route path="handoffs"          element={withBoundary(<ClinicalHandoffs />)} />
+                            <Route path="discharge"         element={withBoundary(<DischargePlanner />)} />
+                            <Route path="referrals"         element={withBoundary(<DoctorReferrals />)} />
                             <Route path="messages"          element={withBoundary(<Notifications />)} />
                             <Route path="settings"          element={withBoundary(<SystemSettings />)} />
                         </Route>
@@ -152,10 +203,25 @@ function App() {
                             <Route path="doctors"           element={withBoundary(<ManageDoctors />)} />
                             <Route path="patients"          element={withBoundary(<ManagePatients />)} />
                             <Route path="appointments"      element={withBoundary(<AdminAllAppointments />)} />
+                            <Route path="waitlist"          element={withBoundary(<WaitlistBoard />)} />
+                            <Route path="transport"         element={withBoundary(<TransportDispatch />)} />
+                            <Route path="visitors"          element={withBoundary(<VisitorDesk />)} />
+                            <Route path="nutrition"         element={withBoundary(<NutritionDesk />)} />
+                            <Route path="housekeeping"      element={withBoundary(<HousekeepingBoard />)} />
+                            <Route path="command-alerts"    element={withBoundary(<CommandAlerts />)} />
                             <Route path="analytics"         element={withBoundary(<AdminAnalytics />)} />
                             <Route path="billing"           element={withBoundary(<AdminBilling />)} />
                             <Route path="inventory"         element={withBoundary(<InventoryDashboard />)} />
                             <Route path="beds"              element={withBoundary(<BedHeatmap />)} />
+                            <Route path="operations"        element={withBoundary(<OperationsCenter />)} />
+                            <Route path="support"           element={withBoundary(<SupportDesk />)} />
+                            <Route path="experience"        element={withBoundary(<PatientExperience />)} />
+                            <Route path="risk"              element={withBoundary(<RiskCenter />)} />
+                            <Route path="handoffs"          element={withBoundary(<HandoffMonitor />)} />
+                            <Route path="discharge"         element={withBoundary(<DischargeBoard />)} />
+                            <Route path="referrals"         element={withBoundary(<ReferralDesk />)} />
+                            <Route path="insurance"         element={withBoundary(<InsuranceDesk />)} />
+                            <Route path="pharmacy"          element={withBoundary(<PharmacyQueue />)} />
                             <Route path="notifications"     element={withBoundary(<Notifications />)} />
                             <Route path="settings"          element={withBoundary(<SystemSettings />)} />
                             </Route>
