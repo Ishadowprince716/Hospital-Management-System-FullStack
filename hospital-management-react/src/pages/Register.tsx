@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
-import { API_BASE } from '../api';
+import api, { getApiErrorMessage } from '../api';
 import { AtSign, Phone, ShieldCheck, UserRound } from 'lucide-react';
+import { ConstellationField } from '@designcodeio/threeui';
 
-type ApiResponse = { success: boolean; message: string; data?: unknown };
+type ApiResponse<T = unknown> = { success: boolean; message: string; data?: T };
 type Role = 'PATIENT' | 'DOCTOR';
 
 const ROLE_META: Record<Role, { label: string; desc: string }> = {
@@ -19,6 +19,7 @@ const PatientIcon = ({ active }: { active: boolean }) => (
     <path d="M10.5 10.5h3M12 9v3" strokeWidth="1.5"/>
   </svg>
 );
+
 const DoctorIcon = ({ active }: { active: boolean }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#fff' : '#94a3b8'} strokeWidth="1.8" strokeLinecap="round">
     <circle cx="12" cy="7" r="4"/>
@@ -27,6 +28,7 @@ const DoctorIcon = ({ active }: { active: boolean }) => (
     <circle cx="12" cy="19.5" r="1" fill={active ? '#fff' : '#94a3b8'}/>
   </svg>
 );
+
 const EyeIcon = ({ off }: { off?: boolean }) => off
   ? <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round"><path d="M17.9 17.9A10 10 0 0 1 12 20C5 20 1 12 1 12a17.8 17.8 0 0 1 5.1-5.9M9.9 4.2A9 9 0 0 1 12 4c7 0 11 8 11 8a17.5 17.5 0 0 1-2.2 3.2M1 1l22 22"/></svg>
   : <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
@@ -37,6 +39,7 @@ const pwdStrength = (p: string) => {
   if (/[A-Z]/.test(p)) s++; if (/[0-9]/.test(p)) s++; if (/[^A-Za-z0-9]/.test(p)) s++;
   return s;
 };
+
 const strengthLabel = (s: number) =>
   s <= 1 ? { text: 'Weak',   color: '#ef4444' } :
   s <= 3 ? { text: 'Fair',   color: '#f59e0b' } :
@@ -48,6 +51,70 @@ const FEATURES = [
   { icon: '📱', title: 'Access Anywhere',       desc: 'Manage your health on any device'   },
   { icon: '⚡', title: 'Instant Appointments', desc: 'Book a slot in under 60 seconds'     },
 ];
+
+// Defined outside component to prevent unmounting / losing focus on every keystroke
+interface FormFieldProps {
+  label: string;
+  name: string;
+  value: string;
+  placeholder: string;
+  type?: string;
+  icon: React.ElementType;
+  isFocused: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onFocus: () => void;
+  onBlur: () => void;
+  hint?: string;
+}
+
+const FormField: React.FC<FormFieldProps> = ({
+  label,
+  name,
+  value,
+  placeholder,
+  type = 'text',
+  icon: Icon,
+  isFocused,
+  onChange,
+  onFocus,
+  onBlur,
+  hint,
+}) => (
+  <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <span style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
+      {hint && <span style={{ fontSize: 10, color: '#94a3b8' }}>{hint}</span>}
+    </div>
+    <span style={{ position: 'relative', display: 'block' }}>
+      <Icon size={17} strokeWidth={2.1} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: isFocused ? '#14b8a6' : '#94a3b8', transition: 'color .2s' }} />
+      <input
+        name={name}
+        placeholder={placeholder}
+        type={type}
+        value={value}
+        onChange={onChange}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        required
+        autoComplete={name === 'email' ? 'email' : name === 'fullName' ? 'name' : name === 'username' ? 'username' : 'tel'}
+        style={{
+          width: '100%',
+          height: 48,
+          border: `1.5px solid ${isFocused ? '#14b8a6' : '#d7e0ec'}`,
+          borderRadius: 14,
+          padding: '0 18px 0 44px',
+          fontSize: 14,
+          fontWeight: 600,
+          color: '#0f172a',
+          background: '#fff',
+          outline: 'none',
+          boxShadow: isFocused ? '0 0 0 4px rgba(20,184,166,0.14), 0 8px 18px rgba(15,23,42,0.06)' : '0 2px 8px rgba(15,23,42,0.03)',
+          transition: 'border-color .2s, box-shadow .2s, background .2s',
+        }}
+      />
+    </span>
+  </label>
+);
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -64,88 +131,102 @@ const Register: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    setError(null);
     setForm(f => ({ ...f, [name]: name === 'phoneNumber' ? value.replace(/\D/g, '').slice(0, 10) : value }));
+  };
+
+  const validateStep1 = (): boolean => {
+    const cleanName = form.fullName.trim();
+    const cleanUser = form.username.trim();
+    const cleanEmail = form.email.trim();
+    const cleanPhone = form.phoneNumber.trim();
+
+    if (cleanName.length < 2) {
+      setError('Please enter your full name (at least 2 characters).');
+      return false;
+    }
+    if (!/^[a-zA-Z0-9_]{3,50}$/.test(cleanUser)) {
+      setError('Username must be 3-50 characters with only letters, numbers, or underscore (no spaces).');
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError('Please enter a valid email address.');
+      return false;
+    }
+    if (!/^\d{10}$/.test(cleanPhone)) {
+      setError('Phone number must be exactly 10 digits.');
+      return false;
+    }
+
+    setError(null);
+    return true;
+  };
+
+  const handleContinue = () => {
+    if (validateStep1()) {
+      setStep(2);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true); setError(null); setSuccess(null);
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    const payload = {
+      username: form.username.trim(),
+      email: form.email.trim().toLowerCase(),
+      password: form.password,
+      fullName: form.fullName.trim(),
+      phoneNumber: form.phoneNumber.trim(),
+      role: form.role,
+    };
+
     try {
-      const res = await axios.post<ApiResponse>(`${API_BASE}/auth/register`, form);
-      setSuccess(res.data.message || 'Account created! Redirecting…');
-      setTimeout(() => navigate('/login'), 2000);
+      const res = await api.post<ApiResponse>('/auth/register', payload);
+      setSuccess(res.data.message || 'Account created successfully! Redirecting to login…');
+      setTimeout(() => navigate('/login'), 1800);
     } catch (err: unknown) {
-      let msg = 'Registration failed. Please try again.';
-      if (axios.isAxiosError<ApiResponse>(err)) msg = err.response?.data?.message || msg;
+      const msg = getApiErrorMessage(err, 'Registration failed. Please verify your details.');
       setError(msg);
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const step1OK = !!(
-    form.fullName.trim().length >= 2 &&
-    form.username.trim().length >= 3 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) &&
-    /^\d{10}$/.test(form.phoneNumber)
-  );
+  const handleQuickDemoFill = (selectedRole: Role) => {
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    setError(null);
+    setForm({
+      fullName: selectedRole === 'DOCTOR' ? `Dr. Test Physician ${rand}` : `Test Patient ${rand}`,
+      username: selectedRole === 'DOCTOR' ? `doctor_${rand}` : `patient_${rand}`,
+      email: `${selectedRole.toLowerCase()}_${rand}@hospital.local`,
+      phoneNumber: `98${Math.floor(10000000 + Math.random() * 90000000)}`,
+      password: 'Password123!',
+      role: selectedRole,
+    });
+    setStep(2);
+  };
+
   const score = pwdStrength(form.password);
   const sl = strengthLabel(score);
-
-  const inputStyle = (name: string): React.CSSProperties => ({
-    width: '100%',
-    height: 48,
-    border: `1.5px solid ${focused === name ? '#14b8a6' : '#d7e0ec'}`,
-    borderRadius: 14,
-    padding: '0 18px 0 44px',
-    fontSize: 14,
-    fontWeight: 650,
-    color: '#0f172a',
-    background: '#fff',
-    outline: 'none',
-    boxShadow: focused === name ? '0 0 0 4px rgba(20,184,166,0.14), 0 8px 18px rgba(15,23,42,0.06)' : '0 2px 8px rgba(15,23,42,0.03)',
-    transition: 'border-color .2s, box-shadow .2s, background .2s',
-  });
-
-  const Field = ({
-    name,
-    label,
-    placeholder,
-    type = 'text',
-    icon: Icon,
-  }: {
-    name: keyof typeof form;
-    label: string;
-    placeholder: string;
-    type?: string;
-    icon: React.ElementType;
-  }) => (
-    <label style={S.field}>
-      <span style={S.fieldLabel}>{label}</span>
-      <span style={S.inputWrap}>
-        <Icon size={17} strokeWidth={2.1} style={S.inputIcon} />
-        <input
-          name={name}
-          placeholder={placeholder}
-          type={type}
-          value={form[name]}
-          onChange={handleChange}
-          onFocus={() => setFocused(name)}
-          onBlur={() => setFocused(null)}
-          required
-          autoComplete={name === 'email' ? 'email' : name === 'fullName' ? 'name' : name === 'username' ? 'username' : 'tel'}
-          inputMode={name === 'phoneNumber' ? 'numeric' : undefined}
-          pattern={name === 'phoneNumber' ? '\\d{10}' : undefined}
-          title={name === 'phoneNumber' ? 'Enter a 10 digit phone number' : undefined}
-          style={inputStyle(name)}
-        />
-      </span>
-    </label>
-  );
 
   return (
     <div className="auth-page" style={S.page}>
       <style>{CSS}</style>
 
-      {/* ── LEFT PANEL ─────────────────────────── */}
+      {/* 3D Interactive ThreeUI Background */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0, opacity: 0.65, pointerEvents: 'none' }}>
+        <ConstellationField mode="dark" speed={0.8} density={0.8} />
+      </div>
+
+      {/* LEFT PANEL */}
       <div className="auth-left" style={{ ...S.left, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(-24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1)' }}>
         <div>
           {/* Logo */}
@@ -189,12 +270,60 @@ const Register: React.FC = () => {
         </a>
       </div>
 
-      {/* ── RIGHT PANEL ─────────────────────────── */}
+      {/* RIGHT PANEL */}
       <div className="auth-right" style={{ ...S.right, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1) .1s' }}>
         <div className="register-card" style={S.card}>
-          <div className="register-mark" style={S.cardHeaderMark}>MediCare access</div>
+          <div className="register-mark" style={S.cardHeaderMark}>MediCare Access</div>
           <h2 style={S.cardTitle}>Create Account</h2>
-          <p style={S.cardSub}>Join thousands of patients and doctors</p>
+          <p style={S.cardSub}>Join thousands of patients and healthcare providers</p>
+
+          {/* Quick Demo Test Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, flexWrap: 'wrap', padding: '8px 12px', background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: 11, fontWeight: 800, color: '#64748b' }}>Quick Fill Demo:</span>
+            <button
+              type="button"
+              onClick={() => handleQuickDemoFill('PATIENT')}
+              className="quick-chip"
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '4px 8px',
+                borderRadius: 6,
+                border: '1px solid #cbd5e1',
+                background: '#ffffff',
+                color: '#0f766e',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              }}
+            >
+              ⚡ Demo Patient
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickDemoFill('DOCTOR')}
+              className="quick-chip"
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '4px 8px',
+                borderRadius: 6,
+                border: '1px solid #cbd5e1',
+                background: '#ffffff',
+                color: '#0284c7',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              }}
+            >
+              ⚡ Demo Doctor
+            </button>
+          </div>
+
           <div className="register-trust" style={S.trustStrip}>
             <ShieldCheck size={16} strokeWidth={2.3} />
             <span>Secure account setup with encrypted health records</span>
@@ -205,11 +334,23 @@ const Register: React.FC = () => {
             {(['PATIENT', 'DOCTOR'] as Role[]).map(r => {
               const on = form.role === r;
               return (
-                <button key={r} type="button" onClick={() => setForm(f => ({ ...f, role: r }))} className="role-tab"
-                  style={{ ...S.tab, background: on ? 'linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%)' : '#fff', border: `1.5px solid ${on ? 'rgba(20,184,166,0)' : '#d7e0ec'}`, boxShadow: on ? '0 12px 28px rgba(20,184,166,0.28)' : '0 5px 18px rgba(15,23,42,0.04)', transform: on ? 'translateY(-2px)' : 'none', flex: 1 }}>
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, role: r }))}
+                  className="role-tab"
+                  style={{
+                    ...S.tab,
+                    background: on ? 'linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%)' : '#fff',
+                    border: `1.5px solid ${on ? 'rgba(20,184,166,0)' : '#d7e0ec'}`,
+                    boxShadow: on ? '0 12px 28px rgba(20,184,166,0.28)' : '0 5px 18px rgba(15,23,42,0.04)',
+                    transform: on ? 'translateY(-2px)' : 'none',
+                    flex: 1,
+                  }}
+                >
                   {r === 'PATIENT' ? <PatientIcon active={on}/> : <DoctorIcon active={on}/>}
                   <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontSize: 14, fontWeight: 850, color: on ? '#fff' : '#334155', margin: 0 }}>{ROLE_META[r].label}</p>
+                    <p style={{ fontSize: 14, fontWeight: 800, color: on ? '#fff' : '#334155', margin: 0 }}>{ROLE_META[r].label}</p>
                     <p style={{ fontSize: 11, lineHeight: 1.35, color: on ? 'rgba(255,255,255,0.84)' : '#64748b', margin: '4px 0 0' }}>{ROLE_META[r].desc}</p>
                   </div>
                 </button>
@@ -222,10 +363,10 @@ const Register: React.FC = () => {
             {[1, 2].map(s => (
               <React.Fragment key={s}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: step >= s ? 'linear-gradient(135deg, #14b8a6, #0ea5e9)' : '#f8fafc', border: `1.5px solid ${step >= s ? 'rgba(20,184,166,0)' : '#d7e0ec'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 850, color: step >= s ? '#fff' : '#94a3b8', transition: 'all .3s', boxShadow: step === s ? '0 8px 18px rgba(20,184,166,0.28)' : 'none' }}>
+                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: step >= s ? 'linear-gradient(135deg, #14b8a6, #0ea5e9)' : '#f8fafc', border: `1.5px solid ${step >= s ? 'rgba(20,184,166,0)' : '#d7e0ec'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: step >= s ? '#fff' : '#94a3b8', transition: 'all .3s', boxShadow: step === s ? '0 8px 18px rgba(20,184,166,0.28)' : 'none' }}>
                     {step > s ? '✓' : s}
                   </div>
-                  <span style={{ fontSize: 13, fontWeight: step === s ? 800 : 650, color: step >= s ? '#0f172a' : '#94a3b8' }}>
+                  <span style={{ fontSize: 13, fontWeight: step === s ? 800 : 600, color: step >= s ? '#0f172a' : '#94a3b8' }}>
                     {s === 1 ? 'Basic Info' : 'Set Password'}
                   </span>
                 </div>
@@ -234,30 +375,129 @@ const Register: React.FC = () => {
             ))}
           </div>
 
-          {/* Step 1 */}
-          {step === 1 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, animation: 'slideIn .3s ease' }}>
-              <div className="register-field-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <Field name="fullName" label="Full name" placeholder="Rahul Singh" icon={UserRound} />
-                <Field name="username" label="Username" placeholder="rahul716" icon={UserRound} />
-              </div>
-              <Field name="email" label="Email address" placeholder="name@example.com" type="email" icon={AtSign} />
-              <Field name="phoneNumber" label="Phone number" placeholder="10 digit mobile number" icon={Phone} />
-
-              <button type="button" onClick={() => step1OK && setStep(2)} style={{ height: 50, borderRadius: 14, border: 'none', background: step1OK ? 'linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%)' : '#eef3f8', color: step1OK ? '#fff' : '#8fa0b7', fontSize: 15, fontWeight: 850, cursor: step1OK ? 'pointer' : 'not-allowed', boxShadow: step1OK ? '0 12px 28px rgba(20,184,166,0.26)' : 'inset 0 0 0 1px #e3eaf2', transition: 'all .25s', marginTop: 4 }} className={step1OK ? 'login-btn' : ''}>
-                Continue →
-              </button>
+          {/* Error Banner */}
+          {error && (
+            <div style={{ padding: '10px 14px', borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+              ⚠️ {error}
             </div>
           )}
 
-          {/* Step 2 */}
+          {/* Success Banner */}
+          {success && (
+            <div style={{ padding: '10px 14px', borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#16a34a', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+              ✅ {success}
+            </div>
+          )}
+
+          {/* Step 1 Form */}
+          {step === 1 && (
+            <form onSubmit={(e) => { e.preventDefault(); handleContinue(); }} style={{ display: 'flex', flexDirection: 'column', gap: 12, animation: 'slideIn .3s ease' }}>
+              <div className="register-field-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <FormField
+                  name="fullName"
+                  label="Full name"
+                  placeholder="Rahul Singh"
+                  icon={UserRound}
+                  value={form.fullName}
+                  isFocused={focused === 'fullName'}
+                  onChange={handleChange}
+                  onFocus={() => setFocused('fullName')}
+                  onBlur={() => setFocused(null)}
+                />
+                <FormField
+                  name="username"
+                  label="Username"
+                  placeholder="rahul716"
+                  hint="no spaces"
+                  icon={UserRound}
+                  value={form.username}
+                  isFocused={focused === 'username'}
+                  onChange={handleChange}
+                  onFocus={() => setFocused('username')}
+                  onBlur={() => setFocused(null)}
+                />
+              </div>
+              <FormField
+                name="email"
+                label="Email address"
+                placeholder="name@example.com"
+                type="email"
+                icon={AtSign}
+                value={form.email}
+                isFocused={focused === 'email'}
+                onChange={handleChange}
+                onFocus={() => setFocused('email')}
+                onBlur={() => setFocused(null)}
+              />
+              <FormField
+                name="phoneNumber"
+                label="Phone number"
+                placeholder="10 digit mobile number"
+                icon={Phone}
+                value={form.phoneNumber}
+                isFocused={focused === 'phoneNumber'}
+                onChange={handleChange}
+                onFocus={() => setFocused('phoneNumber')}
+                onBlur={() => setFocused(null)}
+              />
+
+              <button
+                type="submit"
+                style={{
+                  height: 50,
+                  borderRadius: 14,
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%)',
+                  color: '#fff',
+                  fontSize: 15,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: '0 12px 28px rgba(20,184,166,0.26)',
+                  transition: 'all .25s',
+                  marginTop: 6,
+                }}
+                className="login-btn"
+              >
+                Continue →
+              </button>
+            </form>
+          )}
+
+          {/* Step 2 Form */}
           {step === 2 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, animation: 'slideIn .3s ease' }}>
-              <div style={{ position: 'relative' }}>
-                <input name="password" type={showPwd ? 'text' : 'password'} placeholder="Create a password (min 6 chars)" value={form.password} onChange={handleChange} onFocus={() => setFocused('pwd')} onBlur={() => setFocused(null)} required minLength={6} style={{ ...inputStyle('pwd'), paddingRight: 44 }}/>
-                <button type="button" onClick={() => setShowPwd(v => !v)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 4 }}>
-                  <EyeIcon off={showPwd}/>
-                </button>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, animation: 'slideIn .3s ease' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Password</span>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    name="password"
+                    type={showPwd ? 'text' : 'password'}
+                    placeholder="Create a password (min 6 characters)"
+                    value={form.password}
+                    onChange={handleChange}
+                    onFocus={() => setFocused('pwd')}
+                    onBlur={() => setFocused(null)}
+                    required
+                    minLength={6}
+                    style={{
+                      width: '100%',
+                      height: 48,
+                      border: `1.5px solid ${focused === 'pwd' ? '#14b8a6' : '#d7e0ec'}`,
+                      borderRadius: 14,
+                      padding: '0 44px 0 18px',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: '#0f172a',
+                      background: '#fff',
+                      outline: 'none',
+                      boxShadow: focused === 'pwd' ? '0 0 0 4px rgba(20,184,166,0.14), 0 8px 18px rgba(15,23,42,0.06)' : '0 2px 8px rgba(15,23,42,0.03)',
+                      transition: 'border-color .2s, box-shadow .2s',
+                    }}
+                  />
+                  <button type="button" onClick={() => setShowPwd(v => !v)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 4 }}>
+                    <EyeIcon off={showPwd}/>
+                  </button>
+                </div>
               </div>
 
               {/* Password strength */}
@@ -268,35 +508,53 @@ const Register: React.FC = () => {
                       <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= score ? sl.color : '#f1f5f9', transition: 'background .3s' }}/>
                     ))}
                   </div>
-                  <span style={{ fontSize: 12, color: sl.color, fontWeight: 600 }}>{sl.text} password</span>
+                  <span style={{ fontSize: 12, color: sl.color, fontWeight: 700 }}>{sl.text} password</span>
                 </div>
               )}
 
               {form.role === 'DOCTOR' && (
-                <div style={{ padding: '10px 14px', borderRadius: 10, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', fontSize: 13 }}>
-                  ⚠️ Doctor accounts require admin approval before sign-in.
+                <div style={{ padding: '10px 14px', borderRadius: 10, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', fontSize: 13, fontWeight: 500 }}>
+                  ℹ️ Doctor account will be created and activated for clinical workflows.
                 </div>
               )}
 
-              {error   && <div style={{ padding: '10px 14px', borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: '#ef4444', fontSize: 13 }}>⚠️ {error}</div>}
-              {success && <div style={{ padding: '10px 14px', borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#16a34a', fontSize: 13 }}>✅ {success}</div>}
-
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button type="button" onClick={() => setStep(1)} style={{ height: 50, borderRadius: 12, border: '1.5px solid #e2e8f0', background: '#f8fafc', color: '#64748b', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: '0 20px', transition: 'all .2s' }}>
+                <button type="button" onClick={() => setStep(1)} style={{ height: 50, borderRadius: 12, border: '1.5px solid #e2e8f0', background: '#f8fafc', color: '#64748b', fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '0 20px', transition: 'all .2s' }}>
                   ← Back
                 </button>
-                <button type="button" disabled={loading} className={loading ? '' : 'login-btn'} onClick={handleSubmit as unknown as React.MouseEventHandler}
-                  style={{ flex: 1, height: 50, borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #0dcfba 0%, #0ea5e9 100%)', color: '#fff', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 6px 24px rgba(13,207,186,0.4)', opacity: loading ? .7 : 1, transition: 'all .25s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={loading ? '' : 'login-btn'}
+                  style={{
+                    flex: 1,
+                    height: 50,
+                    borderRadius: 12,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #0dcfba 0%, #0ea5e9 100%)',
+                    color: '#fff',
+                    fontSize: 15,
+                    fontWeight: 800,
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 6px 24px rgba(13,207,186,0.4)',
+                    opacity: loading ? 0.7 : 1,
+                    transition: 'all .25s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                  }}
+                >
                   {loading
                     ? <span style={{ width: 20, height: 20, border: '2.5px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin .7s linear infinite' }}/>
-                  : 'Create Account'}
+                    : 'Create Account'}
                 </button>
               </div>
-            </div>
+            </form>
           )}
 
-          {/* Sign in */}
-          <p style={{ textAlign: 'center', fontSize: 13, color: '#7c8da6', marginTop: 16 }}>
+          {/* Sign in link */}
+          <p style={{ textAlign: 'center', fontSize: 13, color: '#7c8da6', marginTop: 18 }}>
             Already have an account?{' '}
             <Link to="/login" style={{ color: '#0dcfba', fontWeight: 700, textDecoration: 'none' }}>Login here</Link>
           </p>
@@ -311,11 +569,12 @@ const CSS = `
   body { font-family: 'Inter', system-ui, sans-serif; font-synthesis: none; }
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
-  input::placeholder { color: #8da1b8; font-size: 13px; font-weight: 650; }
+  input::placeholder { color: #8da1b8; font-size: 13px; font-weight: 500; }
   input:-webkit-autofill { -webkit-box-shadow: 0 0 0 100px #fff inset !important; -webkit-text-fill-color: #0f172a !important; }
   .login-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.05); box-shadow: 0 16px 32px rgba(20,184,166,0.30) !important; }
   .role-tab { transition: all .25s cubic-bezier(.34,1.56,.64,1); outline: none; cursor: pointer; }
   .role-tab:hover { border-color: #9fded8 !important; transform: translateY(-2px); }
+  .quick-chip:hover { border-color: #0dcfba !important; color: #0dcfba !important; transform: translateY(-1px); }
   .dev-credit:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.32); transform: translateY(-1px); }
   @media (max-width: 900px) {
     .auth-page { flex-direction: column; overflow-y: auto !important; }
@@ -334,8 +593,8 @@ const CSS = `
 `;
 
 const S: Record<string, React.CSSProperties> = {
-  page:        { minHeight: '100vh', display: 'flex', alignItems: 'stretch', fontFamily: "'Inter',system-ui,sans-serif", background: 'linear-gradient(135deg, #35d0bd 0%, #4c8df6 35%, #b777f1 68%, #f28b5b 100%)', overflow: 'auto' },
-  left:        { flex: '0 0 48%', padding: '52px 56px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' },
+  page:        { minHeight: '100vh', display: 'flex', alignItems: 'stretch', fontFamily: "'Inter',system-ui,sans-serif", background: 'radial-gradient(ellipse at 25% 25%, #0d9488 0%, #0f172a 65%, #020617 100%)', position: 'relative', overflow: 'auto' },
+  left:        { flex: '0 0 48%', padding: '52px 56px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative', zIndex: 2 },
   logoBox:     { width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', border: '1.5px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' },
   heading:     { fontSize: 48, fontWeight: 900, color: '#fff', lineHeight: 1.1, letterSpacing: '-1.5px', textShadow: '0 2px 16px rgba(0,0,0,0.12)' },
   tagline:     { fontSize: 15, color: 'rgba(255,255,255,0.75)', fontWeight: 500, marginTop: 10 },
@@ -350,19 +609,15 @@ const S: Record<string, React.CSSProperties> = {
   devName:     { fontSize: 14, lineHeight: 1.25, color: '#2dd4bf', fontWeight: 800, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   devRole:     { fontSize: 11, lineHeight: 1.25, color: 'rgba(255,255,255,0.66)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   devIcon:     { marginLeft: 'auto', opacity: 0.85, flexShrink: 0 },
-  right:       { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px 48px' },
-  card:        { width: '100%', maxWidth: 466, background: 'rgba(255,255,255,0.97)', borderRadius: 22, padding: '26px 34px 24px', boxShadow: '0 28px 90px rgba(30,41,59,0.22)', border: '1px solid rgba(255,255,255,0.72)' },
-  cardHeaderMark: { width: 'fit-content', margin: '0 auto 8px', padding: '5px 10px', borderRadius: 999, background: '#ecfeff', color: '#0f766e', fontSize: 11, fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.08em' },
+  right:       { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px 48px', position: 'relative', zIndex: 2 },
+  card:        { width: '100%', maxWidth: 470, background: 'rgba(255,255,255,0.96)', borderRadius: 24, backdropFilter: 'blur(20px)', padding: '28px 34px 26px', boxShadow: '0 28px 90px rgba(15,23,42,0.30)', border: '1px solid rgba(255,255,255,0.72)' },
+  cardHeaderMark: { width: 'fit-content', margin: '0 auto 8px', padding: '5px 12px', borderRadius: 999, background: '#ecfeff', color: '#0f766e', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' },
   cardTitle:   { fontSize: 26, fontWeight: 850, color: '#07111f', letterSpacing: '0', textAlign: 'center', margin: '0 0 6px', lineHeight: 1.12 },
-  cardSub:     { fontSize: 14, color: '#63748a', textAlign: 'center', margin: '0 0 18px', fontWeight: 650 },
-  trustStrip:   { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '-6px 0 16px', padding: '8px 10px', borderRadius: 14, background: '#f0fdfa', color: '#0f766e', fontSize: 12, fontWeight: 800, border: '1px solid #ccfbf1' },
+  cardSub:     { fontSize: 14, color: '#63748a', textAlign: 'center', margin: '0 0 16px', fontWeight: 600 },
+  trustStrip:   { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '-4px 0 16px', padding: '8px 10px', borderRadius: 14, background: '#f0fdfa', color: '#0f766e', fontSize: 12, fontWeight: 700, border: '1px solid #ccfbf1' },
   tabs:        { display: 'flex', gap: 12, marginBottom: 16 },
-  tab:         { minHeight: 104, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '14px 12px', borderRadius: 16 },
+  tab:         { minHeight: 96, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 10px', borderRadius: 16 },
   stepper:     { display: 'flex', alignItems: 'center', gap: 12, margin: '0 0 16px' },
-  field:       { display: 'flex', flexDirection: 'column', gap: 6 },
-  fieldLabel:  { fontSize: 11, fontWeight: 850, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' },
-  inputWrap:   { position: 'relative', display: 'block' },
-  inputIcon:   { position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#8aa0b8', pointerEvents: 'none', zIndex: 1 },
 };
 
 export default Register;

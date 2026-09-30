@@ -7,6 +7,7 @@ import { Calendar, FileText, CheckCircle, AlertCircle, Stethoscope, ChevronRight
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { formatDoctorName } from '../../utils/displayNames';
+import { formatAvailableDays } from '../../utils/formatDays';
 import { ProfileAvatar } from '../../components/ui/ProfileAvatar';
 import {
     PatientAlert,
@@ -207,7 +208,7 @@ const BookAppointment: React.FC = () => {
                                     />
                                     {selectedDoctor?.availableDays && (
                                         <p className="text-xs text-[var(--text-muted)] mt-2">
-                                            Doctor is generally available: {selectedDoctor.availableDays}
+                                            Doctor is generally available: {formatAvailableDays(selectedDoctor.availableDays)}
                                         </p>
                                     )}
                                 </div>

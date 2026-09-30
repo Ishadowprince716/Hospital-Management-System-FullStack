@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-heading: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
 /* ===========================
    CSS Variables / Design Tokens
    =========================== */
@@ -226,3 +233,75 @@ textarea {
 .animate-pulse-dot {
   animation: pulse-dot 1.5s ease-in-out infinite;
 }
+
+/* ===========================
+   Typography Utility Classes
+   =========================== */
+.font-display {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.025em;
+}
+
+.font-heading {
+  font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.font-mono-numbers {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  font-feature-settings: 'tnum' on, 'zero' on;
+}
+
+/* ===========================
+   Bento Grid & Glassmorphism
+   =========================== */
+.bento-card {
+  position: relative;
+  background: var(--card-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bento-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(45, 212, 191, 0.4);
+  box-shadow: 0 16px 40px -12px rgba(15, 118, 110, 0.15);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.dark-mode .glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  border-color: rgba(51, 65, 85, 0.6);
+}
+
+/* ===========================
+   Print Stylesheet
+   =========================== */
+@media print {
+  *, *::before, *::after {
+    color: #0f172a !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print, header, footer, nav, button:not(.print-include) {
+    display: none !important;
+  }
+  .card, .stat-card, .surface-panel, .bento-card {
+    border: 1px solid #cbd5e1 !important;
+    break-inside: avoid;
+  }
+}
+

@@ -6,6 +6,7 @@ import DashboardCommandBar from './DashboardCommandBar';
 import AIAgent from '../shared/AIAgent';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
+import { ParticleNetwork } from '@designcodeio/threeui';
 
 const DashboardLayout: React.FC = () => {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -27,7 +28,12 @@ const DashboardLayout: React.FC = () => {
                 setMobileMenuOpen={setMobileMenuOpen}
             />
 
-            <main className="min-h-screen pt-16 transition-all duration-300 md:pl-64">
+            {/* ThreeUI Ambient 3D Particle Network */}
+            <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden opacity-[0.06] dark:opacity-[0.14]">
+                <ParticleNetwork mode="auto" speed={0.4} density={0.5} />
+            </div>
+
+            <main className="relative z-10 min-h-screen pt-16 transition-all duration-300 md:pl-64">
                 <div className={`app-page ${isPatient ? 'px-4 py-5 sm:px-6 lg:px-8' : 'px-4 py-5 sm:px-6 lg:px-8'}`}>
                     <DashboardCommandBar />
                     <Outlet />

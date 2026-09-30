@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { clearAuthError, loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice';
 import type { RootState } from '../store';
 import api, { getApiErrorMessage } from '../api';
+import { ParticleNetwork } from '@designcodeio/threeui';
 
 type ApiResponse<T> = { success: boolean; message: string; data: T };
 type AuthResponse = { token: string; username: string; role: string; userId: number; fullName: string; profilePictureUrl?: string };
@@ -49,7 +50,7 @@ const FEATURES = [
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [role,     setRole]     = useState<Role>('PATIENT');
+  const [role,     setRole]     = useState<Role>('ADMIN');
   const [showPwd,  setShowPwd]  = useState(false);
   const [remember, setRemember] = useState(false);
   const [uFocus,   setUFocus]   = useState(false);
@@ -120,9 +121,20 @@ const Login: React.FC = () => {
     setRole(nextRole);
   };
 
+  const handleQuickFill = (accUser: string, accPass: string, accRole: Role) => {
+    setUsername(accUser);
+    setPassword(accPass);
+    updateRole(accRole);
+  };
+
   return (
     <div className="auth-page" style={S.page}>
       <style>{CSS}</style>
+
+      {/* ── 3D Interactive ThreeUI Background ────── */}
+      <div className="threeui-canvas-wrap" style={{ position: 'absolute', inset: 0, zIndex: 0, opacity: 0.65, pointerEvents: 'none' }}>
+        <ParticleNetwork mode="dark" speed={0.8} density={0.8} />
+      </div>
 
       {/* ── LEFT PANEL ─────────────────────────── */}
       <div className="auth-left" style={{ ...S.left, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(-24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1)' }}>
@@ -138,7 +150,7 @@ const Login: React.FC = () => {
           <h1 style={S.heading}>Hospital<br/>Management</h1>
           <p style={S.tagline}>Appointment &amp; Patient Record System</p>
           {apiStatus && (
-            <div style={{ marginTop: 14, display: 'inline-flex', alignItems: 'center', padding: '6px 14px', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', borderRadius: 20, fontSize: 13, color: '#fff', fontWeight: 600, border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+            <div style={{ marginTop: 14, display: 'inline-flex', alignItems: 'center', padding: '6px 14px', background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(10px)', borderRadius: 20, fontSize: 13, color: '#5eead4', fontWeight: 600, border: '1px solid rgba(94,234,212,0.3)', boxShadow: '0 4px 16px rgba(15,118,110,0.25)' }}>
               {apiStatus}
             </div>
           )}
@@ -179,11 +191,45 @@ const Login: React.FC = () => {
         </a>
       </div>
 
-      {/* ── RIGHT PANEL (white card) ────────────── */}
+      {/* ── RIGHT PANEL (glassmorphism card) ────────────── */}
       <div className="auth-right" style={{ ...S.right, opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(24px)', transition: 'all .7s cubic-bezier(.16,1,.3,1) .1s' }}>
         <div style={S.card}>
           <h2 style={S.cardTitle}>Welcome Back!</h2>
           <p style={S.cardSub}>Use your hospital ID and password to continue</p>
+
+          {/* Quick Demo Credentials Fill Chips */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 18, flexWrap: 'wrap', padding: '10px 12px', background: '#f8fafc', borderRadius: 14, border: '1px solid #e2e8f0' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Quick Test:</span>
+            {[
+              { label: 'Admin', u: 'whoami', p: 'iamgroot', r: 'ADMIN' as Role },
+              { label: 'Doctor', u: 'doctor1', p: 'doctor123', r: 'DOCTOR' as Role },
+              { label: 'Patient', u: 'patient1', p: 'patient123', r: 'PATIENT' as Role },
+            ].map(acc => (
+              <button
+                key={acc.label}
+                type="button"
+                onClick={() => handleQuickFill(acc.u, acc.p, acc.r)}
+                className="quick-chip"
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '5px 10px',
+                  borderRadius: 8,
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  color: '#0f766e',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                  transition: 'all .2s ease',
+                }}
+              >
+                ⚡ {acc.label}
+              </button>
+            ))}
+          </div>
 
           {/* Role Tabs */}
           <div style={S.tabs}>
@@ -209,8 +255,7 @@ const Login: React.FC = () => {
                 onFocus={() => setUFocus(true)}
                 onBlur={() => setUFocus(false)}
                 required
-                autoComplete="username"
-                style={{ ...S.input, borderColor: uFocus ? '#0dcfba' : '#e2e8f0', boxShadow: uFocus ? '0 0 0 3px rgba(13,207,186,0.15)' : 'none' }}
+                style={{ ...S.input, borderColor: uFocus ? '#0dcfba' : '#e2e8f0', boxShadow: uFocus ? '0 0 0 3px rgba(13,207,186,0.18)' : 'none' }}
               />
             </div>
 
@@ -224,19 +269,18 @@ const Login: React.FC = () => {
                 onFocus={() => setPFocus(true)}
                 onBlur={() => setPFocus(false)}
                 required
-                autoComplete="current-password"
-                style={{ ...S.input, borderColor: pFocus ? '#0dcfba' : '#e2e8f0', boxShadow: pFocus ? '0 0 0 3px rgba(13,207,186,0.15)' : 'none', paddingRight: 44 }}
+                style={{ ...S.input, borderColor: pFocus ? '#0dcfba' : '#e2e8f0', boxShadow: pFocus ? '0 0 0 3px rgba(13,207,186,0.18)' : 'none', paddingRight: 44 }}
               />
-              <button type="button" onClick={() => setShowPwd(v => !v)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 4 }}>
+              <button type="button" onClick={() => setShowPwd(s => !s)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 2 }}>
                 <EyeIcon off={showPwd}/>
               </button>
             </div>
 
-            {/* Remember + Forgot */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: '#64748b' }}>
-                <div onClick={() => setRemember(v => !v)} style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${remember ? '#0dcfba' : '#cbd5e1'}`, background: remember ? '#0dcfba' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s', cursor: 'pointer', flexShrink: 0 }}>
-                  {remember && <svg width="10" height="10" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>}
+            {/* Remember me & Forgot */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '2px 0 6px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#64748b', cursor: 'pointer', userSelect: 'none' }}>
+                <div onClick={() => setRemember(r => !r)} style={{ width: 17, height: 17, borderRadius: 5, border: `1.5px solid ${remember ? '#0dcfba' : '#cbd5e1'}`, background: remember ? '#0dcfba' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all .2s' }}>
+                  {remember && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </div>
                 Remember me
               </label>
@@ -276,6 +320,7 @@ const CSS = `
   .login-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(13,207,186,0.55) !important; }
   .role-tab { transition: all .25s cubic-bezier(.34,1.56,.64,1); outline: none; cursor: pointer; }
   .role-tab:hover { transform: translateY(-2px); }
+  .quick-chip:hover { border-color: #0dcfba !important; color: #0dcfba !important; transform: translateY(-1px); }
   .dev-credit:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.32); transform: translateY(-1px); }
   @media (max-width: 900px) {
     .auth-page { flex-direction: column; overflow-y: auto !important; }
@@ -291,7 +336,7 @@ const S: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'stretch',
     fontFamily: "'Inter', system-ui, sans-serif",
-    background: 'linear-gradient(135deg, #4dd9c0 0%, #38b2ea 30%, #c084fc 65%, #fb923c 100%)',
+    background: 'radial-gradient(ellipse at 25% 25%, #0d9488 0%, #0f172a 65%, #020617 100%)',
     position: 'relative',
     overflow: 'hidden',
   },
@@ -301,44 +346,46 @@ const S: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
+    position: 'relative',
+    zIndex: 2,
   },
   logoWrap: { marginBottom: 8 },
   logoBox: {
     width: 52, height: 52, borderRadius: 16,
-    background: 'rgba(255,255,255,0.25)',
-    backdropFilter: 'blur(8px)',
-    border: '1.5px solid rgba(255,255,255,0.4)',
+    background: 'rgba(255,255,255,0.2)',
+    backdropFilter: 'blur(10px)',
+    border: '1.5px solid rgba(255,255,255,0.35)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
   },
   heading: {
     fontSize: 48, fontWeight: 900, color: '#fff',
     lineHeight: 1.1, letterSpacing: '-1.5px',
-    textShadow: '0 2px 16px rgba(0,0,0,0.12)',
+    textShadow: '0 2px 20px rgba(0,0,0,0.25)',
   },
-  tagline: { fontSize: 15, color: 'rgba(255,255,255,0.75)', fontWeight: 500, marginTop: 10 },
+  tagline: { fontSize: 15, color: 'rgba(255,255,255,0.85)', fontWeight: 500, marginTop: 10 },
   featureCard: {
     display: 'flex', alignItems: 'center', gap: 14,
     padding: '14px 18px', borderRadius: 14,
-    background: 'rgba(255,255,255,0.18)',
-    backdropFilter: 'blur(12px)',
-    border: '1px solid rgba(255,255,255,0.3)',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+    background: 'rgba(255,255,255,0.1)',
+    backdropFilter: 'blur(16px)',
+    border: '1px solid rgba(255,255,255,0.2)',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
   },
   featureIcon: {
     width: 38, height: 38, borderRadius: 10,
-    background: 'rgba(255,255,255,0.25)',
+    background: 'rgba(255,255,255,0.2)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 18, flexShrink: 0,
   },
   featureTitle: { fontSize: 14, fontWeight: 700, color: '#fff', margin: '0 0 2px' },
-  featureDesc:  { fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: 0 },
+  featureDesc:  { fontSize: 12, color: 'rgba(255,255,255,0.75)', margin: 0 },
   devCredit: {
     display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto',
     width: '100%', maxWidth: 390, minHeight: 76,
     padding: '12px 14px', borderRadius: 14,
     background: 'rgba(255,255,255,0.08)',
-    border: '1px solid rgba(255,255,255,0.18)',
+    border: '1px solid rgba(255,255,255,0.2)',
     textDecoration: 'none',
     transition: 'all .2s ease',
     overflow: 'hidden',
@@ -355,23 +402,26 @@ const S: Record<string, React.CSSProperties> = {
     display: 'block',
   },
   devText: { minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 },
-  devEyebrow: { fontSize: 10, lineHeight: 1.2, color: 'rgba(255,255,255,0.62)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  devEyebrow: { fontSize: 10, lineHeight: 1.2, color: 'rgba(255,255,255,0.7)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   devName: { fontSize: 14, lineHeight: 1.25, color: '#2dd4bf', fontWeight: 800, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  devRole: { fontSize: 11, lineHeight: 1.25, color: 'rgba(255,255,255,0.66)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  devRole: { fontSize: 11, lineHeight: 1.25, color: 'rgba(255,255,255,0.75)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   devIcon: { marginLeft: 'auto', opacity: 0.85, flexShrink: 0 },
   right: {
     flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: '40px 48px',
+    position: 'relative',
+    zIndex: 2,
   },
   card: {
-    width: '100%', maxWidth: 400,
-    background: '#fff', borderRadius: 24,
+    width: '100%', maxWidth: 420,
+    background: 'rgba(255, 255, 255, 0.94)', borderRadius: 24,
+    backdropFilter: 'blur(24px)',
     padding: '36px 32px',
-    boxShadow: '0 24px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.5)',
+    boxShadow: '0 24px 80px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.6)',
   },
   cardTitle: { fontSize: 26, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px', textAlign: 'center', margin: '0 0 6px' },
-  cardSub:   { fontSize: 14, color: '#94a3b8', textAlign: 'center', margin: '0 0 24px', fontWeight: 500 },
-  tabs: { display: 'flex', gap: 10, marginBottom: 24 },
+  cardSub:   { fontSize: 14, color: '#64748b', textAlign: 'center', margin: '0 0 20px', fontWeight: 500 },
+  tabs: { display: 'flex', gap: 10, marginBottom: 20 },
   tab: {
     flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
     gap: 4, padding: '12px 6px', borderRadius: 12,

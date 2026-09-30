@@ -42,6 +42,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { updateCurrentUser } from '../../store/slices/authSlice';
 import { ProfileAvatar } from '../../components/ui/ProfileAvatar';
+import { ALL_WEEKDAYS, parseAvailableDays, formatAvailableDays } from '../../utils/formatDays';
 
 type Tab = 'profile' | 'security' | 'notifications' | 'system';
 
@@ -258,6 +259,8 @@ const SystemSettings: React.FC = () => {
     const [smsNotif, setSmsNotif] = useState(false);
     const [apptReminders, setApptReminders] = useState(true);
 
+    const [selectedDays, setSelectedDays] = useState<string[]>([]);
+
     const hydrateProfileForm = useCallback((profile: ProfileDetails | null) => {
         if (!profile) return;
 
@@ -266,6 +269,8 @@ const SystemSettings: React.FC = () => {
         setEmail(textValue(profile.email));
         setPhone(textValue(profile.phoneNumber));
         setProfilePictureUrl(textValue(profile.profilePictureUrl));
+        const days = parseAvailableDays(profile.availableDays);
+        setSelectedDays(days);
         setPatientProfile({
             dateOfBirth: textValue(profile.dateOfBirth),
             gender: textValue(profile.gender),
@@ -285,11 +290,20 @@ const SystemSettings: React.FC = () => {
             licenseNumber: textValue(profile.licenseNumber),
             experienceYears: textValue(profile.experienceYears),
             consultationFee: textValue(profile.consultationFee),
-            availableDays: textValue(profile.availableDays),
+            availableDays: profile.availableDays ? textValue(profile.availableDays) : JSON.stringify(days),
             availableTimeStart: textValue(profile.availableTimeStart),
             availableTimeEnd: textValue(profile.availableTimeEnd),
         });
     }, []);
+
+    const toggleDay = (day: string) => {
+        setSelectedDays(prev => {
+            const next = prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day];
+            const sorted = ALL_WEEKDAYS.filter(d => next.includes(d));
+            setDoctorProfile(dPrev => ({ ...dPrev, availableDays: JSON.stringify(sorted) }));
+            return sorted;
+        });
+    };
 
     const loadProfile = useCallback(async () => {
         if (!user?.id) return;
@@ -758,7 +772,41 @@ const SystemSettings: React.FC = () => {
                                                 <Input label="License number" value={doctorProfile.licenseNumber} onChange={e => updateDoctorProfile('licenseNumber', e.target.value)} placeholder="Medical registration ID" />
                                                 <Input label="Experience years" type="number" min="0" value={doctorProfile.experienceYears} onChange={e => updateDoctorProfile('experienceYears', e.target.value)} />
                                                 <Input label="Consultation fee (₹)" type="number" min="0" value={doctorProfile.consultationFee} onChange={e => updateDoctorProfile('consultationFee', e.target.value)} />
-                                                <Input label="Available days" value={doctorProfile.availableDays} onChange={e => updateDoctorProfile('availableDays', e.target.value)} placeholder="Monday, Wednesday, Friday" />
+                                                <div className="md:col-span-2 space-y-2 rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] p-3.5">
+                                                    <div className="flex items-center justify-between">
+                                                        <label className="text-sm font-semibold text-[var(--text-color)]">
+                                                            Available Working Days
+                                                        </label>
+                                                        <span className="text-xs font-semibold text-teal-600 dark:text-teal-400">
+                                                            {selectedDays.length} day{selectedDays.length === 1 ? '' : 's'} selected
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2 pt-1">
+                                                        {ALL_WEEKDAYS.map((day) => {
+                                                            const isSelected = selectedDays.includes(day);
+                                                            return (
+                                                                <button
+                                                                    key={day}
+                                                                    type="button"
+                                                                    onClick={() => toggleDay(day)}
+                                                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                                                                        isSelected
+                                                                            ? 'bg-teal-600 text-white border-teal-600 shadow-sm shadow-teal-600/30 ring-2 ring-teal-500/20'
+                                                                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-teal-400'
+                                                                    }`}
+                                                                >
+                                                                    <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-slate-400'}`} />
+                                                                    <span>{day}</span>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    <p className="text-xs text-[var(--text-muted)] pt-1">
+                                                        {selectedDays.length > 0
+                                                            ? `Schedule: ${formatAvailableDays(JSON.stringify(selectedDays))}`
+                                                            : 'Click the days above to establish your clinical availability schedule.'}
+                                                    </p>
+                                                </div>
                                                 <div className="grid grid-cols-2 gap-3">
                                                     <Input label="Start time" type="time" value={doctorProfile.availableTimeStart} onChange={e => updateDoctorProfile('availableTimeStart', e.target.value)} />
                                                     <Input label="End time" type="time" value={doctorProfile.availableTimeEnd} onChange={e => updateDoctorProfile('availableTimeEnd', e.target.value)} />
@@ -851,7 +899,7 @@ const SystemSettings: React.FC = () => {
                                         <div className="grid grid-cols-1 gap-3 text-sm">
                                             <div className="flex items-center gap-3"><Building2 className="h-4 w-4 text-slate-500" /><span className="flex-1 text-[var(--text-muted)]">Department</span><strong>{displayValue(doctorProfile.department)}</strong></div>
                                             <div className="flex items-center gap-3"><BadgeIndianRupee className="h-4 w-4 text-slate-500" /><span className="flex-1 text-[var(--text-muted)]">Fee</span><strong>{doctorProfile.consultationFee ? `₹${doctorProfile.consultationFee}` : 'Not added'}</strong></div>
-                                            <div className="flex items-center gap-3"><ClipboardList className="h-4 w-4 text-slate-500" /><span className="flex-1 text-[var(--text-muted)]">Availability</span><strong>{displayValue(doctorProfile.availableDays)}</strong></div>
+                                            <div className="flex items-center gap-3"><ClipboardList className="h-4 w-4 text-slate-500 mt-1 shrink-0" /><div className="flex-1 min-w-0"><span className="text-xs text-[var(--text-muted)] block mb-1">Availability</span><div className="flex flex-wrap gap-1">{selectedDays.length > 0 ? selectedDays.map(d => (<span key={d} className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 border border-teal-200 dark:border-teal-800">{d.slice(0, 3)}</span>)) : (<span className="text-xs font-semibold text-slate-400">Not configured</span>)}</div></div></div>
                                         </div>
                                     )}
                                     {role === 'ADMIN' && (

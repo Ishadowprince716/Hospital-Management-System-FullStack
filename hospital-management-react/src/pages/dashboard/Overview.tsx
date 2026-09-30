@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
 import type { RootState } from '../../store';
 import api from '../../api';
 import {
@@ -10,6 +11,7 @@ import {
 } from 'lucide-react';
 import { formatDoctorName } from '../../utils/displayNames';
 import { PatientPageHeader, PatientStatCard } from '../../components/patient/PatientPanel';
+import { ConstellationField } from '@designcodeio/threeui';
 
 // --- Types ---
 interface DashboardDTO {
@@ -265,29 +267,33 @@ const Overview: React.FC = () => {
                     icon={Activity}
                     tone="blue"
                     action={
-                        <a
-                            href="/patient/book-appointment"
+                        <Link
+                            to="/patient/book-appointment"
                                 className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--primary)] px-4 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(15,118,110,0.20)] transition-all hover:bg-[var(--primary-dark)] active:translate-y-px"
                         >
                             <CalendarPlus className="h-4 w-4" />
                             Book Appointment
-                        </a>
+                        </Link>
                     }
                 />
             ) : (
-                <div className="surface-panel flex items-center justify-between p-5">
-                    <div>
-                        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-color)' }}>
+                <div className="relative overflow-hidden surface-panel flex items-center justify-between p-6 rounded-2xl border border-slate-200/80 bg-white/80 shadow-sm backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/80">
+                    {/* ThreeUI Ambient Constellation Telemetry */}
+                    <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-80 opacity-25 dark:opacity-35 overflow-hidden">
+                        <ConstellationField mode="auto" speed={0.5} density={0.6} />
+                    </div>
+                    <div className="relative z-10">
+                        <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-color)' }}>
                             {greeting()}, {user?.fullName?.split(' ')[0] || user?.username}
                         </h1>
-                        <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
+                        <p className="mt-1 text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
                             {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         </p>
                     </div>
-                    <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
+                    <div className="relative z-10 hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold shadow-sm"
                         style={{ background: 'var(--primary-soft)', border: '1px solid var(--ring)', color: 'var(--primary)' }}>
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-dot" />
-                        System Online
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Live Clinical Telemetry Online
                     </div>
                 </div>
             )}
@@ -371,10 +377,10 @@ const Overview: React.FC = () => {
                         <CalendarCheck className="h-12 w-12 mx-auto mb-2 text-gray-300" />
                         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No appointments found.</p>
                         {role === 'PATIENT' && (
-                            <a href="/patient/book-appointment"
+                            <Link to="/patient/book-appointment"
                                 className="inline-flex items-center mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium">
                                 Book your first appointment →
-                            </a>
+                            </Link>
                         )}
                     </div>
                 ) : (
@@ -421,110 +427,110 @@ const Overview: React.FC = () => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {role === 'PATIENT' && (
                         <>
-                            <a href="/patient/book-appointment"
-                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-blue-300 hover:bg-blue-50 transition-all cursor-pointer group"
+                            <Link to="/patient/book-appointment"
+                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-blue-300 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-all cursor-pointer group"
                                 style={{ borderColor: 'var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                                    <CalendarCheck className="h-5 w-5 text-blue-600" />
+                                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                    <CalendarCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                 </div>
-                                <span className="text-xs font-medium text-center" style={{ color: 'var(--text-color)' }}>Book Appointment</span>
-                            </a>
-                            <a href="/patient/medical-records"
-                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-teal-300 hover:bg-teal-50 transition-all cursor-pointer group"
+                                <span className="text-xs font-semibold text-center" style={{ color: 'var(--text-color)' }}>Book Appointment</span>
+                            </Link>
+                            <Link to="/patient/medical-records"
+                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-teal-300 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 transition-all cursor-pointer group"
                                 style={{ borderColor: 'var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center group-hover:bg-teal-200 transition-colors">
-                                    <FileText className="h-5 w-5 text-teal-600" />
+                                <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                    <FileText className="h-5 w-5 text-teal-600 dark:text-teal-400" />
                                 </div>
-                                <span className="text-xs font-medium text-center" style={{ color: 'var(--text-color)' }}>Medical Records</span>
-                            </a>
-                            <a href="/patient/prescriptions"
-                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-purple-300 hover:bg-purple-50 transition-all cursor-pointer group"
+                                <span className="text-xs font-semibold text-center" style={{ color: 'var(--text-color)' }}>Medical Records</span>
+                            </Link>
+                            <Link to="/patient/prescriptions"
+                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-purple-300 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 transition-all cursor-pointer group"
                                 style={{ borderColor: 'var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                                    <FileText className="h-5 w-5 text-purple-600" />
+                                <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                    <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                                 </div>
-                                <span className="text-xs font-medium text-center" style={{ color: 'var(--text-color)' }}>Prescriptions</span>
-                            </a>
-                            <a href="/patient/billing"
-                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-amber-300 hover:bg-amber-50 transition-all cursor-pointer group"
+                                <span className="text-xs font-semibold text-center" style={{ color: 'var(--text-color)' }}>Prescriptions</span>
+                            </Link>
+                            <Link to="/patient/billing"
+                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-amber-300 hover:bg-amber-50/50 dark:hover:bg-amber-900/20 transition-all cursor-pointer group"
                                 style={{ borderColor: 'var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
-                                    <CreditCard className="h-5 w-5 text-amber-600" />
+                                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                    <CreditCard className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                                 </div>
-                                <span className="text-xs font-medium text-center" style={{ color: 'var(--text-color)' }}>View Bills</span>
-                            </a>
+                                <span className="text-xs font-semibold text-center" style={{ color: 'var(--text-color)' }}>View Bills</span>
+                            </Link>
                         </>
                     )}
                     {role === 'ADMIN' && (
                         <>
-                            <a href="/admin/doctors"
-                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-teal-300 hover:bg-teal-50 transition-all cursor-pointer group"
+                            <Link to="/admin/doctors"
+                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-teal-300 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 transition-all cursor-pointer group"
                                 style={{ borderColor: 'var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center group-hover:bg-teal-200 transition-colors">
-                                    <Stethoscope className="h-5 w-5 text-teal-600" />
+                                <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                    <Stethoscope className="h-5 w-5 text-teal-600 dark:text-teal-400" />
                                 </div>
-                                <span className="text-xs font-medium" style={{ color: 'var(--text-color)' }}>Manage Doctors</span>
-                            </a>
-                            <a href="/admin/patients"
-                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-blue-300 hover:bg-blue-50 transition-all cursor-pointer group"
+                                <span className="text-xs font-semibold" style={{ color: 'var(--text-color)' }}>Manage Doctors</span>
+                            </Link>
+                            <Link to="/admin/patients"
+                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-blue-300 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-all cursor-pointer group"
                                 style={{ borderColor: 'var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                                    <Users className="h-5 w-5 text-blue-600" />
+                                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                    <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                 </div>
-                                <span className="text-xs font-medium" style={{ color: 'var(--text-color)' }}>Manage Patients</span>
-                            </a>
-                            <a href="/admin/analytics"
-                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-purple-300 hover:bg-purple-50 transition-all cursor-pointer group"
+                                <span className="text-xs font-semibold" style={{ color: 'var(--text-color)' }}>Manage Patients</span>
+                            </Link>
+                            <Link to="/admin/analytics"
+                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-purple-300 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 transition-all cursor-pointer group"
                                 style={{ borderColor: 'var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                                    <Activity className="h-5 w-5 text-purple-600" />
+                                <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                    <Activity className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                                 </div>
-                                <span className="text-xs font-medium" style={{ color: 'var(--text-color)' }}>Analytics</span>
-                            </a>
-                            <a href="/admin/billing"
-                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-amber-300 hover:bg-amber-50 transition-all cursor-pointer group"
+                                <span className="text-xs font-semibold" style={{ color: 'var(--text-color)' }}>Analytics</span>
+                            </Link>
+                            <Link to="/admin/billing"
+                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-amber-300 hover:bg-amber-50/50 dark:hover:bg-amber-900/20 transition-all cursor-pointer group"
                                 style={{ borderColor: 'var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
-                                    <CreditCard className="h-5 w-5 text-amber-600" />
+                                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                    <CreditCard className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                                 </div>
-                                <span className="text-xs font-medium" style={{ color: 'var(--text-color)' }}>Billing</span>
-                            </a>
+                                <span className="text-xs font-semibold" style={{ color: 'var(--text-color)' }}>Billing</span>
+                            </Link>
                         </>
                     )}
                     {role === 'DOCTOR' && (
                         <>
-                            <a href="/doctor/appointments"
-                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-teal-300 hover:bg-teal-50 transition-all cursor-pointer group"
+                            <Link to="/doctor/appointments"
+                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-teal-300 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 transition-all cursor-pointer group"
                                 style={{ borderColor: 'var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center">
-                                    <CalendarCheck className="h-5 w-5 text-teal-600" />
+                                <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                    <CalendarCheck className="h-5 w-5 text-teal-600 dark:text-teal-400" />
                                 </div>
-                                <span className="text-xs font-medium" style={{ color: 'var(--text-color)' }}>Appointments</span>
-                            </a>
-                            <a href="/doctor/patients"
-                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-blue-300 hover:bg-blue-50 transition-all cursor-pointer group"
+                                <span className="text-xs font-semibold" style={{ color: 'var(--text-color)' }}>Appointments</span>
+                            </Link>
+                            <Link to="/doctor/patients"
+                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-blue-300 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-all cursor-pointer group"
                                 style={{ borderColor: 'var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                                    <Users className="h-5 w-5 text-blue-600" />
+                                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                    <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                 </div>
-                                <span className="text-xs font-medium" style={{ color: 'var(--text-color)' }}>My Patients</span>
-                            </a>
-                            <a href="/doctor/prescriptions"
-                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-purple-300 hover:bg-purple-50 transition-all cursor-pointer group"
+                                <span className="text-xs font-semibold" style={{ color: 'var(--text-color)' }}>My Patients</span>
+                            </Link>
+                            <Link to="/doctor/prescriptions"
+                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-purple-300 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 transition-all cursor-pointer group"
                                 style={{ borderColor: 'var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
-                                    <FileText className="h-5 w-5 text-purple-600" />
+                                <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                    <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                                 </div>
-                                <span className="text-xs font-medium" style={{ color: 'var(--text-color)' }}>Prescriptions</span>
-                            </a>
-                            <a href="/doctor/availability"
-                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-emerald-300 hover:bg-emerald-50 transition-all cursor-pointer group"
+                                <span className="text-xs font-semibold" style={{ color: 'var(--text-color)' }}>Prescriptions</span>
+                            </Link>
+                            <Link to="/doctor/availability"
+                                className="flex flex-col items-center gap-2 p-4 rounded-xl border hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 transition-all cursor-pointer group"
                                 style={{ borderColor: 'var(--border-color)' }}>
-                                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
-                                    <Activity className="h-5 w-5 text-emerald-600" />
+                                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                    <Activity className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                                 </div>
-                                <span className="text-xs font-medium" style={{ color: 'var(--text-color)' }}>Availability</span>
-                            </a>
+                                <span className="text-xs font-semibold" style={{ color: 'var(--text-color)' }}>Availability</span>
+                            </Link>
                         </>
                     )}
                 </div>
