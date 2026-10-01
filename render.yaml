@@ -10,3 +10,5 @@ services:
         value: 8080
       - key: SPRING_PROFILES_ACTIVE
         value: prod
+      - key: JWT_SECRET
+        value: medicare-hms-enterprise-production-jwt-secret-key-32-bytes
