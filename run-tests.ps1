@@ -173,8 +173,15 @@ Test-LiveEndpoint -Name "Doctor Authentication (doctor1)" -Module "Security / RB
 # 4. Patient Authentication
 $script:patToken = ""
 Test-LiveEndpoint -Name "Patient Authentication (patient1)" -Module "Security / RBAC" -Action {
-    $body = @{ username = "patient1"; password = "patient123"; role = "PATIENT" } | ConvertTo-Json
-    $res = Invoke-RestMethod -Uri "http://localhost:8080/api/auth/login" -Method Post -Body $body -ContentType "application/json"
+    try {
+        $body = @{ username = "patient1"; password = "patient123"; role = "PATIENT" } | ConvertTo-Json
+        $res = Invoke-RestMethod -Uri "http://localhost:8080/api/auth/login" -Method Post -Body $body -ContentType "application/json"
+    } catch {
+        $regBody = @{ username = "patient1"; password = "patient123"; fullName = "Default Patient"; email = "patient1@hospital.local"; phoneNumber = "9123456789"; role = "PATIENT" } | ConvertTo-Json
+        Invoke-RestMethod -Uri "http://localhost:8080/api/auth/register" -Method Post -Body $regBody -ContentType "application/json" | Out-Null
+        $body = @{ username = "patient1"; password = "patient123"; role = "PATIENT" } | ConvertTo-Json
+        $res = Invoke-RestMethod -Uri "http://localhost:8080/api/auth/login" -Method Post -Body $body -ContentType "application/json"
+    }
     if (-not $res.data.token) { throw "No JWT returned" }
     $script:patToken = $res.data.token
     "JWT Issued, Role: $($res.data.role), UserID: $($res.data.userId)"

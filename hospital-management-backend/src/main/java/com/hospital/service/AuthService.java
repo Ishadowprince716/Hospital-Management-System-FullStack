@@ -265,6 +265,20 @@ public class AuthService {
             doctorRepository.save(doctor);
             logger.info("Default doctor user '{}' created", seedDoctorUsername);
         }
+
+        if (!userRepository.existsByUsername("patient1")) {
+            Patient patient = new Patient();
+            patient.setUsername("patient1");
+            patient.setPassword(passwordEncoder.encode("patient123"));
+            patient.setEmail("patient1@hospital.local");
+            patient.setPhoneNumber("9123456789");
+            patient.setRole("PATIENT");
+            patient.setFullName("Default Patient");
+            patient.setIsActive(true);
+            patient.setProvider("LOCAL");
+            patientRepository.save(patient);
+            logger.info("Default patient user 'patient1' created");
+        }
     }
 
     /**
